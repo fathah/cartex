@@ -67,6 +67,10 @@ model Settings {
   // Commerce Settings
   currency String @default("USD")
 
+  // SEO
+  seoTitle       String?
+  seoDescription String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

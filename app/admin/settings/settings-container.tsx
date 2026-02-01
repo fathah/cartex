@@ -3,7 +3,7 @@
 import React from 'react';
 import { Tabs } from 'antd';
 import { Store, CreditCard, Truck } from 'lucide-react';
-import SettingsForm from './settings-form';
+import SiteSettings from './SiteSettings/SiteSettings';
 import ShippingSettings from './shipping-settings';
 import PaymentSettings from './Payment/payment-settings';
 
@@ -14,14 +14,14 @@ interface SettingsContainerProps {
 export default function SettingsContainer({ initialSettings }: SettingsContainerProps) {
   const items = [
     {
-      key: 'store',
+      key: 'site',
       label: (
         <span className="flex items-center gap-2">
           <Store size={16} />
-          Store Settings
+          Site Settings
         </span>
       ),
-      children: <SettingsForm initialSettings={initialSettings} />,
+      children: <SiteSettings initialSettings={initialSettings} />,
     },
     {
       key: 'payment',
@@ -55,7 +55,7 @@ export default function SettingsContainer({ initialSettings }: SettingsContainer
         <Tabs 
             tabPlacement="start" 
             items={items} 
-            defaultActiveKey="store"
+            defaultActiveKey="site"
             className="min-h-[400px]" 
         />
   

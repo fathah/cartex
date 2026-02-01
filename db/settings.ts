@@ -6,6 +6,8 @@ export interface UpdateSettingsData {
   faviconUrl?: string;
   themeConfig?: any;
   currency?: string;
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 export default class SettingsDB {

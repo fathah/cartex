@@ -5,7 +5,7 @@ import CartDrawer from "@/components/store/cart-drawer";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col min-h-screen font-[family-name:var(--font-geist-sans)]">
+    <div className="flex flex-col min-h-screen">
       <StoreHeader />
       <main className="flex-grow">
         {children}
