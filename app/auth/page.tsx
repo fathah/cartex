@@ -1,17 +1,15 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { AppKeys } from "@/constants/keys";
 import { ZAuthClient } from "@ziqx/auth";
 import { validateAdminAuthToken } from "@/services/zauth";
-import { Loading3QuartersOutlined, LoadingOutlined } from "@ant-design/icons";
+import { LoadingOutlined } from "@ant-design/icons";
 
-
-const AdminAuth = () => {
+const AuthContent = () => {
     const params = useSearchParams();
-
 
     const login = useCallback(() => {
          const auth = new ZAuthClient({
@@ -36,9 +34,8 @@ const AdminAuth = () => {
             })
         } else {
             login();
-            
         }
-    }, [params]);
+    }, [params, login]);
 
 
     return (
@@ -46,6 +43,14 @@ const AdminAuth = () => {
             <LoadingOutlined spin className="text-2xl"/>
             Authenticating..
         </div>
+    );
+}
+
+const AdminAuth = () => {
+    return (
+        <Suspense fallback={<div className="h-screen fullcenter">Loading...</div>}>
+            <AuthContent />
+        </Suspense>
     );
 }
 
