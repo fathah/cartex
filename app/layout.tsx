@@ -33,7 +33,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={font.className}
+        className={`${font.className} overflow-x-hidden`}
       >
         <AntdRegistry>
           <CurrencyProvider initialCurrency={settings.currency}>

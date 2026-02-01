@@ -74,7 +74,10 @@ export async function removeMedia(mediaId: string, productId: string) {
 }
 
 
-export async function checkSlugAvailability(slug: string) {
+export async function checkSlugAvailability(slug: string, excludeId?: string) {
     const product = await ProductDB.findBySlug(slug);
+    if (product && excludeId && product.id === excludeId) {
+        return true; // Still available if it's the same product
+    }
     return !product;
 }

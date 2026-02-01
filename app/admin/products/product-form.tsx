@@ -44,36 +44,56 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
     const ensureUniqueSlug = async (baseSlug: string): Promise<string> => {
         let currentSlug = baseSlug;
-        let available = await checkSlugAvailability(currentSlug);
+        let available = await checkSlugAvailability(currentSlug, initialData?.id);
         
         while (!available) {
             // Append 4 random alphanumeric characters
             const randomSuffix = Math.random().toString(36).substring(2, 6);
             currentSlug = `${baseSlug}-${randomSuffix}`;
-            available = await checkSlugAvailability(currentSlug);
+            available = await checkSlugAvailability(currentSlug, initialData?.id);
         }
         return currentSlug;
     };
 
-    const handleTitleBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const title = e.target.value;
         const currentSlug = form.getFieldValue('slug');
+        // Auto-generate slug if it was empty or previously matches the slugified title pattern
+        // For simplicity based on request "slug should be auto generated on user typing and title":
+        // We will update it. But we should respect if user manually edited it? 
+        // Let's stick to: Always update slug when title changes unless we detect manual override... 
+        // actually simplest UX is: update slug = slugify(title). User can edit slug *after* title is done.
+        // If they edit title again, the slug resets. This is common in many CMS unless there is a "lock" button.
+        // Given complexity, let's just one-way bind: Title -> Slug.
         
-        // Only generate if slug is empty or we specifically want to auto-update (usually only when creating)
-        // User request says "check availability... add random strings... recheck".
-        // Implementation: If slug is empty OR we are adhering to "generate on type title", we should try to match title.
-        // Let's be safe: If slug is empty, definitely generate. 
-        // If slug is NOT empty, we probably shouldn't overwrite unless the user cleared it? 
-        // User said "generate slug on type title, and on blur title...". 
-        // I will do it when slug is empty, or if not isEdit (creating new product) and user hasn't manually touched slug? 
-        // Simplest UX: If slug field is empty, generate from title.
-        
-        if (title && !currentSlug) {
-             const baseSlug = slugify(title);
-             const uniqueSlug = await ensureUniqueSlug(baseSlug);
-             form.setFieldsValue({ slug: uniqueSlug });
+        const newSlug = slugify(title);
+        form.setFieldsValue({ slug: newSlug });
+    };
+
+    const handleTitleBlur = async () => {
+        const currentSlug = form.getFieldValue('slug');
+        if (currentSlug) {
+             const uniqueSlug = await ensureUniqueSlug(currentSlug);
+             if (uniqueSlug !== currentSlug) {
+                 form.setFieldsValue({ slug: uniqueSlug });
+                 message.info(`Slug adjusted to '${uniqueSlug}' to ensure uniqueness.`);
+             }
         }
     };
+    
+    // Also handle Slug Blur in case they manually edit slug
+    const handleSlugBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        if (val) {
+             const uniqueSlug = await ensureUniqueSlug(slugify(val));
+             if (uniqueSlug !== slugify(val)) {
+                 form.setFieldsValue({ slug: uniqueSlug });
+                 message.info(`Slug adjusted to '${uniqueSlug}' to ensure uniqueness.`);
+             } else {
+                 form.setFieldsValue({ slug: uniqueSlug }); // ensure formatting
+             }
+        }
+    }
 
     const handleUpload = async (options: any) => {
         const { file, onSuccess, onError } = options;
@@ -152,7 +172,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                             label="Title"
                             rules={[{ required: true }]}
                         >
-                            <Input placeholder="Short Sleeve T-Shirt" onBlur={handleTitleBlur} />
+                            <Input placeholder="Short Sleeve T-Shirt" onChange={handleTitleChange} onBlur={handleTitleBlur} />
                         </Form.Item>
 
                         <Form.Item
@@ -176,7 +196,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                             rules={[{ required: true }]}
                             help="Unique URL identifier"
                         >
-                            <Input placeholder="short-sleeve-t-shirt" />
+                            <Input placeholder="short-sleeve-t-shirt" onBlur={handleSlugBlur} />
                         </Form.Item>
 
                         <Form.Item
