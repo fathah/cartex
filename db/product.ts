@@ -248,4 +248,13 @@ export default class ProductDB {
         });
     });
   }
+
+  static async count() {
+    return await prisma.product.count({
+        where: {
+            deletedAt: null,
+            status: 'ACTIVE'
+        }
+    });
+  }
 }

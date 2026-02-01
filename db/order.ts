@@ -79,15 +79,29 @@ const OrderDB = {
     },
 
     getStats: async () => {
-        const [total, fulfilled, unpaid, returns] = await Promise.all([
+        const [total, fulfilled, unpaid, returns, totalSalesResult] = await Promise.all([
             prisma.order.count(),
             prisma.order.count({ where: { fulfillmentStatus: 'FULFILLED' } }),
             prisma.order.count({ where: { paymentStatus: 'PENDING' } }), // Assuming PENDING is unpaid
              // No explicit return status in enum, using CANCELLED for approximation or 0
-            prisma.order.count({ where: { status: 'REFUNDED' } }) 
+            prisma.order.count({ where: { status: 'REFUNDED' } }),
+            prisma.order.aggregate({
+                _sum: {
+                    totalPrice: true
+                },
+                where: {
+                    paymentStatus: 'PAID'
+                }
+            })
         ]);
         
-        return { total, fulfilled, unpaid, returns };
+        return { 
+            total, 
+            fulfilled, 
+            unpaid, 
+            returns, 
+            totalSales: totalSalesResult._sum.totalPrice || 0 
+        };
     }
 }
 

@@ -58,15 +58,11 @@ export default function CustomerList({ initialCustomers, initialTotal }: Custome
   ];
 
   return (
-    <div className='p-6 bg-gray-50 min-h-screen'>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Customers</h1>
-        <Button>Export</Button>
-      </div>
+    <div >
+      
 
-      <div className="bg-white rounded-lg shadow-sm">
          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">All Customers</h2>
+            <h2 className="text-lg font-semibold">Customers</h2>
             <div className="flex gap-2">
                  <Input prefix={<Search size={16} />} placeholder="Search customers..." className="w-64" />
             </div>
@@ -78,7 +74,7 @@ export default function CustomerList({ initialCustomers, initialTotal }: Custome
             pagination={{ total: initialTotal, pageSize: 10 }}
             loading={loading}
          />
-      </div>
+     
     </div>
   );
 }

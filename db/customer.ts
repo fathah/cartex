@@ -56,4 +56,8 @@ export default class CustomerDB {
 
     return { customers, total };
   }
+
+  static async count() {
+    return await prisma.customer.count();
+  }
 }

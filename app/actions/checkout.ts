@@ -11,9 +11,13 @@ const TEST_CUSTOMER_EMAIL = "john.doe@example.com";
 export async function getCheckoutData() {
     let customer = null;
     
-    if (TEST_CUSTOMER_EMAIL) {
+    // 1. Try to get logged in user from cookies/auth service
+    // For now we will check if there is a hardcoded test user until full auth is wired
+    const email = TEST_CUSTOMER_EMAIL; 
+
+    if (email) {
         // Try finding existing first
-        const existing = await CustomerDB.findByEmail(TEST_CUSTOMER_EMAIL);
+        const existing = await CustomerDB.findByEmail(email);
         
         if (existing) {
             customer = existing;
@@ -22,7 +26,7 @@ export async function getCheckoutData() {
             const newCustomer = await CustomerDB.create({
                 firstName: "John",
                 lastName: "Doe",
-                email: TEST_CUSTOMER_EMAIL,
+                email: email,
                 phone: "+1 555 0199",
                 isGuest: false
             });
