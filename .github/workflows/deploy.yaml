@@ -88,6 +88,10 @@ jobs:
             cd ${{ vars.SERVER_DEPLOY_PATH }}
             npm install --omit=dev
             export DATABASE_URL=${{ secrets.DATABASE_URL }}
+            export ZDRIVE_KEY=${{ secrets.ZDRIVE_KEY }}
+            export ZDRIVE_SECRET=${{ secrets.ZDRIVE_SECRET }}
+            export NEXT_PUBLIC_ZAUTH_KEY=${{ vars.NEXT_PUBLIC_ZAUTH_KEY }}
+            export NEXT_PUBLIC_ZDRIVE_ROOT=${{ vars.NEXT_PUBLIC_ZDRIVE_ROOT }}
             npx prisma migrate deploy
             npx prisma generate
             pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
