@@ -26,7 +26,7 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({ products = [], settin
                     <span className="inline-block px-3 py-1 bg-[#E8D4C5] text-[#8B5E3C] text-xs font-bold tracking-wider uppercase rounded-sm">
                         Luxury & Premium
                     </span>
-                    <h1 className="text-5xl lg:text-7xl font-serif text-[#4A3B32] leading-tight">
+                    <h1 className="text-5xl lg:text-7xl  text-[#4A3B32]  font-black">
                         Revel The Beauty <br /> Inside You
                     </h1>
                     <p className="text-[#6D5D52] text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed">
@@ -45,16 +45,20 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({ products = [], settin
                         </Link>
                     </div>
                 </div>
-                <div className="lg:w-1/2 relative bg-[#EBE0D8] rounded-full p-12 lg:p-20 shadow-xl overflow-hidden">
-                     {/* Placeholder for Hero Image - Simulating the bottle arrangement */}
-                     <div className="relative z-10 w-full aspect-square flex items-center justify-center">
+                <div className="lg:w-1/2 relative flex items-center justify-center p-8 lg:p-0">
+                     {/* Decorative Elements */}
+                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-[#EBE0D8]/50 to-[#FDF8F5] rounded-full blur-3xl -z-10"></div>
+                     <div className="absolute top-0 right-0 w-72 h-72 bg-[#DFA048]/10 rounded-full blur-3xl"></div>
+                     <div className="absolute bottom-0 left-0 w-56 h-56 bg-[#6F4E37]/5 rounded-full blur-2xl"></div>
+
+                     {/* Main Hero Image */}
+                     <div className="absolute z-0  w-full scale-150 transform  transition-transform duration-700 ease-out">
                         <img 
-                            src="/images/perfume.png" 
+                            src="/images/hero.png" 
                             alt="Luxury Perfume" 
-                            className="object-contain w-full h-full drop-shadow-2xl mix-blend-multiply" 
+                            className="w-full h-auto" 
                         />
                      </div>
-                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
                 </div>
             </section>
 
