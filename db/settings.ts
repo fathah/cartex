@@ -13,21 +13,39 @@ export interface UpdateSettingsData {
 export default class SettingsDB {
   private static GLOBAL_ID = "global";
 
-  /**
-   * Get the global settings. Creates default settings atomically if not found.
-   * Uses upsert to prevent race conditions during parallel builds.
-   */
   static async get() {
-    return await prisma.settings.upsert({
-      where: { id: this.GLOBAL_ID },
-      update: {}, // Don't update if exists
-      create: {
-        id: this.GLOBAL_ID,
-        storeName: "My Store",
-        currency: "USD",
-        themeConfig: {},
-      },
-    });
+    try {
+      const existing = await prisma.settings.findUnique({
+        where: { id: this.GLOBAL_ID },
+      });
+
+      if (existing) {
+        return existing;
+      }
+
+      // If not found, try to create
+      return await prisma.settings.create({
+        data: {
+          id: this.GLOBAL_ID,
+          storeName: "Cartex Store",
+          currency: "AED",
+          themeConfig: {},
+        },
+      });
+    } catch (error: any) {
+      // If creation fails due to unique constraint (parallel build race condition),
+      // fetch the record that was created by another process
+      if (error.code === 'P2002') {
+        const settings = await prisma.settings.findUnique({
+          where: { id: this.GLOBAL_ID },
+        });
+        if (settings) {
+          return settings;
+        }
+      }
+      // Re-throw if it's a different error
+      throw error;
+    }
   }
 
   /**
