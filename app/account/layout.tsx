@@ -3,8 +3,16 @@ import React from 'react';
 
 import StoreHeader from '@/components/store/header';
 import SideBarMenu from './SideBarMenu';
+import { redirect } from 'next/navigation';
+import { checkUserAuth } from '@/utils/auth';
 
-const AccountPageLayout = ({ children }: { children: React.ReactNode }) => {
+const AccountPageLayout = async ({ children }: { children: React.ReactNode }) => {
+
+  const isAuthenticated = await checkUserAuth();
+
+  if(!isAuthenticated){
+    return redirect('/login');
+  }
 
   return (
       <div className="min-h-screen bg-gray-50">

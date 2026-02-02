@@ -7,6 +7,9 @@ import prisma from '@/db/prisma';
 
 import { sendMail } from '@/services/mail';
 import { Prisma } from '@prisma/client';
+import CartexUserTokenService from '@/services/token_service';
+import { setAuthToken } from '@/utils/auth';
+import { AppKeys } from '@/constants/keys';
 
 export async function checkEmail(email: string) {
   const customer = await CustomerDB.findByEmail(email);
@@ -28,14 +31,13 @@ export async function login(email: string, password: string) {
   }
 
   // Set session cookie
-  const cookieStore = await cookies();
-  cookieStore.set('customer_session', customer.id, { 
-    httpOnly: true, 
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7 // 1 week
-  });
+  const token = await CartexUserTokenService.generateJWT(customer.id);
+  if(token){
+    await setAuthToken(token);
+    return { success: true, customerId: customer.id };
+  }
 
-  return { success: true, customerId: customer.id };
+  return { success: false, error: 'Failed to generate token' };
 }
 
 export async function sendOtp(email: string) {
@@ -89,7 +91,18 @@ export async function verifyOtp(email: string, otp: string) {
         return { success: false, error: "Invalid OTP" };
     }
 
-    return { success: true };
+    await prisma.customer.update({
+        where: { id: customer.id },
+        data: { otp: null, otpExpiresAt: null }
+    });
+
+    const token = await CartexUserTokenService.generateJWT(customer.id);
+    if(token){
+        await setAuthToken(token);
+        return { success: true, customerId: customer.id };
+    }
+
+    return { success: false, error: 'Failed to generate token' };
 }
 
 
@@ -115,18 +128,22 @@ export async function register(email: string, password: string, otp: string) {
       }
   });
 
-  // Auto login
-  const cookieStore = await cookies();
-  cookieStore.set('customer_session', customer.id, { 
-    httpOnly: true, 
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7
-  });
+  const token = await CartexUserTokenService.generateJWT(customer.id);
+  if(token){
+      await setAuthToken(token);
+      return { success: true, customerId: customer.id };
+  }
 
-  return { success: true, customerId: customer.id };
+  return { success: false, error: 'Failed to generate token' };
 }
 
 export async function logout() {
-  const cookieStore = await cookies();
-  cookieStore.delete('customer_session');
+    try {
+        const cookieStore = await cookies();
+        cookieStore.delete(AppKeys.USER_AUTH_TOKEN);  
+        return { success: true };
+    } catch (error) {
+        console.error("Logout Error:", error);
+        return { success: false, error: "Failed to logout" };
+    }
 }

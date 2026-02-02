@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Form, Input, Button, message, Checkbox } from 'antd';
-import { checkEmail, login, register, sendOtp, verifyOtp } from '@/app/actions/auth';
+import { checkEmail, login, register, sendOtp, verifyOtp } from '@/app/login/actions';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {

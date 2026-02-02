@@ -47,6 +47,14 @@ jobs:
           if [ -z "${{ secrets.SERVER_USER }}" ]; then echo "❌ Missing secret: SERVER_USER"; exit 1; fi
           if [ -z "${{ secrets.SERVER_SSH_KEY }}" ]; then echo "❌ Missing secret: SERVER_SSH_KEY"; exit 1; fi
 
+          # Other Required Secrets
+          if [ -z "${{ secrets.JWT_SECRET }}" ]; then echo "❌ Missing secret: JWT_SECRET"; exit 1; fi
+          if [ -z "${{ secrets.ZDRIVE_KEY }}" ]; then echo "❌ Missing secret: ZDRIVE_KEY"; exit 1; fi
+          if [ -z "${{ secrets.ZDRIVE_SECRET }}" ]; then echo "❌ Missing secret: ZDRIVE_SECRET"; exit 1; fi
+          if [ -z "${{ secrets.SMTP_HOST }}" ]; then echo "❌ Missing secret: SMTP_HOST"; exit 1; fi
+          if [ -z "${{ secrets.SMTP_USER }}" ]; then echo "❌ Missing secret: SMTP_USER"; exit 1; fi
+          if [ -z "${{ secrets.SMTP_PASSWORD }}" ]; then echo "❌ Missing secret: SMTP_PASSWORD"; exit 1; fi
+
           # Check required files
           if [ ! -f "ecosystem.config.js" ]; then echo "❌ Missing file: ecosystem.config.js"; exit 1; fi
           
@@ -94,6 +102,7 @@ jobs:
             export SMTP_HOST=${{ secrets.SMTP_HOST }}
             export SMTP_USER=${{ secrets.SMTP_USER }}
             export SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            export JWT_SECRET=${{ secrets.JWT_SECRET }}
             npx prisma migrate deploy
             npx prisma generate
             pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
