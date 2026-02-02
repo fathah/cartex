@@ -263,6 +263,10 @@ model Customer {
   firstName String?
   lastName  String?
 
+  passwordHash String?
+  otp          String?
+  otpExpiresAt DateTime?
+
   isGuest Boolean @default(false)
 
   createdAt DateTime @default(now())

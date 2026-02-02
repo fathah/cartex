@@ -91,6 +91,9 @@ jobs:
             export DATABASE_URL=${{ secrets.DATABASE_URL }}
             export ZDRIVE_KEY=${{ secrets.ZDRIVE_KEY }}
             export ZDRIVE_SECRET=${{ secrets.ZDRIVE_SECRET }}
+            export SMTP_HOST=${{ secrets.SMTP_HOST }}
+            export SMTP_USER=${{ secrets.SMTP_USER }}
+            export SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
             npx prisma migrate deploy
             npx prisma generate
             pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js

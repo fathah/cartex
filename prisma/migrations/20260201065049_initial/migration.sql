@@ -16,6 +16,18 @@ CREATE TYPE "InventoryPolicy" AS ENUM ('DENY', 'CONTINUE');
 -- CreateEnum
 CREATE TYPE "CartStatus" AS ENUM ('ACTIVE', 'CONVERTED', 'ABANDONED');
 
+-- CreateEnum
+CREATE TYPE "ShippingRateType" AS ENUM ('FLAT', 'CONDITIONAL', 'WEIGHT', 'PRICE');
+
+-- CreateEnum
+CREATE TYPE "PaymentMethodType" AS ENUM ('CARD', 'COD', 'WALLET', 'BNPL', 'BANK_TRANSFER');
+
+-- CreateEnum
+CREATE TYPE "GatewayEnvironment" AS ENUM ('TEST', 'LIVE');
+
+-- CreateEnum
+CREATE TYPE "PaymentIntentStatus" AS ENUM ('PENDING', 'PROCESSING', 'SUCCESS', 'FAILED', 'CANCELLED');
+
 -- CreateTable
 CREATE TABLE "settings" (
     "id" TEXT NOT NULL DEFAULT 'global',
@@ -24,6 +36,8 @@ CREATE TABLE "settings" (
     "faviconUrl" TEXT,
     "themeConfig" JSONB DEFAULT '{}',
     "currency" TEXT NOT NULL DEFAULT 'USD',
+    "seoTitle" TEXT,
+    "seoDescription" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -153,6 +167,9 @@ CREATE TABLE "customers" (
     "phone" TEXT,
     "firstName" TEXT,
     "lastName" TEXT,
+    "passwordHash" TEXT,
+    "otp" TEXT,
+    "otpExpiresAt" TIMESTAMP(3),
     "isGuest" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -233,6 +250,98 @@ CREATE TABLE "order_items" (
 );
 
 -- CreateTable
+CREATE TABLE "ShippingMethod" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ShippingMethod_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ShippingRate" (
+    "id" TEXT NOT NULL,
+    "shippingMethodId" TEXT NOT NULL,
+    "type" "ShippingRateType" NOT NULL,
+    "price" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "minOrderAmount" DECIMAL(65,30),
+    "maxOrderAmount" DECIMAL(65,30),
+    "priority" INTEGER NOT NULL DEFAULT 0,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ShippingRate_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ShippingZone" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "ShippingZone_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ShippingZoneArea" (
+    "id" TEXT NOT NULL,
+    "shippingZoneId" TEXT NOT NULL,
+    "country" TEXT NOT NULL,
+    "state" TEXT NOT NULL,
+    "city" TEXT,
+    "zipCode" TEXT,
+
+    CONSTRAINT "ShippingZoneArea_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PaymentMethod" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "type" "PaymentMethodType" NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PaymentMethod_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PaymentGateway" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "environment" "GatewayEnvironment" NOT NULL,
+    "config" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PaymentGateway_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PaymentIntent" (
+    "id" TEXT NOT NULL,
+    "orderId" TEXT NOT NULL,
+    "paymentMethodId" TEXT NOT NULL,
+    "gatewayId" TEXT,
+    "amount" DECIMAL(65,30) NOT NULL,
+    "currency" TEXT NOT NULL,
+    "status" "PaymentIntentStatus" NOT NULL,
+    "gatewayRef" TEXT,
+    "response" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PaymentIntent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "_OptionValueToProductVariant" (
     "A" TEXT NOT NULL,
     "B" TEXT NOT NULL,
@@ -246,6 +355,22 @@ CREATE TABLE "_CollectionToProduct" (
     "B" TEXT NOT NULL,
 
     CONSTRAINT "_CollectionToProduct_AB_pkey" PRIMARY KEY ("A","B")
+);
+
+-- CreateTable
+CREATE TABLE "_MethodZones" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_MethodZones_AB_pkey" PRIMARY KEY ("A","B")
+);
+
+-- CreateTable
+CREATE TABLE "_MethodGateways" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_MethodGateways_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateIndex
@@ -267,10 +392,25 @@ CREATE UNIQUE INDEX "collections_slug_key" ON "collections"("slug");
 CREATE UNIQUE INDEX "orders_orderNumber_key" ON "orders"("orderNumber");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ShippingMethod_code_key" ON "ShippingMethod"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PaymentMethod_code_key" ON "PaymentMethod"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PaymentGateway_code_key" ON "PaymentGateway"("code");
+
+-- CreateIndex
 CREATE INDEX "_OptionValueToProductVariant_B_index" ON "_OptionValueToProductVariant"("B");
 
 -- CreateIndex
 CREATE INDEX "_CollectionToProduct_B_index" ON "_CollectionToProduct"("B");
+
+-- CreateIndex
+CREATE INDEX "_MethodZones_B_index" ON "_MethodZones"("B");
+
+-- CreateIndex
+CREATE INDEX "_MethodGateways_B_index" ON "_MethodGateways"("B");
 
 -- AddForeignKey
 ALTER TABLE "options" ADD CONSTRAINT "options_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -315,6 +455,21 @@ ALTER TABLE "orders" ADD CONSTRAINT "orders_customerId_fkey" FOREIGN KEY ("custo
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "ShippingRate" ADD CONSTRAINT "ShippingRate_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "ShippingMethod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ShippingZoneArea" ADD CONSTRAINT "ShippingZoneArea_shippingZoneId_fkey" FOREIGN KEY ("shippingZoneId") REFERENCES "ShippingZone"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PaymentIntent" ADD CONSTRAINT "PaymentIntent_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PaymentIntent" ADD CONSTRAINT "PaymentIntent_paymentMethodId_fkey" FOREIGN KEY ("paymentMethodId") REFERENCES "PaymentMethod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PaymentIntent" ADD CONSTRAINT "PaymentIntent_gatewayId_fkey" FOREIGN KEY ("gatewayId") REFERENCES "PaymentGateway"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "_OptionValueToProductVariant" ADD CONSTRAINT "_OptionValueToProductVariant_A_fkey" FOREIGN KEY ("A") REFERENCES "option_values"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -325,3 +480,15 @@ ALTER TABLE "_CollectionToProduct" ADD CONSTRAINT "_CollectionToProduct_A_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "_CollectionToProduct" ADD CONSTRAINT "_CollectionToProduct_B_fkey" FOREIGN KEY ("B") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_MethodZones" ADD CONSTRAINT "_MethodZones_A_fkey" FOREIGN KEY ("A") REFERENCES "ShippingMethod"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_MethodZones" ADD CONSTRAINT "_MethodZones_B_fkey" FOREIGN KEY ("B") REFERENCES "ShippingZone"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_MethodGateways" ADD CONSTRAINT "_MethodGateways_A_fkey" FOREIGN KEY ("A") REFERENCES "PaymentGateway"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_MethodGateways" ADD CONSTRAINT "_MethodGateways_B_fkey" FOREIGN KEY ("B") REFERENCES "PaymentMethod"("id") ON DELETE CASCADE ON UPDATE CASCADE;
