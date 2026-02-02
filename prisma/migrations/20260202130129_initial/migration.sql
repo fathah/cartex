@@ -250,7 +250,7 @@ CREATE TABLE "order_items" (
 );
 
 -- CreateTable
-CREATE TABLE "ShippingMethod" (
+CREATE TABLE "shipping_methods" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -259,11 +259,11 @@ CREATE TABLE "ShippingMethod" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "ShippingMethod_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "shipping_methods_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "ShippingRate" (
+CREATE TABLE "shipping_rates" (
     "id" TEXT NOT NULL,
     "shippingMethodId" TEXT NOT NULL,
     "type" "ShippingRateType" NOT NULL,
@@ -274,19 +274,19 @@ CREATE TABLE "ShippingRate" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "ShippingRate_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "shipping_rates_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "ShippingZone" (
+CREATE TABLE "shipping_zones" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
 
-    CONSTRAINT "ShippingZone_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "shipping_zones_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "ShippingZoneArea" (
+CREATE TABLE "shipping_zone_areas" (
     "id" TEXT NOT NULL,
     "shippingZoneId" TEXT NOT NULL,
     "country" TEXT NOT NULL,
@@ -294,11 +294,11 @@ CREATE TABLE "ShippingZoneArea" (
     "city" TEXT,
     "zipCode" TEXT,
 
-    CONSTRAINT "ShippingZoneArea_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "shipping_zone_areas_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "PaymentMethod" (
+CREATE TABLE "payment_methods" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -308,11 +308,11 @@ CREATE TABLE "PaymentMethod" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "PaymentMethod_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "payment_methods_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "PaymentGateway" (
+CREATE TABLE "payment_gateways" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -321,11 +321,11 @@ CREATE TABLE "PaymentGateway" (
     "config" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "PaymentGateway_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "payment_gateways_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "PaymentIntent" (
+CREATE TABLE "payment_intents" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "paymentMethodId" TEXT NOT NULL,
@@ -338,7 +338,7 @@ CREATE TABLE "PaymentIntent" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "PaymentIntent_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "payment_intents_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -392,13 +392,13 @@ CREATE UNIQUE INDEX "collections_slug_key" ON "collections"("slug");
 CREATE UNIQUE INDEX "orders_orderNumber_key" ON "orders"("orderNumber");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ShippingMethod_code_key" ON "ShippingMethod"("code");
+CREATE UNIQUE INDEX "shipping_methods_code_key" ON "shipping_methods"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PaymentMethod_code_key" ON "PaymentMethod"("code");
+CREATE UNIQUE INDEX "payment_methods_code_key" ON "payment_methods"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PaymentGateway_code_key" ON "PaymentGateway"("code");
+CREATE UNIQUE INDEX "payment_gateways_code_key" ON "payment_gateways"("code");
 
 -- CreateIndex
 CREATE INDEX "_OptionValueToProductVariant_B_index" ON "_OptionValueToProductVariant"("B");
@@ -455,19 +455,19 @@ ALTER TABLE "orders" ADD CONSTRAINT "orders_customerId_fkey" FOREIGN KEY ("custo
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ShippingRate" ADD CONSTRAINT "ShippingRate_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "ShippingMethod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "shipping_rates" ADD CONSTRAINT "shipping_rates_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "shipping_methods"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ShippingZoneArea" ADD CONSTRAINT "ShippingZoneArea_shippingZoneId_fkey" FOREIGN KEY ("shippingZoneId") REFERENCES "ShippingZone"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "shipping_zone_areas" ADD CONSTRAINT "shipping_zone_areas_shippingZoneId_fkey" FOREIGN KEY ("shippingZoneId") REFERENCES "shipping_zones"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PaymentIntent" ADD CONSTRAINT "PaymentIntent_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "payment_intents" ADD CONSTRAINT "payment_intents_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PaymentIntent" ADD CONSTRAINT "PaymentIntent_paymentMethodId_fkey" FOREIGN KEY ("paymentMethodId") REFERENCES "PaymentMethod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "payment_intents" ADD CONSTRAINT "payment_intents_paymentMethodId_fkey" FOREIGN KEY ("paymentMethodId") REFERENCES "payment_methods"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PaymentIntent" ADD CONSTRAINT "PaymentIntent_gatewayId_fkey" FOREIGN KEY ("gatewayId") REFERENCES "PaymentGateway"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "payment_intents" ADD CONSTRAINT "payment_intents_gatewayId_fkey" FOREIGN KEY ("gatewayId") REFERENCES "payment_gateways"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_OptionValueToProductVariant" ADD CONSTRAINT "_OptionValueToProductVariant_A_fkey" FOREIGN KEY ("A") REFERENCES "option_values"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -482,13 +482,13 @@ ALTER TABLE "_CollectionToProduct" ADD CONSTRAINT "_CollectionToProduct_A_fkey" 
 ALTER TABLE "_CollectionToProduct" ADD CONSTRAINT "_CollectionToProduct_B_fkey" FOREIGN KEY ("B") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_MethodZones" ADD CONSTRAINT "_MethodZones_A_fkey" FOREIGN KEY ("A") REFERENCES "ShippingMethod"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "_MethodZones" ADD CONSTRAINT "_MethodZones_A_fkey" FOREIGN KEY ("A") REFERENCES "shipping_methods"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_MethodZones" ADD CONSTRAINT "_MethodZones_B_fkey" FOREIGN KEY ("B") REFERENCES "ShippingZone"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "_MethodZones" ADD CONSTRAINT "_MethodZones_B_fkey" FOREIGN KEY ("B") REFERENCES "shipping_zones"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_MethodGateways" ADD CONSTRAINT "_MethodGateways_A_fkey" FOREIGN KEY ("A") REFERENCES "PaymentGateway"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "_MethodGateways" ADD CONSTRAINT "_MethodGateways_A_fkey" FOREIGN KEY ("A") REFERENCES "payment_gateways"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_MethodGateways" ADD CONSTRAINT "_MethodGateways_B_fkey" FOREIGN KEY ("B") REFERENCES "PaymentMethod"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "_MethodGateways" ADD CONSTRAINT "_MethodGateways_B_fkey" FOREIGN KEY ("B") REFERENCES "payment_methods"("id") ON DELETE CASCADE ON UPDATE CASCADE;

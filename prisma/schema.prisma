@@ -384,6 +384,8 @@ model ShippingMethod {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("shipping_methods")
 }
 
 model ShippingRate {
@@ -401,6 +403,8 @@ model ShippingRate {
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
+
+  @@map("shipping_rates")
 }
 
 enum ShippingRateType {
@@ -417,6 +421,8 @@ model ShippingZone {
   methods ShippingMethod[] @relation("MethodZones")
 
   areas ShippingZoneArea[]
+
+  @@map("shipping_zones")
 }
 
 model ShippingZoneArea {
@@ -428,6 +434,8 @@ model ShippingZoneArea {
   state   String
   city    String?
   zipCode String?
+
+  @@map("shipping_zone_areas")
 }
 
 model PaymentMethod {
@@ -444,6 +452,8 @@ model PaymentMethod {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   paymentIntents PaymentIntent[]
+
+  @@map("payment_methods")
 }
 
 enum PaymentMethodType {
@@ -468,6 +478,8 @@ model PaymentGateway {
 
   createdAt      DateTime        @default(now())
   paymentIntents PaymentIntent[]
+
+  @@map("payment_gateways")
 }
 
 enum GatewayEnvironment {
@@ -497,6 +509,8 @@ model PaymentIntent {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("payment_intents")
 }
 
 enum PaymentIntentStatus {
