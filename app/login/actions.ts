@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import CartexUserTokenService from '@/services/token_service';
 import { setAuthToken } from '@/utils/auth';
 import { AppKeys } from '@/constants/keys';
+import { otpMailTemplate } from './email';
 
 export async function checkEmail(email: string) {
   const customer = await CustomerDB.findByEmail(email);
@@ -68,7 +69,8 @@ export async function sendOtp(email: string) {
         }
 
         // Send Email
-        await sendMail(email, "Your Verification Code", `Your OTP is: ${otp}`);
+        const mailTemplate = await otpMailTemplate(otp);
+        await sendMail(email, "Your Verification Code", `Your OTP is: ${otp}`,mailTemplate);
         
         return { success: true };
     } catch (error) {

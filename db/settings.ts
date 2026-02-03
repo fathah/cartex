@@ -48,6 +48,16 @@ export default class SettingsDB {
     }
   }
 
+  static async getStoreName() {
+    const settings = await this.get();
+    return settings.storeName;
+  }
+
+  static async getStoreLogo() {
+    const settings = await this.get();
+    return settings.logoUrl;
+  }
+
   /**
    * Update global settings.
    */

@@ -1,3 +1,4 @@
+import SettingsDB from '@/db/settings';
 import nodemailer from 'nodemailer';
 
 export const sendMail = async (to: string, subject: string, text: string, html?: string) => {
@@ -5,6 +6,7 @@ export const sendMail = async (to: string, subject: string, text: string, html?:
         const email = process.env.SMTP_USER;
         const password = process.env.SMTP_PASSWORD;
         const host = process.env.SMTP_HOST;
+        const senderName = await SettingsDB.getStoreName();
 
         if (!email || !password || !host) {
             console.error("Missing SMTP credentials");
@@ -22,11 +24,11 @@ export const sendMail = async (to: string, subject: string, text: string, html?:
         });
 
         const info = await transporter.sendMail({
-            from: email, // sender address
+            from: `${senderName} <${email}>`,
             to,
             subject,
             text,
-            html: html || text, // fallback to text if html is not provided
+            html: html || text,
         });
 
         console.log("Message sent: %s", info.messageId);
