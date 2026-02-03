@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/app/actions/user";
 import { UserProvider } from "./UserContext";
 
+export const dynamic = "force-dynamic";
+
 const AccountPageLayout = async ({
   children,
 }: {

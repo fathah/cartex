@@ -1,9 +1,8 @@
-import prisma from './prisma';
+import prisma from "./prisma";
 
 export default class CustomerDB {
   static async create(data: {
-    firstName: string;
-    lastName: string;
+    fullName: string;
     email: string;
     phone?: string;
     isGuest?: boolean;
@@ -27,15 +26,15 @@ export default class CustomerDB {
     });
   }
 
-  static async list({ page = 1, limit = 10, search = '' } = {}) {
+  static async list({ page = 1, limit = 10, search = "" } = {}) {
     const skip = (page - 1) * limit;
     const where: any = {};
 
     if (search) {
       where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search, mode: "insensitive" } },
+        { lastName: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -44,7 +43,7 @@ export default class CustomerDB {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           _count: {
             select: { orders: true },
