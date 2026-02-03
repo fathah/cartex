@@ -1,8 +1,7 @@
 import { getCheckoutData } from "@/app/actions/checkout";
-import CheckoutForm from "@/app/(store)/checkout/comps/checkout-form";
-import OrderSummary from "@/app/(store)/checkout/comps/order-summary";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import CheckoutPageClient from "./CheckoutPageClient";
 
 export const dynamic = "force-dynamic";
 
@@ -22,17 +21,7 @@ const CheckoutPage = async () => {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* Left Column: Form */}
-        <div className="lg:col-span-8">
-          <CheckoutForm customer={customer} addresses={addresses} />
-        </div>
-
-        {/* Right Column: Summary */}
-        <div className="lg:col-span-4">
-          <OrderSummary />
-        </div>
-      </div>
+      <CheckoutPageClient customer={customer} addresses={addresses} />
     </div>
   );
 };

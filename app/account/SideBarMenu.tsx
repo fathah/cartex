@@ -1,11 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import ClientMenuSection from "./ClientMenuSection";
 import { useUser } from "./UserContext";
+import ClientMenuSection from "./ClientMenuSection";
+import { useEffect, useState } from "react";
+import { getWishlistCount } from "./wishlist/actions";
 
 export default function SideBarMenu() {
   const { user } = useUser();
+  const [wishlistCount, setWishlistCount] = useState(0);
+
+  useEffect(() => {
+    // Fetch wishlist count on mount
+    getWishlistCount().then(setWishlistCount);
+  }, []);
 
   // Generate initials from name or email
   const getInitials = () => {
@@ -33,16 +41,20 @@ export default function SideBarMenu() {
 
   const menuItems = [
     { iconName: "Package", label: "Orders", href: "/account/orders" },
+    { iconName: "RotateCcw", label: "Returns", href: "/account/returns" },
     {
       iconName: "Heart",
       label: "Wishlist",
       href: "/account/wishlist",
-      badge: "2 items",
+      badge:
+        wishlistCount > 0
+          ? `${wishlistCount} ${wishlistCount === 1 ? "item" : "items"}`
+          : undefined,
     },
   ];
 
   const accountItems = [
-    { iconName: "User", label: "Profile", href: "/account/profile" },
+    { iconName: "User", label: "Profile", href: "/account" },
     { iconName: "MapPin", label: "Addresses", href: "/account/addresses" },
     { iconName: "Wallet", label: "Payments", href: "/account/payments" },
   ];

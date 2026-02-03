@@ -1,7 +1,12 @@
-import prisma from './prisma';
+import prisma from "./prisma";
 
 export default class CollectionDB {
-  static async create(name: string, slug: string, description?: string, imageId?: string) {
+  static async create(
+    name: string,
+    slug: string,
+    description?: string,
+    imageId?: string,
+  ) {
     return await prisma.collection.create({
       data: {
         name,
@@ -14,7 +19,7 @@ export default class CollectionDB {
 
   static async list() {
     return await prisma.collection.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         _count: {
           select: { products: true },
@@ -28,13 +33,75 @@ export default class CollectionDB {
       where: { slug },
       include: {
         products: {
-            where: { deletedAt: null, status: 'ACTIVE' },
-            take: 20
+          where: {
+            deletedAt: null,
+            status: "ACTIVE",
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
         },
       },
     });
   }
-  static async update(id: string, data: { name?: string, slug?: string, description?: string, imageId?: string }) {
+
+  static async findBySlugWithDetails(slug: string) {
+    const collection = await prisma.collection.findUnique({
+      where: { slug },
+    });
+
+    if (!collection) return null;
+
+    const products = await prisma.product.findMany({
+      where: {
+        deletedAt: null,
+        status: "ACTIVE",
+        collections: {
+          some: {
+            id: collection.id,
+          },
+        },
+      },
+      include: {
+        mediaProducts: {
+          include: {
+            media: true,
+          },
+          take: 1,
+        },
+        variants: {
+          take: 1,
+          orderBy: {
+            price: "asc",
+          },
+        },
+        collections: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return {
+      ...collection,
+      products,
+    };
+  }
+  static async update(
+    id: string,
+    data: {
+      name?: string;
+      slug?: string;
+      description?: string;
+      imageId?: string;
+    },
+  ) {
     return await prisma.collection.update({
       where: { id },
       data,

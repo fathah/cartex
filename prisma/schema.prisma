@@ -129,6 +129,7 @@ model Product {
   updatedAt     DateTime       @updatedAt
   deletedAt     DateTime?
   mediaProducts MediaProduct[]
+  wishlists     Wishlist[]
 
   @@map("products")
 }
@@ -274,6 +275,7 @@ model Customer {
   orders    Order[]
   addresses Address[]
   carts     Cart[]
+  wishlists Wishlist[]
 
   @@map("customers")
 }
@@ -369,6 +371,21 @@ model OrderItem {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
+}
+
+model Wishlist {
+  id String @id @default(cuid())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  customerId String
+  productId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("wishlists")
 }
 
 model ShippingMethod {
