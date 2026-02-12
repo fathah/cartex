@@ -536,3 +536,30 @@ enum PaymentIntentStatus {
   FAILED
   CANCELLED
 }
+
+model Page {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique
+  isPublished Boolean @default(false)
+
+  blocks PageBlock[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PageBlock {
+  id String @id @default(uuid())
+
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId String
+
+  blockType String
+
+  order Int
+
+  config Json
+
+  createdAt DateTime @default(now())
+}
