@@ -1,7 +1,6 @@
 "use server";
 
 import prisma from "@/db/prisma";
-import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function getPages() {

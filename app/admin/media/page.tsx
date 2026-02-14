@@ -1,7 +1,7 @@
 import React from "react";
 import prisma from "@/db/prisma";
-import MediaList from "./media-list";
-import MediaUpload from "./media-upload";
+import MediaList from "./media_list";
+import MediaUpload from "./media_upload";
 
 const MediaIndex = async () => {
   const media = await prisma.media.findMany({

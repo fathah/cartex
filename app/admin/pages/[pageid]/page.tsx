@@ -1,5 +1,5 @@
 import React from "react";
-import { getPage } from "@/app/actions/page-blocks";
+import { getPage } from "@/app/actions/app_page_blocks";
 import BlockList from "./block-list";
 import { notFound } from "next/navigation";
 import { Button } from "antd";
