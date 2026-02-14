@@ -2,7 +2,7 @@
 
 import { Modal, Form, Input, Select, Button, message } from "antd";
 import { useState } from "react";
-import { addAddress } from "@/app/actions/addresses";
+import { addAddress } from "@/actions/addresses";
 
 interface AddressModalProps {
   open: boolean;

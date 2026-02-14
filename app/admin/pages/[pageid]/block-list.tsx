@@ -9,7 +9,7 @@ import {
   updateBlock,
   deleteBlock,
   reorderBlocks,
-} from "@/app/actions/app_page_blocks";
+} from "@/actions/app_page_blocks";
 import BlockFormModal from "./block-form";
 import SortableBlock from "./sortable-block";
 import {

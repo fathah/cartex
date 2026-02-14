@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Tabs, Spin } from "antd";
 import { Media } from "@prisma/client";
-import { getMedia } from "@/app/actions/media";
+import { getMedia } from "@/actions/media";
 import MediaList from "./media_list";
 import MediaUpload from "./media_upload";
 import { Image } from "lucide-react";

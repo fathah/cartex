@@ -5,7 +5,7 @@ import { Button, Modal, Upload, message } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { generateSignedUrl } from "@/services/zdrive";
 import { uploadFile } from "@/services/zdrive-client";
-import { createMedia } from "@/app/actions/media";
+import { createMedia } from "@/actions/media";
 
 interface MediaUploadProps {
   onCustomSuccess?: (media: any) => void;

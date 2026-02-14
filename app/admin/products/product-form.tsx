@@ -17,8 +17,8 @@ import {
   addMedia,
   removeMedia,
   checkSlugAvailability,
-} from "@/app/actions/product";
-import { getCollections } from "@/app/actions/collection";
+} from "@/actions/product";
+import { getCollections } from "@/actions/collection";
 import { useRouter } from "next/navigation";
 import { ProductStatus } from "@prisma/client";
 import VariantManager from "./variant-manager";

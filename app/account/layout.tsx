@@ -2,7 +2,7 @@ import React from "react";
 import StoreHeader from "@/components/store/header";
 import SideBarMenu from "./SideBarMenu";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/app/actions/user";
+import { getCurrentUser } from "@/actions/user";
 import { UserProvider } from "./UserContext";
 
 export const dynamic = "force-dynamic";

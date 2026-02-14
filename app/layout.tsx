@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-import { getSettings } from "./actions/settings";
+import { getSettings } from "../actions/settings";
 import { CurrencyProvider } from "@/components/providers/currency-provider";
 import WishlistSync from "@/components/WishlistSync";
 

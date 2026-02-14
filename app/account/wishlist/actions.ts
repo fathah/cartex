@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/app/actions/user";
+import { getCurrentUser } from "@/actions/user";
 import WishlistDB from "@/db/wishlist";
 
 export async function getWishlist() {

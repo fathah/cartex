@@ -1,5 +1,5 @@
-import prisma from './prisma';
-import { PaymentMethodType, GatewayEnvironment, Prisma } from '@prisma/client';
+import prisma from "./prisma";
+import { PaymentMethodType, GatewayEnvironment, Prisma } from "@prisma/client";
 
 export class PaymentDB {
   // --- Payment Methods ---
@@ -7,9 +7,9 @@ export class PaymentDB {
   static async listMethods() {
     return await prisma.paymentMethod.findMany({
       include: {
-        gateways: true
+        gateways: true,
       },
-      orderBy: { name: 'asc' }
+      orderBy: { name: "asc" },
     });
   }
 
@@ -17,41 +17,68 @@ export class PaymentDB {
     return await prisma.paymentMethod.findUnique({
       where: { id },
       include: {
-        gateways: true
-      }
+        gateways: true,
+      },
     });
   }
 
-  static async createMethod(data: { name: string; code: string; type: PaymentMethodType; description?: string }) {
+  static async createMethod(data: {
+    name: string;
+    code: string;
+    type: PaymentMethodType;
+    description?: string;
+    fee?: number;
+    feeLabel?: string;
+    feeType?: string;
+  }) {
     return await prisma.paymentMethod.create({
       data: {
         name: data.name,
         code: data.code,
         type: data.type,
         description: data.description,
-        isActive: true
-      }
+        fee: data.fee,
+        feeLabel: data.feeLabel,
+        feeType: data.feeType,
+        isActive: true,
+      },
     });
   }
 
-  static async updateMethod(id: string, data: { name?: string; description?: string; isActive?: boolean, gatewayIds?: string[] }) {
+  static async updateMethod(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      isActive?: boolean;
+      gatewayIds?: string[];
+      fee?: number;
+      feeLabel?: string;
+      feeType?: string;
+    },
+  ) {
     return await prisma.paymentMethod.update({
       where: { id },
       data: {
         name: data.name,
         description: data.description,
         isActive: data.isActive,
+        fee: data.fee,
+        feeLabel: data.feeLabel,
+        feeType: data.feeType,
         // If updating connected gateways
-        gateways: data.gatewayIds ? {
-             set: data.gatewayIds.map(gid => ({ id: gid }))
-        } : undefined
-      }
+        gateways: data.gatewayIds
+          ? {
+              set: data.gatewayIds.map((gid) => ({ id: gid })),
+            }
+          : undefined,
+      },
     });
   }
 
   static async deleteMethod(id: string) {
     return await prisma.paymentMethod.delete({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -59,36 +86,49 @@ export class PaymentDB {
 
   static async listGateways() {
     return await prisma.paymentGateway.findMany({
-      orderBy: { name: 'asc' }
+      orderBy: { name: "asc" },
     });
   }
 
-  static async createGateway(data: { name: string; code: string; environment: GatewayEnvironment; config: any }) {
+  static async createGateway(data: {
+    name: string;
+    code: string;
+    environment: GatewayEnvironment;
+    config: any;
+  }) {
     return await prisma.paymentGateway.create({
       data: {
         name: data.name,
         code: data.code,
         environment: data.environment,
-        config: data.config
-      }
+        config: data.config,
+      },
     });
   }
 
-  static async updateGateway(id: string, data: { name?: string; environment?: GatewayEnvironment; config?: any; isActive?: boolean }) {
+  static async updateGateway(
+    id: string,
+    data: {
+      name?: string;
+      environment?: GatewayEnvironment;
+      config?: any;
+      isActive?: boolean;
+    },
+  ) {
     return await prisma.paymentGateway.update({
       where: { id },
       data: {
         name: data.name,
         environment: data.environment,
         config: data.config,
-        isActive: data.isActive
-      }
+        isActive: data.isActive,
+      },
     });
   }
 
   static async deleteGateway(id: string) {
     return await prisma.paymentGateway.delete({
-      where: { id }
+      where: { id },
     });
   }
 }

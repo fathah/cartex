@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Plus, Home, CheckCircle2 } from "lucide-react";
-import { deleteAddress } from "@/app/actions/addresses";
+import { deleteAddress } from "@/actions/addresses";
 import AddressModal from "@/components/AddressModal";
 import { Popconfirm, message } from "antd";
 

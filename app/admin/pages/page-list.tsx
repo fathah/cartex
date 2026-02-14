@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Table, Button, Space, Tag, Popconfirm, message } from "antd";
 import { Edit, Trash2, Plus, ExternalLink } from "lucide-react";
 import { Page } from "@prisma/client";
-import { deletePage } from "@/app/actions/app_pages";
+import { deletePage } from "@/actions/app_pages";
 import PageFormModal from "./page-form";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

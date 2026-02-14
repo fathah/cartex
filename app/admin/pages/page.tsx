@@ -1,5 +1,5 @@
 import React from "react";
-import { getPages } from "@/app/actions/app_pages";
+import { getPages } from "@/actions/app_pages";
 import PageList from "./page-list";
 
 const PagesIndex = async () => {

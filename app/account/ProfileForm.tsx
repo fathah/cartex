@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Form, Input, Button, message } from "antd";
 import { User, Mail, Phone, Save } from "lucide-react";
-import { updateProfile } from "@/app/actions/user";
+import { updateProfile } from "@/actions/user";
 
 interface ProfileFormProps {
   user: {

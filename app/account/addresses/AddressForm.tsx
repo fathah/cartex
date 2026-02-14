@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
-import { addAddress, updateAddress } from "@/app/actions/addresses";
+import { addAddress, updateAddress } from "@/actions/addresses";
 import { Button, Input, Form, message } from "antd";
 
 const AddressForm = ({

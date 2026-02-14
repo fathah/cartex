@@ -6,7 +6,7 @@ import {
   createPage,
   updatePage,
   checkPageSlugAvailability,
-} from "@/app/actions/app_pages";
+} from "@/actions/app_pages";
 
 interface PageFormModalProps {
   open: boolean;

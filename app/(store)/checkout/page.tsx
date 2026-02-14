@@ -1,11 +1,17 @@
-import { getCheckoutData } from "@/app/actions/checkout";
+import { getCheckoutData } from "@/actions/checkout";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import CheckoutPageClient from "./CheckoutPageClient";
+import { getCurrentUser } from "@/actions/user";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 const CheckoutPage = async () => {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login?backto=checkout");
+  }
   const { customer, addresses } = await getCheckoutData();
 
   return (

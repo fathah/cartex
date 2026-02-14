@@ -463,6 +463,10 @@ model PaymentMethod {
   type     PaymentMethodType
   isActive Boolean           @default(true)
 
+  fee      Decimal @default(0)
+  feeLabel String?
+  feeType  String  @default("FLAT")
+
   gateways PaymentGateway[] @relation("MethodGateways")
 
   createdAt      DateTime        @default(now())

@@ -5,12 +5,27 @@ import { Button, Input, Divider } from "antd";
 import { useEffect, useState } from "react";
 import Currency from "@/components/common/Currency";
 import { getMediaUrl } from "@/utils/media_url";
+import { Truck, CreditCard, Package } from "lucide-react";
+
+interface OrderSummaryProps {
+  shippingCost?: number;
+  shippingMethodName?: string;
+  paymentMethodCode?: string;
+  paymentFee?: number;
+  paymentFeeLabel?: string;
+  onCompleteOrder?: () => void;
+  loading?: boolean;
+}
 
 export default function OrderSummary({
   shippingCost = 0,
-}: {
-  shippingCost?: number;
-}) {
+  shippingMethodName = "",
+  paymentMethodCode = "",
+  paymentFee = 0,
+  paymentFeeLabel = "",
+  onCompleteOrder,
+  loading = false,
+}: OrderSummaryProps) {
   const { items, getTotalItems } = useCartStore();
   const [mounted, setMounted] = useState(false);
 
@@ -25,9 +40,14 @@ export default function OrderSummary({
     (acc, item) => acc + item.price * item.quantity,
     0,
   );
-  const shipping = shippingCost; // Use dynamic shipping cost
+  const shipping = shippingCost;
   const taxes = subtotal * 0.05; // 5% tax
-  const total = subtotal + shipping + taxes;
+
+  // Use the passed paymentFee directly
+  const appliedPaymentFee = paymentFee;
+  const total = subtotal + shipping + taxes + appliedPaymentFee;
+
+  const isDisabled = loading || !shippingMethodName || !paymentMethodCode;
 
   return (
     <div className="bg-gray-50 p-8 rounded-2xl sticky top-24">
@@ -37,7 +57,7 @@ export default function OrderSummary({
       <div className="flex flex-col gap-4 mb-6 max-h-[400px] overflow-y-auto pr-2">
         {items.map((item) => (
           <div key={item.key} className="flex gap-4">
-            <div className="w-16 h-16 bg-white rounded-lg flex-shrink-0 border border-gray-200 overflow-hidden relative">
+            <div className="w-16 h-16 bg-white rounded-lg shrink-0 border border-gray-200 overflow-hidden relative">
               {item.image ? (
                 <img
                   src={getMediaUrl(item.image)}
@@ -74,23 +94,52 @@ export default function OrderSummary({
       {/* Calculations */}
       <div className="flex flex-col gap-3 text-sm mb-6">
         <div className="flex justify-between text-gray-600">
-          <span>Subtotal</span>
+          <span className="flex items-center gap-1.5">
+            <Package size={14} />
+            Subtotal
+          </span>
           <span>
             <Currency value={subtotal} />
           </span>
         </div>
+
+        {/* Shipping with method name */}
         <div className="flex justify-between text-gray-600">
-          <span>Delivery</span>
+          <span className="flex items-center gap-1.5">
+            <Truck size={14} />
+            {shippingMethodName || (
+              <span className="text-amber-600">Select Method</span>
+            )}
+          </span>
           <span>
-            <Currency value={shipping} />
+            {shipping === 0 ? (
+              <span className="text-green-600 font-medium">Free 🎉</span>
+            ) : (
+              <Currency value={shipping} />
+            )}
           </span>
         </div>
+
         <div className="flex justify-between text-gray-600">
-          <span>Taxes</span>
+          <span>Taxes (5%)</span>
           <span>
             <Currency value={taxes} />
           </span>
         </div>
+
+        {/* Generic Payment Fee line */}
+        {appliedPaymentFee > 0 && (
+          <div className="flex justify-between text-amber-600">
+            <span className="flex items-center gap-1.5">
+              <CreditCard size={14} />
+              {paymentFeeLabel || "Payment Fee"}
+            </span>
+            <span>
+              +<Currency value={appliedPaymentFee} />
+            </span>
+          </div>
+        )}
+
         <div className="flex justify-between font-bold text-lg text-black mt-2 pt-4 border-t border-gray-200">
           <span>Total</span>
           <span>
@@ -108,11 +157,36 @@ export default function OrderSummary({
           <Input placeholder="Enter code" size="large" className="rounded-lg" />
           <Button
             size="large"
-            className="bg-black text-white px-6 hover:!bg-gray-800 border-black rounded-lg"
+            className="bg-black text-white px-6 hover:bg-gray-800! border-black rounded-lg"
           >
             Apply
           </Button>
         </div>
+      </div>
+
+      {/* High-conversion CTA */}
+      <button
+        type="button"
+        onClick={onCompleteOrder}
+        disabled={isDisabled}
+        className={`w-full bg-[#003d29] hover:bg-[#002a1c] text-white h-14 text-lg font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-[#003d29]/20 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer
+          ${isDisabled ? "opacity-50 cursor-not-allowed transform-none hover:shadow-none hover:bg-[#003d29]" : ""}
+        `}
+      >
+        {loading ? (
+          <>processing...</>
+        ) : (
+          <>
+            Complete Order • <Currency value={total} className="font-bold" />
+          </>
+        )}
+      </button>
+
+      {/* Trust indicators */}
+      <div className="flex items-center justify-center gap-4 mt-4 text-xs text-gray-400">
+        <span className="flex items-center gap-1">🔒 Secure Checkout</span>
+        <span>•</span>
+        <span className="flex items-center gap-1">📦 Easy Returns</span>
       </div>
     </div>
   );
