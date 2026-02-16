@@ -340,6 +340,10 @@ model Order {
   subtotal      Decimal @db.Decimal(10, 2)
   taxTotal      Decimal @db.Decimal(10, 2)
   shippingTotal Decimal @db.Decimal(10, 2)
+  currency      String  @default("USD")
+
+  shippingAddress Json @default("{}")
+  billingAddress  Json @default("{}")
 
   status            OrderStatus @default(PENDING)
   paymentStatus     String      @default("PENDING") // PENDING, PAID, FAILED

@@ -3,6 +3,7 @@
 import { PaymentDB } from "@/db/payment";
 import { PaymentMethodType, GatewayEnvironment } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { requireAdminAuth } from "@/services/zauth";
 
 const REVALIDATE_PATH = "/admin/settings";
 
@@ -80,6 +81,7 @@ export async function createPaymentMethod(data: {
   feeLabel?: string;
   feeType?: string;
 }) {
+  await requireAdminAuth();
   const method = await PaymentDB.createMethod(data);
   revalidatePath(REVALIDATE_PATH);
   return method;
@@ -97,6 +99,7 @@ export async function updatePaymentMethod(
     feeType?: string;
   },
 ) {
+  await requireAdminAuth();
   const method = await PaymentDB.updateMethod(id, data);
 
   revalidatePath(REVALIDATE_PATH);
@@ -104,6 +107,7 @@ export async function updatePaymentMethod(
 }
 
 export async function deletePaymentMethod(id: string) {
+  await requireAdminAuth();
   await PaymentDB.deleteMethod(id);
   revalidatePath(REVALIDATE_PATH);
 }
@@ -120,6 +124,7 @@ export async function createPaymentGateway(data: {
   environment: GatewayEnvironment;
   config: any;
 }) {
+  await requireAdminAuth();
   const gateway = await PaymentDB.createGateway(data);
   revalidatePath(REVALIDATE_PATH);
   return gateway;
@@ -134,12 +139,14 @@ export async function updatePaymentGateway(
     isActive?: boolean;
   },
 ) {
+  await requireAdminAuth();
   const gateway = await PaymentDB.updateGateway(id, data);
   revalidatePath(REVALIDATE_PATH);
   return gateway;
 }
 
 export async function deletePaymentGateway(id: string) {
+  await requireAdminAuth();
   await PaymentDB.deleteGateway(id);
   revalidatePath(REVALIDATE_PATH);
 }

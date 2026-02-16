@@ -32,32 +32,67 @@ export class ShippingDB {
     });
   }
 
-  static async findZoneForAddress(country: string, state?: string) {
-    // Find a zone that has an area matching the country
-    // Priority: Exact State match > Country match > Global ('*')?
-    
-    // For now, let's look for exact country match areas
-    const area = await prisma.shippingZoneArea.findFirst({
-        where: {
-            country: country,
-            state: state // In future iterations, match state
+  static async findZoneForAddress(
+    country: string,
+    state?: string,
+    city?: string,
+    zipCode?: string,
+  ) {
+    const normalizedCountry = country?.trim();
+    if (!normalizedCountry) return null;
+
+    const areas = await prisma.shippingZoneArea.findMany({
+      where: {
+        country: normalizedCountry,
+      },
+      include: {
+        shippingZone: {
+          include: {
+            methods: {
+              include: {
+                rates: {
+                  where: { isActive: true },
+                },
+              },
+            },
+          },
         },
-        include: {
-            shippingZone: {
-                include: {
-                    methods: {
-                        include: {
-                            rates: {
-                                where: { isActive: true }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+      },
     });
 
-    return area?.shippingZone;
+    const normalizedState = state?.trim() || "";
+    const normalizedCity = city?.trim() || "";
+    const normalizedZip = zipCode?.trim() || "";
+
+    const isWildcard = (value?: string | null) =>
+      !value || value === "*" || value.trim() === "";
+
+    let best: (typeof areas)[number] | null = null;
+    let bestScore = -1;
+
+    for (const area of areas) {
+      const stateMatch =
+        isWildcard(area.state) || area.state === normalizedState;
+      const cityMatch = isWildcard(area.city) || area.city === normalizedCity;
+      const zipMatch =
+        isWildcard(area.zipCode) || area.zipCode === normalizedZip;
+
+      if (!stateMatch || !cityMatch || !zipMatch) {
+        continue;
+      }
+
+      const score =
+        (isWildcard(area.state) ? 0 : 1) +
+        (isWildcard(area.city) ? 0 : 1) +
+        (isWildcard(area.zipCode) ? 0 : 1);
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = area;
+      }
+    }
+
+    return best?.shippingZone || null;
   }
 
   static async createZone(data: { name: string; areas: { country: string; state: string }[] }) {

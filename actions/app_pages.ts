@@ -2,6 +2,7 @@
 
 import prisma from "@/db/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAdminAuth } from "@/services/zauth";
 
 export async function getPages() {
   return await prisma.page.findMany({
@@ -14,6 +15,7 @@ export async function createPage(data: {
   slug: string;
   isPublished?: boolean;
 }) {
+  await requireAdminAuth();
   try {
     const page = await prisma.page.create({
       data: {
@@ -38,6 +40,7 @@ export async function updatePage(
   id: string,
   data: { name?: string; slug?: string; isPublished?: boolean },
 ) {
+  await requireAdminAuth();
   try {
     const page = await prisma.page.update({
       where: { id },
@@ -52,6 +55,7 @@ export async function updatePage(
 }
 
 export async function deletePage(id: string) {
+  await requireAdminAuth();
   try {
     await prisma.page.delete({
       where: { id },
@@ -68,6 +72,7 @@ export async function checkPageSlugAvailability(
   slug: string,
   excludeId?: string,
 ) {
+  await requireAdminAuth();
   const page = await prisma.page.findUnique({
     where: { slug },
   });

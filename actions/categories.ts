@@ -2,6 +2,7 @@
 
 import CollectionDB from '@/db/collection';
 import { revalidatePath } from 'next/cache';
+import { requireAdminAuth } from "@/services/zauth";
 
 export async function getCategories() {
   return await CollectionDB.list();
@@ -9,6 +10,7 @@ export async function getCategories() {
 
 export async function createCategory(data: any) {
   try {
+    await requireAdminAuth();
     const category = await CollectionDB.create(
       data.name,
       data.slug,
@@ -25,6 +27,7 @@ export async function createCategory(data: any) {
 
 export async function updateCategory(id: string, data: any) {
   try {
+    await requireAdminAuth();
     const category = await CollectionDB.update(id, data);
     revalidatePath('/admin/categories');
     return { success: true, category };
@@ -36,6 +39,7 @@ export async function updateCategory(id: string, data: any) {
 
 export async function deleteCategory(id: string) {
   try {
+    await requireAdminAuth();
     await CollectionDB.delete(id);
     revalidatePath('/admin/categories');
     return { success: true };

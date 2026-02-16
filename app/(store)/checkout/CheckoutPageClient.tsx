@@ -23,6 +23,9 @@ export default function CheckoutPageClient({
 
   const [shippingCost, setShippingCost] = useState(0);
   const [shippingMethodName, setShippingMethodName] = useState("");
+  const [shippingAddressId, setShippingAddressId] = useState<string | null>(
+    null,
+  );
   const [paymentMethodCode, setPaymentMethodCode] = useState("");
   const [paymentFee, setPaymentFee] = useState(0);
   const [paymentFeeLabel, setPaymentFeeLabel] = useState("");
@@ -38,6 +41,10 @@ export default function CheckoutPageClient({
         message.error("Please select a shipping method");
         return;
       }
+      if (!shippingAddressId) {
+        message.error("Please select a shipping address");
+        return;
+      }
       if (!paymentMethodCode) {
         message.error("Please select a payment method");
         return;
@@ -48,11 +55,9 @@ export default function CheckoutPageClient({
       // 3. Create Order
       const result = await createOrder({
         items: items,
-        customerId: customer?.id || "GUEST_ID", // TODO: Handle Guest
         shippingMethodCode: values.shippingService, // Assuming CheckouForm field name
         paymentMethodCode: values.paymentMethod,
-        shippingCost: shippingCost,
-        paymentFee: paymentFee,
+        shippingAddressId: shippingAddressId,
       });
 
       if (result.success) {
@@ -80,6 +85,7 @@ export default function CheckoutPageClient({
           form={form}
           customer={customer}
           addresses={addresses}
+          onAddressChange={setShippingAddressId}
           onShippingCostChange={(cost: number, methodName?: string) => {
             setShippingCost(cost);
             if (methodName) setShippingMethodName(methodName);

@@ -1,5 +1,4 @@
-import React from "react";
-import { Search, ChevronDown, Package, MoreVertical } from "lucide-react";
+import { Search, ChevronDown, Package } from "lucide-react";
 import { getOrders } from "@/actions/orders";
 import { getMediaUrl } from "@/utils/media_url";
 

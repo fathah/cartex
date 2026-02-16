@@ -2,6 +2,7 @@
 
 import prisma from "@/db/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAdminAuth } from "@/services/zauth";
 
 export async function getPage(id: string) {
   return await prisma.page.findUnique({
@@ -15,6 +16,7 @@ export async function getPage(id: string) {
 }
 
 export async function addBlock(pageId: string, type: string, config: any) {
+  await requireAdminAuth();
   try {
     // Get current max order
     const lastBlock = await prisma.pageBlock.findFirst({
@@ -40,6 +42,7 @@ export async function addBlock(pageId: string, type: string, config: any) {
 }
 
 export async function updateBlock(id: string, config: any) {
+  await requireAdminAuth();
   try {
     const block = await prisma.pageBlock.update({
       where: { id },
@@ -54,6 +57,7 @@ export async function updateBlock(id: string, config: any) {
 }
 
 export async function deleteBlock(id: string) {
+  await requireAdminAuth();
   try {
     const block = await prisma.pageBlock.delete({
       where: { id },
@@ -67,6 +71,7 @@ export async function deleteBlock(id: string) {
 }
 
 export async function reorderBlocks(pageId: string, blockIds: string[]) {
+  await requireAdminAuth();
   try {
     const updates = blockIds.map((id, index) =>
       prisma.pageBlock.update({

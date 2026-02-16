@@ -5,6 +5,7 @@ import prisma from "@/db/prisma"; // Direct prisma usage for now as per plan, or
 // I will create simple action first.
 
 import { revalidatePath } from "next/cache";
+import { requireAdminAuth } from "@/services/zauth";
 
 export async function createMedia(
   url: string,
@@ -12,6 +13,7 @@ export async function createMedia(
   alt?: string,
 ) {
   try {
+    await requireAdminAuth();
     const media = await prisma.media.create({
       data: {
         url,

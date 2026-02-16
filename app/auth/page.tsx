@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Cookies from "js-cookie";
-import { AppKeys } from "@/constants/keys";
 import { ZAuthClient } from "@ziqx/auth";
 import { validateAdminAuthToken } from "@/services/zauth";
 import { LoadingOutlined } from "@ant-design/icons";
@@ -23,12 +21,10 @@ const AuthContent = () => {
         if (token) {
             validateAdminAuthToken(token).then((valid) => {
                 if (valid) {
-                    Cookies.set(AppKeys.ADMIN_AUTH_TOKEN, token);
                     setTimeout(() => {
                         window.location.href = "/admin";
                     }, 1000);
                 } else {
-                    Cookies.remove(AppKeys.ADMIN_AUTH_TOKEN);
                     login();
                 }
             })

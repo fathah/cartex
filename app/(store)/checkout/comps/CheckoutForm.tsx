@@ -14,6 +14,7 @@ import PaymentMethods from "./PaymentMethods";
 interface CheckoutFormProps {
   customer: any;
   addresses: any[];
+  onAddressChange: (addressId: string | null) => void;
   onShippingCostChange: (cost: number, methodName?: string) => void;
   onPaymentMethodChange: (code: string, fee: number, feeLabel?: string) => void;
   form: FormInstance;
@@ -22,6 +23,7 @@ interface CheckoutFormProps {
 export default function CheckoutForm({
   customer,
   addresses,
+  onAddressChange,
   onShippingCostChange,
   onPaymentMethodChange,
   form, // Use passed form
@@ -39,13 +41,17 @@ export default function CheckoutForm({
   );
 
   // Derive country from selected address
-  const country = useMemo(() => {
+  const selectedAddress = useMemo(() => {
     if (selectedAddressId) {
-      const addr = addresses.find((a) => a.id === selectedAddressId);
-      if (addr) return addr.country;
+      return addresses.find((a) => a.id === selectedAddressId) || null;
     }
-    return "AE"; // Default
+    return null;
   }, [selectedAddressId, addresses]);
+
+  const country = selectedAddress?.country || "AE";
+  const state = selectedAddress?.province || undefined;
+  const city = selectedAddress?.city || undefined;
+  const zipCode = selectedAddress?.zip || undefined;
 
   // Shipping State
   const [shippingMethods, setShippingMethods] = useState<any[]>([]);
@@ -53,12 +59,19 @@ export default function CheckoutForm({
 
   // Fetch smart shipping methods when address or subtotal changes
   useEffect(() => {
+    onAddressChange(selectedAddressId);
     const fetchShipping = async () => {
       if (!country) return;
 
       setLoadingShipping(true);
       try {
-        const methods = await getSmartShippingMethods(country, subtotal);
+        const methods = await getSmartShippingMethods(
+          country,
+          subtotal,
+          state,
+          city,
+          zipCode,
+        );
         setShippingMethods(methods);
 
         const currentMethod = form.getFieldValue("shippingService");
@@ -86,7 +99,7 @@ export default function CheckoutForm({
     };
 
     fetchShipping();
-  }, [selectedAddressId, country, subtotal, form]);
+  }, [selectedAddressId, country, state, city, zipCode, subtotal, form, onAddressChange]);
 
   const onFinish = (values: any) => {
     console.log("Received values of form: ", { ...values, selectedAddressId });

@@ -3,6 +3,7 @@
 import { ShippingDB } from "@/db/shipping";
 import { ShippingRateType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { requireAdminAuth } from "@/services/zauth";
 
 const REVALIDATE_PATH = "/admin/settings";
 
@@ -15,8 +16,15 @@ export async function getShippingZones() {
 export async function getShippingMethodsForAddress(
   country: string,
   state?: string,
+  city?: string,
+  zipCode?: string,
 ) {
-  const zone = await ShippingDB.findZoneForAddress(country, state);
+  const zone = await ShippingDB.findZoneForAddress(
+    country,
+    state,
+    city,
+    zipCode,
+  );
   if (!zone) return [];
   return zone.methods;
 }
@@ -30,8 +38,15 @@ export async function getSmartShippingMethods(
   country: string,
   subtotal: number,
   state?: string,
+  city?: string,
+  zipCode?: string,
 ) {
-  const zone = await ShippingDB.findZoneForAddress(country, state);
+  const zone = await ShippingDB.findZoneForAddress(
+    country,
+    state,
+    city,
+    zipCode,
+  );
   if (!zone) return [];
 
   const enrichedMethods = zone.methods
@@ -119,6 +134,7 @@ export async function createShippingZone(
   name: string,
   areas: { country: string; state: string }[],
 ) {
+  await requireAdminAuth();
   const zone = await ShippingDB.createZone({ name, areas });
   revalidatePath(REVALIDATE_PATH);
   return zone;
@@ -128,12 +144,14 @@ export async function updateShippingZone(
   id: string,
   data: { name?: string; areas?: { country: string; state: string }[] },
 ) {
+  await requireAdminAuth();
   const zone = await ShippingDB.updateZone(id, data);
   revalidatePath(REVALIDATE_PATH);
   return zone;
 }
 
 export async function deleteShippingZone(id: string) {
+  await requireAdminAuth();
   await ShippingDB.deleteZone(id);
   revalidatePath(REVALIDATE_PATH);
 }
@@ -144,12 +162,14 @@ export async function createShippingMethod(
   zoneId: string,
   data: { name: string; code: string; description?: string },
 ) {
+  await requireAdminAuth();
   const method = await ShippingDB.createMethod(zoneId, data);
   revalidatePath(REVALIDATE_PATH);
   return method;
 }
 
 export async function deleteShippingMethod(id: string) {
+  await requireAdminAuth();
   await ShippingDB.deleteMethod(id);
   revalidatePath(REVALIDATE_PATH);
 }
@@ -165,6 +185,7 @@ export async function addShippingRate(
     max?: number;
   },
 ) {
+  await requireAdminAuth();
   const rate = await ShippingDB.addRate(methodId, data);
   revalidatePath(REVALIDATE_PATH);
   return rate;
@@ -174,12 +195,14 @@ export async function updateShippingRate(
   id: string,
   data: { price?: number; min?: number; max?: number; isActive?: boolean },
 ) {
+  await requireAdminAuth();
   const rate = await ShippingDB.updateRate(id, data);
   revalidatePath(REVALIDATE_PATH);
   return rate;
 }
 
 export async function deleteShippingRate(id: string) {
+  await requireAdminAuth();
   await ShippingDB.deleteRate(id);
   revalidatePath(REVALIDATE_PATH);
 }

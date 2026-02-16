@@ -20,5 +20,10 @@ export async function checkUserAuth(){
 
 export async function setAuthToken(token: string){
     const store = await cookies();
-    store.set(AppKeys.USER_AUTH_TOKEN, token);
+    store.set(AppKeys.USER_AUTH_TOKEN, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+    });
 }

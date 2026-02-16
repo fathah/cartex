@@ -2,8 +2,10 @@
 
 import OrderDB from "@/db/order";
 import { revalidatePath } from "next/cache";
+import { requireAdminAuth } from "@/services/zauth";
 
 export async function getAdminOrders({ page = 1, limit = 10, search = '' } = {}) {
+  await requireAdminAuth();
   const { orders, total } = await OrderDB.list({ page, limit, search });
   
   // Serialize Decimal types
@@ -23,5 +25,6 @@ export async function getAdminOrders({ page = 1, limit = 10, search = '' } = {})
 }
 
 export async function getOrderStats() {
+  await requireAdminAuth();
   return await OrderDB.getStats();
 }
