@@ -4,34 +4,30 @@ import { AppKeys } from "@/constants/keys";
 import { ZAuthTokenService } from "@ziqx/auth";
 import { cookies } from "next/headers";
 
-export async function validateAdminAuthToken(code?:string) {
+export async function validateAdminAuthToken(code?: string) {
+  console.log("Validate Admin Auth Token", code);
 
   let token = code;
-  if(!code){
+  if (!code) {
     const store = await cookies();
     token = store.get(AppKeys.ADMIN_AUTH_TOKEN)?.value;
   }
 
-  if(!token){
+  if (!token) {
     return false;
   }
 
-    const tokenService = new ZAuthTokenService();
+  const tokenService = new ZAuthTokenService();
 
-const isValid = await tokenService.validate(token);
+  const isValid = await tokenService.validate(token);
 
-if (isValid) {
-  const store = await cookies();
-  store.set(AppKeys.ADMIN_AUTH_TOKEN, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
-  return true;
-} else {
-  return false;
-}
+  console.log("isValid", isValid);
+
+  if (isValid) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 export async function requireAdminAuth() {
@@ -39,4 +35,26 @@ export async function requireAdminAuth() {
   if (!isValid) {
     throw new Error("Unauthorized");
   }
+}
+
+export async function getZiqxAccessToken(authcode?: string) {
+  if (!authcode) {
+    return null;
+  }
+  const redirectUri =
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000/auth"
+      : process.env.NEXT_PUBLIC_ZAUTH_URL!;
+  const codeVerifier = "cartex";
+  const auth = new ZAuthTokenService();
+  const resp = await auth.getAuthToken({
+    authAppKey: process.env.NEXT_PUBLIC_ZAUTH_KEY!,
+    authSecret: process.env.ZAUTH_SECRET!,
+    code: authcode,
+    redirectUri,
+    codeVerifier,
+  });
+  console.log("resp", resp);
+
+  return resp?.access_token;
 }

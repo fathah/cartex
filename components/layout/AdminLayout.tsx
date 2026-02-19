@@ -11,7 +11,8 @@ import {
   Package,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
+import Cookies from "js-cookie";
+import { AppKeys } from "@/constants/keys";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -81,7 +82,20 @@ export default function AdminLayout({
           }}
         >
           <h1 className="text-xl font-bold">Admin Panel</h1>
-          <Dropdown menu={{ items: [{ key: "logout", label: "Logout" }] }}>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "logout",
+                  label: "Logout",
+                  onClick: async () => {
+                    Cookies.remove(AppKeys.ADMIN_AUTH_TOKEN, { path: "/" });
+                    router.push("/auth");
+                  },
+                },
+              ],
+            }}
+          >
             <Space>
               <Avatar
                 style={{ backgroundColor: "#87d068" }}

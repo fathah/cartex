@@ -1,16 +1,25 @@
-import prisma from './prisma';
-import { UserRole, Prisma } from '@prisma/client';
+import prisma from "./prisma";
+import { UserRole, Prisma } from "@prisma/client";
 
 export type CreateUserData = {
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
   firstName?: string;
   lastName?: string;
   role?: UserRole;
-  ziqxId?: string;
+  ziqxId: string;
 };
 
 export default class UserDB {
+  static async count() {
+    return await prisma.user.count();
+  }
+  static async findByZiqxId(ziqxId: string) {
+    return await prisma.user.findUnique({
+      where: { ziqxId },
+    });
+  }
+
   static async create(data: CreateUserData) {
     return await prisma.user.create({
       data,
@@ -35,7 +44,7 @@ export default class UserDB {
         role,
         deletedAt: null,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 

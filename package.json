@@ -17,7 +17,7 @@
     "@prisma/client": "^6.19.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/nodemailer": "^7.0.9",
-    "@ziqx/auth": "^0.0.4",
+    "@ziqx/auth": "^1.0.1",
     "@ziqx/drive": "^0.0.3",
     "antd": "^6.1.4",
     "bcryptjs": "^3.0.3",

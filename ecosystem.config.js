@@ -1,11 +1,11 @@
 module.exports = {
   apps: [
     {
-      name: 'blueoud-cartex',
-      script: 'npm',
-      args: 'run start',
+      name: "blueoud-cartex",
+      script: "npm",
+      args: "run start",
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: "production",
         DATABASE_URL: process.env.DATABASE_URL,
         ZDRIVE_KEY: process.env.ZDRIVE_KEY,
         ZDRIVE_SECRET: process.env.ZDRIVE_SECRET,
@@ -13,7 +13,10 @@ module.exports = {
         SMTP_USER: process.env.SMTP_USER,
         SMTP_PASSWORD: process.env.SMTP_PASSWORD,
         JWT_SECRET: process.env.JWT_SECRET,
-        PORT: 3137
+        ZAUTH_SECRET: process.env.ZAUTH_SECRET,
+        NEXT_PUBLIC_ZAUTH_KEY: process.env.NEXT_PUBLIC_ZAUTH_KEY,
+        NEXT_PUBLIC_ZAUTH_URL: process.env.NEXT_PUBLIC_ZAUTH_URL,
+        PORT: 3137,
       },
     },
   ],

@@ -51,6 +51,7 @@ jobs:
           if [ -z "${{ secrets.ZDRIVE_KEY }}" ]; then echo "❌ Missing secret: ZDRIVE_KEY"; exit 1; fi
           if [ -z "${{ secrets.ZDRIVE_SECRET }}" ]; then echo "❌ Missing secret: ZDRIVE_SECRET"; exit 1; fi
           if [ -z "${{ vars.ZAUTH_KEY }}" ]; then echo "❌ Missing secret: ZAUTH_KEY"; exit 1; fi
+          if [ -z "${{ vars.ZAUTH_SECRET }}" ]; then echo "❌ Missing secret: ZAUTH_SECRET"; exit 1; fi
           if [ -z "${{ vars.ZDRIVE_ROOT }}" ]; then echo "❌ Missing secret: ZDRIVE_ROOT"; exit 1; fi
 
           if [ -z "${{ vars.SMTP_HOST }}" ]; then echo "❌ Missing secret: SMTP_HOST"; exit 1; fi
@@ -104,6 +105,9 @@ jobs:
             export SMTP_USER=${{ vars.SMTP_USER }}
             export SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
             export JWT_SECRET=${{ secrets.JWT_SECRET }}
+            export ZAUTH_SECRET=${{ secrets.ZAUTH_SECRET }}
+            export NEXT_PUBLIC_ZAUTH_KEY=${{ vars.ZAUTH_KEY }}
+            export NEXT_PUBLIC_ZAUTH_URL=${{ vars.ZAUTH_URL }}
             npx prisma migrate deploy
             npx prisma generate
             pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js

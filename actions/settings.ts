@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import SettingsDB, { UpdateSettingsData } from '@/db/settings';
-import { revalidatePath } from 'next/cache';
+import SettingsDB, { UpdateSettingsData } from "@/db/settings";
+import { revalidatePath } from "next/cache";
 import { requireAdminAuth } from "@/services/zauth";
 
 export async function getSettings() {
@@ -11,7 +11,7 @@ export async function getSettings() {
 export async function updateSettings(data: UpdateSettingsData) {
   await requireAdminAuth();
   const settings = await SettingsDB.update(data);
-  revalidatePath('/admin/settings');
-  revalidatePath('/'); // Revalidate storefront too as it might use store name/logo
+  revalidatePath("/admin/settings");
+  revalidatePath("/");
   return settings;
 }
