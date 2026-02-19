@@ -8,7 +8,7 @@ export async function getWishlist() {
   const user = await getCurrentUser();
 
   if (!user) {
-    throw new Error("Authentication required");
+    return [];
   }
 
   return await WishlistDB.findByCustomer(user.id);
