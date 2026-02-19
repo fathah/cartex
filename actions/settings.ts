@@ -12,6 +12,6 @@ export async function updateSettings(data: UpdateSettingsData) {
   await requireAdminAuth();
   const settings = await SettingsDB.update(data);
   revalidatePath("/admin/settings");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return settings;
 }

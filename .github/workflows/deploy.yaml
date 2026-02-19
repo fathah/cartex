@@ -51,7 +51,7 @@ jobs:
           if [ -z "${{ secrets.ZDRIVE_KEY }}" ]; then echo "❌ Missing secret: ZDRIVE_KEY"; exit 1; fi
           if [ -z "${{ secrets.ZDRIVE_SECRET }}" ]; then echo "❌ Missing secret: ZDRIVE_SECRET"; exit 1; fi
           if [ -z "${{ vars.ZAUTH_KEY }}" ]; then echo "❌ Missing secret: ZAUTH_KEY"; exit 1; fi
-          if [ -z "${{ vars.ZAUTH_SECRET }}" ]; then echo "❌ Missing secret: ZAUTH_SECRET"; exit 1; fi
+          if [ -z "${{ secrets.ZAUTH_SECRET }}" ]; then echo "❌ Missing secret: ZAUTH_SECRET"; exit 1; fi
           if [ -z "${{ vars.ZDRIVE_ROOT }}" ]; then echo "❌ Missing secret: ZDRIVE_ROOT"; exit 1; fi
 
           if [ -z "${{ vars.SMTP_HOST }}" ]; then echo "❌ Missing secret: SMTP_HOST"; exit 1; fi
