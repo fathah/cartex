@@ -7,7 +7,7 @@ export type CreateUserData = {
   firstName?: string;
   lastName?: string;
   role?: UserRole;
-  ziqxId: string;
+  ziqxId?: string | null;
 };
 
 export default class UserDB {

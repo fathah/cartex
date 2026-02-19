@@ -1,20 +1,23 @@
 "use client";
 
-import React from 'react';
-import { Tabs } from 'antd';
-import { Store, CreditCard, Truck } from 'lucide-react';
-import SiteSettings from './SiteSettings/SiteSettings';
-import ShippingSettings from './shipping-settings';
-import PaymentSettings from './Payment/payment-settings';
+import React from "react";
+import { Tabs } from "antd";
+import { Store, CreditCard, Truck, User } from "lucide-react";
+import SiteSettings from "./SiteSettings/SiteSettings";
+import ShippingSettings from "./shipping-settings";
+import PaymentSettings from "./Payment/payment-settings";
+import UserAccess from "./UserAccess/UserAccess";
 
 interface SettingsContainerProps {
   initialSettings: any;
 }
 
-export default function SettingsContainer({ initialSettings }: SettingsContainerProps) {
+export default function SettingsContainer({
+  initialSettings,
+}: SettingsContainerProps) {
   const items = [
     {
-      key: 'site',
+      key: "site",
       label: (
         <span className="flex items-center gap-2">
           <Store size={16} />
@@ -24,41 +27,45 @@ export default function SettingsContainer({ initialSettings }: SettingsContainer
       children: <SiteSettings initialSettings={initialSettings} />,
     },
     {
-      key: 'payment',
+      key: "payment",
       label: (
         <span className="flex items-center gap-2">
           <CreditCard size={16} />
           Payment Methods
         </span>
       ),
-      children: (
-        <PaymentSettings/>
-      ),
+      children: <PaymentSettings />,
     },
     {
-      key: 'shipping',
+      key: "shipping",
       label: (
         <span className="flex items-center gap-2">
           <Truck size={16} />
           Shipping
         </span>
       ),
-      children: (
-        <ShippingSettings />
+      children: <ShippingSettings />,
+    },
+    {
+      key: "user-access",
+      label: (
+        <span className="flex items-center gap-2">
+          <User size={16} />
+          User Access
+        </span>
       ),
+      children: <UserAccess />,
     },
   ];
 
   return (
     <div>
-   
-        <Tabs 
-            tabPlacement="start" 
-            items={items} 
-            defaultActiveKey="site"
-            className="min-h-[400px]" 
-        />
-  
+      <Tabs
+        tabPlacement="start"
+        items={items}
+        defaultActiveKey="site"
+        className="min-h-[400px]"
+      />
     </div>
   );
 }

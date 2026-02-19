@@ -16,13 +16,16 @@ export async function handleAdminLogin(accessToken: string) {
     return null;
   }
 
+  const fullName = decoded?.fullName;
+  const email = decoded?.email;
+
   const count = await UserDB.count();
   if (count === 0) {
     await UserDB.create({
       ziqxId,
       role: "SUPER_ADMIN",
-      email: decoded?.email,
-      firstName: decoded?.fullName,
+      email: email,
+      firstName: fullName,
     });
     return true;
   }
@@ -31,6 +34,11 @@ export async function handleAdminLogin(accessToken: string) {
   if (!user) {
     return null;
   }
+  await UserDB.update(user.id, {
+    email: email,
+    ziqxId: ziqxId,
+    firstName: fullName,
+  });
 
   return true;
 }
