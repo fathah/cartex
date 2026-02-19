@@ -30,15 +30,15 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
   return (
     <div className="bg-[#FDF8F5] min-h-screen  text-[#4A3B32]">
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-12 lg:py-20 flex flex-col lg:flex-row items-center gap-12">
+      <section className="container mx-auto px-4 py-8 lg:py-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 overflow-hidden">
         <div className="lg:w-1/2 space-y-6 text-center lg:text-left">
           <span className="inline-block px-3 py-1 bg-[#E8D4C5] text-[#8B5E3C] text-xs font-bold tracking-wider uppercase rounded-sm">
             Luxury & Premium
           </span>
-          <h1 className="text-5xl lg:text-7xl  text-[#4A3B32]  font-black">
-            Revel The Beauty <br /> Inside You
+          <h1 className="text-4xl md:text-5xl lg:text-7xl text-[#4A3B32] font-black leading-tight">
+            Revel The Beauty <br className="hidden md:block" /> Inside You
           </h1>
-          <p className="text-[#6D5D52] text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed">
+          <p className="text-[#6D5D52] text-base md:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed">
             Timeless Fragrances, Crafted With Passion, Embody Individuality,
             Elegance, And Sophistication, Leaving A Lasting Impression Always.
           </p>
@@ -62,11 +62,11 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-[#6F4E37]/5 rounded-full blur-2xl"></div>
 
           {/* Main Hero Image */}
-          <div className="absolute z-0  w-full scale-150 transform  transition-transform duration-700 ease-out">
+          <div className="relative z-0 w-full scale-110 lg:scale-150 transform transition-transform duration-700 ease-out">
             <img
               src="/images/hero.png"
               alt="Luxury Perfume"
-              className="w-full h-auto"
+              className="w-full h-auto object-contain"
             />
           </div>
         </div>
@@ -110,7 +110,7 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
 
       {/* Curated Collections */}
       <section className="container mx-auto px-4 py-20 text-center">
-        <h2 className="text-4xl font-serif mb-12 relative inline-block">
+        <h2 className="text-3xl md:text-4xl font-serif mb-12 relative inline-block">
           Curated Collections
           <span className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-[#E8D4C5]/30 rounded-full blur-xl"></span>
         </h2>
@@ -216,7 +216,7 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
           alt="Newsletter Background"
         />
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center p-4">
-          <div className="bg-[#FDF8F5] p-12 max-w-2xl w-full text-center shadow-2xl">
+          <div className="bg-[#FDF8F5] p-6 md:p-12 max-w-2xl w-full text-center shadow-2xl mx-4">
             <h2 className="text-3xl font-serif mb-4 text-[#4A3B32]">
               Subscribe Now
             </h2>
@@ -224,7 +224,7 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
               Refresh Your Senses With Exclusive Fragrances, Product Launches,
               And Special Offers Delivered To Your Inbox.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 placeholder="Your email here"
