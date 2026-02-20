@@ -1,4 +1,4 @@
-import prisma from './prisma';
+import prisma from "./prisma";
 
 export interface UpdateSettingsData {
   storeName?: string;
@@ -10,13 +10,13 @@ export interface UpdateSettingsData {
   seoDescription?: string;
 }
 
-export default class SettingsDB {
-  private static GLOBAL_ID = "global";
+const GLOBAL_ID = "global";
 
+export default class SettingsDB {
   static async get() {
     try {
       const existing = await prisma.settings.findUnique({
-        where: { id: this.GLOBAL_ID },
+        where: { id: GLOBAL_ID },
       });
 
       if (existing) {
@@ -26,7 +26,7 @@ export default class SettingsDB {
       // If not found, try to create
       return await prisma.settings.create({
         data: {
-          id: this.GLOBAL_ID,
+          id: GLOBAL_ID,
           storeName: "Cartex Store",
           currency: "AED",
           themeConfig: {},
@@ -35,9 +35,9 @@ export default class SettingsDB {
     } catch (error: any) {
       // If creation fails due to unique constraint (parallel build race condition),
       // fetch the record that was created by another process
-      if (error.code === 'P2002') {
+      if (error.code === "P2002") {
         const settings = await prisma.settings.findUnique({
-          where: { id: this.GLOBAL_ID },
+          where: { id: GLOBAL_ID },
         });
         if (settings) {
           return settings;
@@ -66,7 +66,7 @@ export default class SettingsDB {
     await this.get();
 
     return await prisma.settings.update({
-      where: { id: this.GLOBAL_ID },
+      where: { id: GLOBAL_ID },
       data,
     });
   }
