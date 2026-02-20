@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Google_Sans } from "next/font/google";
+
+export const dynamic = "force-dynamic";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import "./globals.css";
 
