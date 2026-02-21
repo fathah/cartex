@@ -13,7 +13,7 @@ export default function StoreLayout({
   return (
     <div className="flex flex-col min-h-screen">
       <StoreHeader />
-      <main className="flex-grow">
+      <main className="grow">
         {children}
         <CartDrawer />
       </main>

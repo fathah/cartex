@@ -14,7 +14,11 @@ import {
 } from "@/app/account/wishlist/actions";
 
 export default function ProductCard({ product }: { product: any }) {
-  const price = product.variants?.[0]?.price || 0;
+  const currentVariant = product.variants?.[0];
+  const price = currentVariant?.price || 0;
+  const stockCount = currentVariant?.inventory?.quantity || 0;
+  const isOutOfStock = currentVariant ? stockCount <= 0 : true;
+
   const addToCart = useCartStore((state) => state.addToCart);
 
   const isInWishlist = useWishlistStore((state) =>
@@ -102,6 +106,12 @@ export default function ProductCard({ product }: { product: any }) {
           )}
         </Link>
 
+        {isOutOfStock && (
+          <div className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-sm">
+            Out of Stock
+          </div>
+        )}
+
         <button
           onClick={handleWishlistToggle}
           disabled={wishlistLoading || !mounted}
@@ -138,9 +148,14 @@ export default function ProductCard({ product }: { product: any }) {
 
         <button
           onClick={handleAddToCart}
-          className="w-full mt-auto py-2.5 rounded-full border border-gray-900 font-medium text-sm hover:bg-gray-900 hover:text-white transition-all active:scale-95"
+          disabled={isOutOfStock}
+          className={`w-full mt-auto py-2.5 rounded-full border font-medium text-sm transition-all active:scale-95 ${
+            isOutOfStock
+              ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+              : "border-gray-900 hover:bg-gray-900 hover:text-white"
+          }`}
         >
-          Add to Cart
+          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </button>
       </div>
     </div>

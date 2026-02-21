@@ -98,7 +98,7 @@ const OrderDB = {
     };
   },
 
-  list: async ({ page = 1, limit = 10, search = "" } = {}) => {
+  list: async ({ page = 1, limit = 10, search = "", tab = "all" } = {}) => {
     const skip = (page - 1) * limit;
     const where: any = {};
 
@@ -109,6 +109,23 @@ const OrderDB = {
         where.orderNumber = searchNum;
       }
       // Could extend to customer name search if joined
+    }
+
+    if (tab !== "all") {
+      switch (tab) {
+        case "unfulfilled":
+          where.fulfillmentStatus = "UNFULFILLED";
+          break;
+        case "unpaid":
+          where.paymentStatus = "PENDING";
+          break;
+        case "open":
+          where.status = { notIn: ["COMPLETED", "CANCELLED", "REFUNDED"] }; // Assuming open means it's not finished
+          break;
+        case "closed":
+          where.status = { in: ["COMPLETED", "CANCELLED", "REFUNDED"] };
+          break;
+      }
     }
 
     const [orders, total] = await Promise.all([
@@ -223,6 +240,13 @@ const OrderDB = {
       include: {
         items: true,
       },
+    });
+  },
+
+  update: async (id: string, data: any) => {
+    return await prisma.order.update({
+      where: { id },
+      data,
     });
   },
 };

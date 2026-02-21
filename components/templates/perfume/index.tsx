@@ -43,7 +43,7 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
             Elegance, And Sophistication, Leaving A Lasting Impression Always.
           </p>
           <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-4">
-            <Link href="/collections">
+            <Link href="/categories">
               <button className="bg-[#6F4E37] text-white px-8 py-4 uppercase tracking-widest text-sm hover:bg-[#5D4030] transition-colors flex items-center gap-2">
                 Our Collections <ChevronRight size={16} />
               </button>

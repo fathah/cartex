@@ -41,7 +41,7 @@ export default function SideBarMenu() {
 
   const menuItems = [
     { iconName: "Package", label: "Orders", href: "/account/orders" },
-    { iconName: "RotateCcw", label: "Returns", href: "/account/returns" },
+    // { iconName: "RotateCcw", label: "Returns", href: "/account/returns" },
     {
       iconName: "Heart",
       label: "Wishlist",
@@ -56,11 +56,11 @@ export default function SideBarMenu() {
   const accountItems = [
     { iconName: "User", label: "Profile", href: "/account" },
     { iconName: "MapPin", label: "Addresses", href: "/account/addresses" },
-    { iconName: "Wallet", label: "Payments", href: "/account/payments" },
+    // { iconName: "Wallet", label: "Payments", href: "/account/payments" },
   ];
 
-  return (
-    <aside className="w-full lg:w-1/4 space-y-6">
+  const SidebarContent = (
+    <div className="space-y-6">
       {/* User Profile Card */}
       <div className="bg-white p-6 rounded-lg shadow-sm flex items-center gap-4">
         <div className="w-12 h-12 bg-[#5d5d5d] rounded-full flex items-center justify-center text-white font-bold text-lg">
@@ -88,6 +88,10 @@ export default function SideBarMenu() {
         </div>
         <ClientMenuSection items={accountItems} />
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <aside className="hidden lg:block w-full lg:w-1/4">{SidebarContent}</aside>
   );
 }

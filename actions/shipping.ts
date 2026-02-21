@@ -73,23 +73,25 @@ export async function getSmartShippingMethods(
             break;
 
           case "CONDITIONAL":
-            // Free shipping above a threshold
-            if (min !== null) {
-              freeAbove = min;
-              if (subtotal >= min) {
-                calculatedPrice = 0; // Free!
+          case "PRICE": {
+            // If the rate is explicitly Free, track its minimum threshold for UI hints "Spend $X more"
+            if (min !== null && ratePrice === 0) {
+              if (freeAbove === null || min < freeAbove) {
+                freeAbove = min;
+              }
+            }
+
+            const inMin = min === null || subtotal >= min;
+            const inMax = max === null || subtotal <= max;
+
+            if (inMin && inMax) {
+              // We successfully fall into this bucket. If we have overlapping buckets, favor the cheaper rate.
+              if (calculatedPrice === null || ratePrice < calculatedPrice) {
+                calculatedPrice = ratePrice;
               }
             }
             break;
-
-          case "PRICE":
-            // Rate applies within a price range [min, max]
-            const inMin = min === null || subtotal >= min;
-            const inMax = max === null || subtotal <= max;
-            if (inMin && inMax) {
-              calculatedPrice = ratePrice;
-            }
-            break;
+          }
 
           case "WEIGHT":
             // Weight-based — fall back to flat price for now

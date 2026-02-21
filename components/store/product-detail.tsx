@@ -5,6 +5,7 @@ import { Button, Tag, Divider, InputNumber, message } from "antd";
 import { ShoppingCart } from "lucide-react";
 import { AppConstants } from "@/constants/constants";
 import { useCartStore } from "@/lib/store/cart";
+import Currency from "../common/Currency";
 
 interface ProductDetailProps {
   product: any;
@@ -81,25 +82,26 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const price = currentVariant
     ? currentVariant.price
     : product.variants[0]?.price || "0.00";
-  const isOutOfStock = currentVariant
-    ? currentVariant.inventory?.quantity <= 0
-    : false;
   const stockCount = currentVariant?.inventory?.quantity || 0;
+  const isOutOfStock = currentVariant ? stockCount <= 0 : true;
+
+  const getFullImageUrl = (url: string) => {
+    if (!url) return "/placeholder.png";
+    if (url.startsWith("http") || url.startsWith("/")) return url;
+    return `${AppConstants.DRIVE_ROOT_URL}/${url}`;
+  };
 
   // Media handling
   const images =
     product.mediaProducts?.length > 0
-      ? product.mediaProducts.map((mp: any) => mp.media.url)
+      ? product.mediaProducts.map((mp: any) => getFullImageUrl(mp.media.url))
       : ["/placeholder.png"]; // Fallback
   const [mainImage, setMainImage] = useState(images[0]);
 
   // Update main image when product changes
   useEffect(() => {
-    if (product.mediaProducts?.length > 0) {
-      const imgUrl = `${AppConstants.DRIVE_ROOT_URL}/${product.mediaProducts[0].media.url}`;
-      setMainImage(imgUrl);
-    }
-  }, [product]);
+    setMainImage(images[0]);
+  }, [product.id]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-12 ">
@@ -117,8 +119,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         {images.length > 1 && (
           <div className="flex gap-4 overflow-x-auto pb-2">
             {images.map((img: string, idx: number) => {
-              const imgUrl = `${AppConstants.DRIVE_ROOT_URL}/${img}`;
-
               return (
                 <div
                   key={idx}
@@ -130,7 +130,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={imgUrl}
+                    src={img}
                     alt={`View ${idx}`}
                     className="object-contain w-14 h-14 mix-blend-multiply"
                   />
@@ -162,7 +162,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
         <div className="mb-8 pb-8 border-b border-gray-100">
           <div className="text-2xl font-bold mb-1">
-            ${Number(price).toFixed(2)}
+            <Currency value={Number(price)} />
           </div>
         </div>
 
@@ -228,7 +228,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           </div>
 
           <div className="flex flex-col text-xs mt-2">
-            {stockCount > 0 && stockCount < 20 && (
+            {isOutOfStock ? (
+              <span className="text-red-500 font-bold mb-1 text-sm bg-red-50 px-2 py-1 rounded inline-block w-fit">
+                Out of Stock
+              </span>
+            ) : stockCount > 0 && stockCount < 20 ? (
               <span className="text-orange-500 font-medium mb-1">
                 Only{" "}
                 <span className="text-orange-600 font-bold">
@@ -236,8 +240,10 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 </span>{" "}
                 Left!
               </span>
+            ) : null}
+            {!isOutOfStock && (
+              <span className="text-gray-500">Don't miss it</span>
             )}
-            <span className="text-gray-500">Don't miss it</span>
           </div>
         </div>
 
@@ -246,7 +252,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             type="primary"
             size="large"
             shape="round"
-            className="bg-[#003d29] hover:bg-[#002a1c] h-12 px-8 text-base font-medium flex-grow md:flex-grow-0 min-w-[160px]"
+            className="bg-[#003d29] hover:bg-[#002a1c] h-12 px-8 text-base font-medium flex-grow md:flex-grow-0 min-w-[160px] disabled:bg-gray-300 disabled:border-transparent disabled:text-white"
             disabled={isOutOfStock || !currentVariant}
             onClick={() => {
               addToCart();
@@ -258,11 +264,15 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           <Button
             size="large"
             shape="round"
-            className="h-12 px-8 text-base font-medium border-2 border-[#003d29] text-[#003d29] hover:bg-green-50 flex-grow md:flex-grow-0 min-w-[160px]"
+            className={`h-12 px-8 text-base font-medium border-2 flex-grow md:flex-grow-0 min-w-[160px] ${
+              isOutOfStock
+                ? "border-gray-200 text-gray-400 bg-gray-50"
+                : "border-[#003d29] text-[#003d29] hover:bg-green-50"
+            }`}
             disabled={isOutOfStock || !currentVariant}
             onClick={addToCart}
           >
-            Add to Cart
+            {isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </Button>
         </div>
 

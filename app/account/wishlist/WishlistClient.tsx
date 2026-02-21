@@ -6,6 +6,7 @@ import { Button, message, Empty } from "antd";
 import { removeFromWishlist } from "./actions";
 import { getMediaUrl } from "@/utils/media_url";
 import Link from "next/link";
+import Currency from "@/components/common/Currency";
 
 interface WishlistItem {
   id: string;
@@ -165,7 +166,7 @@ export default function WishlistClient({ initialItems }: WishlistClientProps) {
 
                 <div className="flex items-center justify-between">
                   <span className="text-xl font-bold text-gray-900">
-                    ${price.toFixed(2)}
+                    <Currency value={price} />
                   </span>
                 </div>
 

@@ -1,6 +1,7 @@
 import { Search, ChevronDown, Package } from "lucide-react";
 import { getOrders } from "@/actions/orders";
 import { getMediaUrl } from "@/utils/media_url";
+import Currency from "@/components/common/Currency";
 
 const OrdersPage = async () => {
   const orders = await getOrders();
@@ -102,7 +103,7 @@ const OrdersPage = async () => {
                         </div>
                         <div className="text-right">
                           <span className="font-bold block text-gray-900">
-                            ${item.price.toFixed(2)}
+                            <Currency value={item.price} />
                           </span>
                         </div>
                       </div>

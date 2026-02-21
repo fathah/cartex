@@ -1,8 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, User, Search, ChevronDown } from "lucide-react";
-import { Badge, Dropdown, MenuProps } from "antd";
+import {
+  ShoppingCart,
+  User,
+  Search,
+  ChevronDown,
+  Menu,
+  Package,
+  Heart,
+  MapPin,
+  Wallet,
+} from "lucide-react";
+import { Badge, Dropdown, MenuProps, Drawer } from "antd";
 import { useCartStore } from "@/lib/store/cart";
 import { AppConstants } from "@/constants/constants";
 import SearchOverlay from "./search-overlay";
@@ -16,6 +26,7 @@ export default function HeaderClient({
 }) {
   const [mounted, setMounted] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const cartCount = useCartStore((state) => state.getTotalItems());
 
   useEffect(() => {
@@ -25,31 +36,41 @@ export default function HeaderClient({
 
   const categoryItems: MenuProps["items"] = categories.map((cat) => ({
     key: cat.id,
-    label: <Link href={`/category/${cat.slug}`}>{cat.name}</Link>,
+    label: <Link href={`/categories/${cat.slug}`}>{cat.name}</Link>,
   }));
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-100">
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between gap-8">
-        {/* Logo */}
-        <Link href="/" className="shrink-0 flex items-center gap-2">
-          {settings.logoUrl ? (
-            <img
-              src={settings.logoUrl}
-              alt={settings.storeName}
-              className="w-32 object-contain"
-            />
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="bg-emerald-800 p-1.5 rounded-lg">
-                <ShoppingCart className="w-6 h-6 text-white" />
+      <div className="container mx-auto px-4 h-20 flex items-center justify-between gap-4 lg:gap-8">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu toggle */}
+          <button
+            className="lg:hidden p-1 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <Menu size={24} />
+          </button>
+
+          {/* Logo */}
+          <Link href="/" className="shrink-0 flex items-center gap-2">
+            {settings.logoUrl ? (
+              <img
+                src={settings.logoUrl}
+                alt={settings.storeName}
+                className="w-24 lg:w-32 object-contain"
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="bg-emerald-800 p-1.5 rounded-lg">
+                  <ShoppingCart className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-emerald-950 tracking-tight">
+                  {settings.storeName || AppConstants.SHOP_NAME}
+                </span>
               </div>
-              <span className="text-2xl font-bold text-emerald-950 tracking-tight">
-                {settings.storeName || AppConstants.SHOP_NAME}
-              </span>
-            </div>
-          )}
-        </Link>
+            )}
+          </Link>
+        </div>
 
         {/* Navigation & Search Container */}
         <div className="hidden lg:flex items-center flex-1 gap-8">
@@ -73,12 +94,12 @@ export default function HeaderClient({
             >
               What&prime;s New
             </Link>
-            <Link
+            {/* <Link
               href="/delivery"
               className="hover:text-emerald-700 transition-colors"
             >
               Delivery
-            </Link>
+            </Link> */}
           </nav>
 
           {/* Search Bar */}
@@ -100,6 +121,16 @@ export default function HeaderClient({
             isOpen={isSearchOpen}
             onClose={() => setIsSearchOpen(false)}
           />
+        </div>
+
+        {/* Mobile Search Icon */}
+        <div className="flex items-center lg:hidden ml-auto">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="p-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <Search size={22} />
+          </button>
         </div>
 
         {/* Actions */}
@@ -128,6 +159,82 @@ export default function HeaderClient({
           </div>
         </div>
       </div>
+
+      <Drawer
+        title={<span className="font-bold text-gray-800">Menu</span>}
+        placement="left"
+        onClose={() => setIsMobileMenuOpen(false)}
+        open={isMobileMenuOpen}
+        className="lg:hidden"
+        width={300}
+      >
+        <div className="flex flex-col gap-6 font-medium text-lg text-gray-700">
+          <Link
+            href="/deals"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="hover:text-emerald-700"
+          >
+            Deals
+          </Link>
+          <Link
+            href="/new"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="hover:text-emerald-700"
+          >
+            What&prime;s New
+          </Link>
+          <Link
+            href="/categories"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="hover:text-emerald-700"
+          >
+            Categories
+          </Link>
+
+          <div className="h-px bg-gray-100 my-2" />
+
+          <div className="flex flex-col gap-4">
+            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+              My Account
+            </h3>
+            <Link
+              href="/account"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 hover:text-emerald-700"
+            >
+              <User size={18} /> Profile
+            </Link>
+            <Link
+              href="/account/orders"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 hover:text-emerald-700"
+            >
+              <Package size={18} /> Orders
+            </Link>
+            <Link
+              href="/account/wishlist"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 hover:text-emerald-700"
+            >
+              <Heart size={18} /> Wishlist
+            </Link>
+            <Link
+              href="/account/addresses"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 hover:text-emerald-700"
+            >
+              <MapPin size={18} /> Addresses
+            </Link>
+            {/* <Link
+              href="/account/payments"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 hover:text-emerald-700"
+            >
+              <Wallet size={18} /> Payments
+            </Link> */}
+          </div>
+        </div>
+      </Drawer>
     </header>
   );
 }

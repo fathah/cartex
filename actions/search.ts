@@ -102,7 +102,7 @@ export async function getSearchRecommendations(query?: string) {
         ...collections.map((c) => ({
           type: "collection",
           label: c.name,
-          href: `/category/${c.slug}`,
+          href: `/categories/${c.slug}`,
         })),
       ],
     };
@@ -112,7 +112,11 @@ export async function getSearchRecommendations(query?: string) {
     prisma.collection.findMany({
       take: 6,
       orderBy: { name: "asc" },
-      select: { name: true, slug: true, _count: { select: { products: true } } },
+      select: {
+        name: true,
+        slug: true,
+        _count: { select: { products: true } },
+      },
     }),
     prisma.product.findMany({
       where: { deletedAt: null, status: "ACTIVE" },
@@ -127,7 +131,7 @@ export async function getSearchRecommendations(query?: string) {
       ...collections.map((c) => ({
         type: "collection",
         label: c.name,
-        href: `/category/${c.slug}`,
+        href: `/categories/${c.slug}`,
       })),
       ...products.map((p) => ({
         type: "product",

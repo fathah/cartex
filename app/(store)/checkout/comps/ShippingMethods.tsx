@@ -52,7 +52,7 @@ export default function ShippingMethods({
           <Radio.Group className="w-full" onChange={handleMethodChange}>
             <div className="flex flex-col gap-3">
               {shippingMethods.map((method: any) => {
-                const price = method.calculatedPrice;
+                const price = Number(method.calculatedPrice);
                 const isFree = price === 0;
                 const isRecommended = method.isRecommended;
                 const freeAbove = method.freeAbove;

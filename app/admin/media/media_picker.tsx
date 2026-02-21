@@ -103,18 +103,6 @@ const MediaPicker: React.FC<MediaPickerProps> = ({ onSelect, trigger }) => {
                     <p className="mb-4 text-gray-500">
                       Upload new media files to your library
                     </p>
-                    {/* We reuse MediaUpload but customized. 
-                                    Actually MediaUpload has its own button+modal logic.
-                                    Ideally we decouple the button from the upload logic, but for now:
-                                    We can just render MediaUpload here, user clicks button, opens ANOTHER modal?
-                                    That's bad UX (nested modal). 
-                                    However, time constraint: let's use a refactored approach or just put the upload button here.
-                                    Wait, MediaUpload renders a Button. Click -> Modal.
-                                    Inside a Modal -> another Modal is awkward.
-                                    
-                                    Better: Change MediaUpload to accept `customTrigger` or similar?
-                                    Or simpler: Since I can't easily decouple without refactor, I will just render a clear message and the button.
-                                */}
                     <MediaUpload onCustomSuccess={handleUploadSuccess} />
                   </div>
                 </div>

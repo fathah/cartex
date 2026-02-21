@@ -16,6 +16,7 @@ import ProductCard from "@/components/store/product-card";
 import Link from "next/link";
 import Image from "next/image";
 import { getMediaUrl } from "@/utils/media_url";
+import Currency from "@/components/common/Currency";
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -258,10 +259,11 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
                                     {product.name}
                                   </h4>
                                   <p className="text-sm text-gray-500 mt-1">
-                                    $
-                                    {Number(
-                                      product.variants[0]?.price || 0,
-                                    ).toFixed(2)}
+                                    <Currency
+                                      value={Number(
+                                        product.variants[0]?.price || 0,
+                                      )}
+                                    />
                                   </p>
                                 </div>
                               ))}

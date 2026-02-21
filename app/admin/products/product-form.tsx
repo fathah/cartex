@@ -15,6 +15,7 @@ import {
   createProduct,
   updateProduct,
   addMedia,
+  linkMedia,
   removeMedia,
   checkSlugAvailability,
 } from "@/actions/product";
@@ -22,12 +23,10 @@ import { getCollections } from "@/actions/collection";
 import { useRouter } from "next/navigation";
 import { ProductStatus } from "@prisma/client";
 import VariantManager from "./variant-manager";
-import { UploadOutlined } from "@ant-design/icons";
 import { Upload } from "antd";
-import { generateSignedUrl } from "@/services/zdrive";
-import { uploadFile } from "@/services/zdrive-client";
 import { AppConstants } from "@/constants/constants";
 import { useCurrency } from "@/components/providers/currency-provider";
+import MediaPicker from "@/app/admin/media/media_picker";
 
 interface ProductFormProps {
   initialData?: any;
@@ -131,31 +130,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     }
   };
 
-  const handleUpload = async (options: any) => {
-    const { file, onSuccess, onError } = options;
-    try {
-      const signedUrl = await generateSignedUrl(file.name);
-      if (!signedUrl) throw new Error("Failed to get signed URL");
-
-      const uploadRes = await uploadFile(file, signedUrl);
-      if (!uploadRes.success || !uploadRes.filename)
-        throw new Error("Upload to ZDrive failed");
-
-      if (isEdit) {
-        await addMedia(initialData.id, uploadRes.filename, "IMAGE");
-
-        onSuccess("ok");
-        message.success("Uploaded successfully");
-      } else {
-        message.warning("Please save the product first to upload media.");
-        onError(new Error("Save product first"));
-      }
-    } catch (err) {
-      console.error(err);
-      onError(new Error("Upload failed"));
-      message.error("Upload failed");
-    }
-  };
+  // handleUpload removed since we use MediaPicker
 
   const handleRemove = async (file: any) => {
     try {
@@ -280,24 +255,44 @@ export default function ProductForm({ initialData }: ProductFormProps) {
           </Card>
 
           <Card title="Media" className="mb-6">
+            <div className="flex flex-wrap gap-4 mb-4">
+              {isEdit && (
+                <MediaPicker
+                  onSelect={async (media: any) => {
+                    try {
+                      await linkMedia(initialData.id, media.id);
+                      message.success("Media linked successfully");
+                      setFileList((prev) => [
+                        ...prev,
+                        {
+                          uid: media.id,
+                          name: media.url.split("/").pop() || "image",
+                          status: "done",
+                          url: `${AppConstants.DRIVE_ROOT_URL}/${media.url}`,
+                        },
+                      ]);
+                    } catch (err) {
+                      console.error(err);
+                      message.error(
+                        "Failed to link media. It might already be linked.",
+                      );
+                    }
+                  }}
+                />
+              )}
+            </div>
             <Upload
-              customRequest={handleUpload}
               listType="picture-card"
               fileList={fileList}
-              onChange={({ fileList }) => setFileList(fileList)}
               onRemove={handleRemove}
               onPreview={() => {}} // Handle preview if needed
+              showUploadList={{ showPreviewIcon: true, showRemoveIcon: true }}
             >
-              {fileList.length >= 8 ? null : (
-                <div>
-                  <UploadOutlined />
-                  <div style={{ marginTop: 8 }}>Upload</div>
-                </div>
-              )}
+              {/* No upload button rendered here */}
             </Upload>
             {!isEdit && (
               <div className="text-gray-500 text-xs mt-2">
-                Save product to upload media.
+                Save product to upload or select media.
               </div>
             )}
           </Card>

@@ -28,17 +28,16 @@ function calculateShippingForMethod(method: any, subtotal: number): number {
         }
         break;
       case "CONDITIONAL":
-        if (min !== null && subtotal >= min) {
-          calculatedPrice = 0;
-        }
-        break;
-      case "PRICE":
+      case "PRICE": {
         const inMin = min === null || subtotal >= min;
         const inMax = max === null || subtotal <= max;
         if (inMin && inMax) {
-          calculatedPrice = ratePrice;
+          if (calculatedPrice === null || ratePrice < calculatedPrice) {
+            calculatedPrice = ratePrice;
+          }
         }
         break;
+      }
       case "WEIGHT":
         if (calculatedPrice === null) {
           calculatedPrice = ratePrice;
@@ -351,16 +350,52 @@ export async function getOrder(orderId: string) {
   });
   if (!order) return null;
 
+  const variantIds = order.items
+    .map((i) => i.variantId)
+    .filter(Boolean) as string[];
+  const variants = await prisma.productVariant.findMany({
+    where: { id: { in: variantIds } },
+    include: {
+      image: true, // Only fetch direct image, keeping it fast for single order
+      product: {
+        include: {
+          mediaProducts: {
+            take: 1,
+            include: { media: true },
+            orderBy: { media: { createdAt: "desc" } },
+          },
+        },
+      },
+    },
+  });
+
+  const variantsMap = new Map(variants.map((v) => [v.id, v]));
+
   return {
     ...order,
     totalPrice: Number(order.totalPrice),
     subtotal: Number(order.subtotal),
     taxTotal: Number(order.taxTotal),
     shippingTotal: Number(order.shippingTotal),
-    items: order.items.map((item) => ({
-      ...item,
-      price: Number(item.price),
-    })),
+    items: order.items.map((item) => {
+      let image: string | null = null;
+      if (item.variantId) {
+        const variant = variantsMap.get(item.variantId);
+        if (variant) {
+          if (variant.image?.url) {
+            image = variant.image.url;
+          } else if (variant.product?.mediaProducts?.[0]?.media?.url) {
+            image = variant.product.mediaProducts[0].media.url;
+          }
+        }
+      }
+
+      return {
+        ...item,
+        price: Number(item.price),
+        image,
+      };
+    }),
     // flattened payment info if needed
     paymentMethod: order.paymentIntents?.[0]?.paymentMethod?.name || "Unknown",
   };
