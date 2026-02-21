@@ -10,6 +10,7 @@ import {
   Select,
   Space,
   InputNumber,
+  Divider,
 } from "antd";
 import {
   createProduct,
@@ -20,6 +21,7 @@ import {
   checkSlugAvailability,
 } from "@/actions/product";
 import { getCollections } from "@/actions/collection";
+import { getBrands, createBrand } from "@/actions/brands";
 import { useRouter } from "next/navigation";
 import { ProductStatus } from "@prisma/client";
 import VariantManager from "./VariantManager";
@@ -50,21 +52,52 @@ export default function ProductForm({ initialData }: ProductFormProps) {
   const [collections, setCollections] = React.useState<any[]>([]);
   const [loadingCollections, setLoadingCollections] = React.useState(true);
 
+  const [brands, setBrands] = React.useState<any[]>([]);
+  const [loadingBrands, setLoadingBrands] = React.useState(true);
+  const [newBrandName, setNewBrandName] = React.useState("");
+  const inputRef = React.useRef<any>(null);
+
   // Fetch collections on mount
   React.useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const data = await getCollections();
-        setCollections(data);
+        const [collData, brandData] = await Promise.all([
+          getCollections(),
+          getBrands(),
+        ]);
+        setCollections(collData);
+        setBrands(brandData);
       } catch (error) {
-        console.error("Failed to fetch collections:", error);
-        message.error("Failed to load collections");
+        console.error("Failed to fetch form data:", error);
+        message.error("Failed to load initial data");
       } finally {
         setLoadingCollections(false);
+        setLoadingBrands(false);
       }
     };
     fetchCollections();
   }, []);
+
+  const onNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setNewBrandName(event.target.value);
+  };
+
+  const addBrand = async (
+    e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>,
+  ) => {
+    e.preventDefault();
+    if (!newBrandName.trim()) return;
+    try {
+      const brand = await createBrand(newBrandName.trim());
+      setBrands([...brands, brand]);
+      setNewBrandName("");
+      message.success("Brand added");
+      form.setFieldsValue({ productBrandId: brand.id });
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to create brand");
+    }
+  };
 
   const slugify = (text: string) => {
     return text
@@ -213,29 +246,31 @@ export default function ProductForm({ initialData }: ProductFormProps) {
               />
             </Form.Item>
 
-            <Form.Item
-              name="price"
-              label="Base Price"
-              rules={[
-                {
-                  required: !isEdit,
-                  message: "Price is required for new products",
-                },
-              ]}
-              help={
-                isEdit
-                  ? "To update price, edit the variants below"
-                  : "Initial price for the default variant"
-              }
-            >
-              <InputNumber
-                prefix={currency}
-                style={{ width: "100%" }}
-                min={0}
-                precision={2}
-                disabled={isEdit && initialData.variants?.length > 0}
-              />
-            </Form.Item>
+            {!isEdit && (
+              <Form.Item
+                name="originalPrice"
+                label="Base Price"
+                rules={[
+                  {
+                    required: !isEdit,
+                    message: "Price is required for new products",
+                  },
+                ]}
+                help={
+                  isEdit
+                    ? "To update price, edit the variants below"
+                    : "Initial price for the default variant"
+                }
+              >
+                <InputNumber
+                  prefix={currency}
+                  style={{ width: "100%" }}
+                  min={0}
+                  precision={2}
+                  disabled={isEdit && initialData.variants?.length > 0}
+                />
+              </Form.Item>
+            )}
 
             <Form.Item
               name="slug"
@@ -341,6 +376,50 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                   label: collection.name,
                   value: collection.id,
                 }))}
+              />
+            </Form.Item>
+          </Card>
+          {/* IMPLEMENT PRODUCT BRAND SELECTION HERE */}
+          <Card title="Brand">
+            <Form.Item
+              name="productBrandId"
+              label="Product Brand"
+              help="Select a brand or add a new one"
+              className="mb-0"
+            >
+              <Select
+                placeholder="Select a brand"
+                loading={loadingBrands}
+                disabled={loadingBrands}
+                allowClear
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={brands.map((b) => ({
+                  label: b.name,
+                  value: b.id,
+                }))}
+                dropdownRender={(menu) => (
+                  <>
+                    {menu}
+                    <Divider style={{ margin: "8px 0" }} />
+                    <Space style={{ padding: "0 8px 4px" }}>
+                      <Input
+                        placeholder="Please enter brand"
+                        ref={inputRef}
+                        value={newBrandName}
+                        onChange={onNameChange}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                      <Button type="text" onClick={addBrand}>
+                        Add Brand
+                      </Button>
+                    </Space>
+                  </>
+                )}
               />
             </Form.Item>
           </Card>

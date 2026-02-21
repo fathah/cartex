@@ -105,6 +105,8 @@ model Product {
 
   status ProductStatus @default(DRAFT)
 
+  brand ProductBrand? @relation(fields: [productBrandId], references: [id])
+
   // Media
 
   // Organization
@@ -120,13 +122,27 @@ model Product {
   seoTitle String?
   seoDesc  String?
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
-  mediaProducts MediaProduct[]
-  wishlists     Wishlist[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+  mediaProducts  MediaProduct[]
+  wishlists      Wishlist[]
+  productReviews ProductReview[]
+  productBrandId String?
 
   @@map("products")
+}
+
+model ProductBrand {
+  id   String  @id @default(cuid())
+  name String
+  logo String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@map("product_brands")
 }
 
 model Option {
@@ -184,8 +200,9 @@ model ProductVariant {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  image   Media?  @relation(fields: [imageId], references: [id])
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  image          Media?          @relation(fields: [imageId], references: [id])
+  productReviews ProductReview[]
 
   @@map("product_variants")
 }
@@ -268,10 +285,11 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orders    Order[]
-  addresses Address[]
-  carts     Cart[]
-  wishlists Wishlist[]
+  orders         Order[]
+  addresses      Address[]
+  carts          Cart[]
+  wishlists      Wishlist[]
+  productReviews ProductReview[]
 
   @@map("customers")
 }
@@ -547,6 +565,27 @@ model NewsLetterSubscriber {
   createdAt DateTime @default(now())
 
   @@map("newsletter_subscribers")
+}
+
+model ProductReview {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  rating  Int
+  comment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("product_reviews")
 }
 
 model Page {

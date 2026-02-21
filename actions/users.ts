@@ -17,7 +17,9 @@ export async function addAdminUser(
 ) {
   await requireAdminAuth();
 
-  const existingUser = await UserDB.findByEmail(email);
+  const emailLower = email.toLowerCase();
+
+  const existingUser = await UserDB.findByEmail(emailLower);
   if (existingUser) {
     if (existingUser.deletedAt) {
       // Reactivate user
@@ -33,7 +35,7 @@ export async function addAdminUser(
   }
 
   await UserDB.create({
-    email,
+    email: emailLower,
     role,
     fullname,
     ziqxId: undefined, // Will be linked on first login

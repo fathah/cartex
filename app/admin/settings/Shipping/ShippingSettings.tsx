@@ -29,6 +29,7 @@ import {
 } from "@/actions/shipping";
 import { ShippingRateType } from "@prisma/client";
 import { useCurrency } from "@/components/providers/currency-provider";
+import Currency from "@/components/common/Currency";
 
 export default function ShippingSettings() {
   const [zones, setZones] = useState<any[]>([]);
@@ -388,7 +389,7 @@ export default function ShippingSettings() {
 
       {/* Rate Modal */}
       <Modal
-        title="Add Shipping Rate"
+        title={<span className="text-2xl">Add Shipping Rate</span>}
         open={isRateModalOpen}
         onCancel={() => setIsRateModalOpen(false)}
         onOk={formRate.submit}
@@ -417,7 +418,11 @@ export default function ShippingSettings() {
                   label="Cost"
                   rules={[{ required: true }]}
                 >
-                  <Input prefix="$" type="number" step="0.01" />
+                  <Input
+                    prefix={<Currency value={""} currencyOnly />}
+                    type="number"
+                    step="0.01"
+                  />
                 </Form.Item>
 
                 {getFieldValue("type") === ShippingRateType.CONDITIONAL && (
@@ -427,7 +432,10 @@ export default function ShippingSettings() {
                       label="Min Order Amount"
                       className="flex-1"
                     >
-                      <Input prefix="$" type="number" />
+                      <Input
+                        prefix={<Currency value={""} currencyOnly />}
+                        type="number"
+                      />
                     </Form.Item>
                     <Form.Item
                       name="max"

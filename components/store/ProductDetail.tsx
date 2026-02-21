@@ -6,6 +6,8 @@ import { ShoppingCart } from "lucide-react";
 import { AppConstants } from "@/constants/constants";
 import { useCartStore } from "@/lib/store/cart";
 import Currency from "../common/Currency";
+import ProductReviews from "./ProductReviews";
+import { getProductReviews } from "@/actions/reviews";
 
 interface ProductDetailProps {
   product: any;
@@ -17,6 +19,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   >({});
   const [currentVariant, setCurrentVariant] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
+  const [avgRating, setAvgRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
 
   // Initial selection
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       return;
     }
 
-    const price = Number(currentVariant.price);
+    const price = Number(currentVariant.salePrice);
 
     addToCartStore({
       key: `${product.id}-${currentVariant.id}`,
@@ -80,8 +84,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   };
 
   const price = currentVariant
-    ? currentVariant.price
-    : product.variants[0]?.price || "0.00";
+    ? currentVariant.salePrice
+    : product.variants[0]?.salePrice || "0.00";
+  const originalPrice = currentVariant
+    ? currentVariant.originalPrice
+    : product.variants[0]?.originalPrice || price;
+
+  const hasDiscount = Number(price) < Number(originalPrice);
+  const discountPercentage = hasDiscount
+    ? Math.round(
+        ((Number(originalPrice) - Number(price)) / Number(originalPrice)) * 100,
+      )
+    : 0;
+
   const stockCount = currentVariant?.inventory?.quantity || 0;
   const isOutOfStock = currentVariant ? stockCount <= 0 : true;
 
@@ -101,6 +116,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   // Update main image when product changes
   useEffect(() => {
     setMainImage(images[0]);
+    // Fetch aggregated data
+    getProductReviews(product.id, 1, 1).then((res) => {
+      if (res.success && res.data) {
+        setAvgRating(res.data.averageRating);
+        setReviewCount(res.data.total);
+      }
+    });
   }, [product.id]);
 
   return (
@@ -112,7 +134,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           <img
             src={mainImage}
             alt={product.name}
-            className="object-contain max-h-full max-w-full mix-blend-multiply"
+            className={`max-h-full max-w-full mix-blend-multiply ${
+              mainImage.toLowerCase().endsWith(".png")
+                ? "object-contain p-8"
+                : "object-cover w-full h-full"
+            }`}
           />
         </div>
         {/* Thumbnails */}
@@ -132,7 +158,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                   <img
                     src={img}
                     alt={`View ${idx}`}
-                    className="object-contain w-14 h-14 mix-blend-multiply"
+                    className={`mix-blend-multiply ${
+                      img.toLowerCase().endsWith(".png")
+                        ? "object-contain w-14 h-14"
+                        : "object-cover w-full h-full rounded-md"
+                    }`}
                   />
                 </div>
               );
@@ -143,6 +173,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
       {/* Info */}
       <div className="flex flex-col">
+        {product.brand && (
+          <div className="mb-2">
+            <div className="inline text-gray-600 bg-gray-200 px-2 py-1 rounded-lg font-medium tracking-wide text-sm uppercase mb-1">
+              {product.brand.name}
+            </div>
+          </div>
+        )}
         <h1 className="text-4xl font-bold mb-2 tracking-tight">
           {product.name}
         </h1>
@@ -150,20 +187,50 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           {product.description || "No Description"}
         </p>
 
-        {/* Rating Placeholder */}
+        {/* Rating */}
         <div className="flex items-center gap-1 mb-6 text-sm">
           <div className="flex text-[#003d29]">
             {"★★★★★".split("").map((c, i) => (
-              <span key={i}>★</span>
+              <span
+                key={i}
+                className={
+                  i < Math.round(avgRating) ? "text-[#003d29]" : "text-gray-300"
+                }
+              >
+                ★
+              </span>
             ))}
           </div>
-          <span className="text-gray-500">(121)</span>
+          <span className="text-gray-500">
+            ({reviewCount} {reviewCount === 1 ? "review" : "reviews"})
+          </span>
         </div>
 
         <div className="mb-8 pb-8 border-b border-gray-100">
-          <div className="text-2xl font-bold mb-1">
-            <Currency value={Number(price)} />
+          <div className="flex items-center gap-4 mb-1">
+            <div className="text-3xl font-bold font-sans text-gray-900">
+              <Currency value={Number(price)} />
+            </div>
+            {hasDiscount && (
+              <>
+                <div className="text-lg text-gray-400 line-through font-medium">
+                  <Currency value={Number(originalPrice)} />
+                </div>
+                <Tag
+                  color="success"
+                  className="font-bold px-2 py-1 text-xs border-0 rounded-md"
+                >
+                  {discountPercentage}% OFF
+                </Tag>
+              </>
+            )}
           </div>
+          {hasDiscount && (
+            <div className="text-sm text-green-600 font-medium">
+              You save{" "}
+              <Currency value={Number(originalPrice) - Number(price)} />!
+            </div>
+          )}
         </div>
 
         {/* Options */}
@@ -207,8 +274,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             </div>
           </div>
         ))}
-
-        <Divider className="my-6 border-transparent" />
 
         <div className="flex items-start gap-6 mb-8">
           <div className="bg-[#f4f4fa] rounded-full flex items-center px-4 py-3 gap-4 font-semibold">
@@ -275,35 +340,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             {isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </Button>
         </div>
+      </div>
 
-        {/* Delivery Info */}
-        <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
-          <div className="p-4 flex gap-4">
-            <div className="text-orange-500 mt-1">
-              <ShoppingCart size={20} />
-            </div>{" "}
-            {/* Placeholder icon */}
-            <div>
-              <div className="font-semibold text-sm">Free Delivery</div>
-              <div className="text-xs text-gray-500 underline cursor-pointer">
-                Enter your Postal code for Delivery Availability
-              </div>
-            </div>
-          </div>
-          <div className="p-4 flex gap-4">
-            <div className="text-orange-500 mt-1">
-              <ShoppingCart size={20} />
-            </div>{" "}
-            {/* Placeholder icon */}
-            <div>
-              <div className="font-semibold text-sm">Return Delivery</div>
-              <div className="text-xs text-gray-500">
-                Free 30days Delivery Returns.{" "}
-                <span className="underline cursor-pointer">Details</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Product Reviews Section */}
+      <div className="md:col-span-2 mt-8 pt-12 border-t border-gray-100">
+        <ProductReviews productId={product.id} variantId={currentVariant?.id} />
       </div>
     </div>
   );

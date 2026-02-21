@@ -5,14 +5,14 @@ export default class CollectionDB {
     name: string,
     slug: string,
     description?: string,
-    imageId?: string,
+    mediaId?: string,
   ) {
     return await prisma.collection.create({
       data: {
         name,
         slug,
         description,
-        imageId,
+        mediaId,
       },
     });
   }
@@ -24,6 +24,7 @@ export default class CollectionDB {
         _count: {
           select: { products: true },
         },
+        image: true,
       },
     });
   }
@@ -99,7 +100,7 @@ export default class CollectionDB {
       name?: string;
       slug?: string;
       description?: string;
-      imageId?: string;
+      mediaId?: string;
     },
   ) {
     return await prisma.collection.update({

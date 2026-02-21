@@ -10,6 +10,7 @@ export type CreateProductData = {
   seoDesc?: string;
   originalPrice?: number; // Optional initial price
   salePrice?: number; // Optional initial price
+  productBrandId?: string;
 };
 
 export default class ProductDB {
@@ -27,7 +28,7 @@ export default class ProductDB {
           productId: product.id,
           title: "Default Variant",
           originalPrice: originalPrice || 0,
-          salePrice: salePrice || 0,
+          salePrice: salePrice || originalPrice || 0,
           sku: "", // Generate or empty
         },
       });
@@ -54,6 +55,7 @@ export default class ProductDB {
         mediaProducts: {
           include: { media: true },
         },
+        brand: true,
       },
     });
   }
@@ -76,6 +78,7 @@ export default class ProductDB {
         mediaProducts: {
           include: { media: true },
         },
+        brand: true,
       },
     });
   }
@@ -105,6 +108,7 @@ export default class ProductDB {
           collections: {
             take: 1,
           },
+          brand: true,
         },
       }),
       prisma.product.count({ where }),
@@ -136,6 +140,7 @@ export default class ProductDB {
         collections: {
           take: 1,
         },
+        brand: true,
       },
       orderBy: { createdAt: "desc" },
     });

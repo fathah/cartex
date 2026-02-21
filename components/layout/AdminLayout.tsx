@@ -20,6 +20,7 @@ import {
   Package,
   Images,
   PanelsTopLeft,
+  Component,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Cookies from "js-cookie";
@@ -66,6 +67,8 @@ export default function AdminLayout({
     { key: "/admin/customers", icon: <Users size={20} />, label: "Customers" },
     { key: "/admin/media", icon: <Images size={20} />, label: "Media" },
     { key: "/admin/pages", icon: <PanelsTopLeft size={20} />, label: "Pages" },
+    { key: "/admin/brands", icon: <Component size={20} />, label: "Brands" },
+
     { key: "/admin/settings", icon: <Settings size={20} />, label: "Settings" },
   ];
 

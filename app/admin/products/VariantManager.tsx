@@ -35,7 +35,6 @@ export default function VariantManager({
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
-  const { currency } = useCurrency();
 
   const handleAddOption = async (values: any) => {
     setLoading(true);
@@ -75,7 +74,8 @@ export default function VariantManager({
   const openEditModal = (record: any) => {
     setCurrentVariant(record);
     editForm.setFieldsValue({
-      price: Number(record.price),
+      originalPrice: Number(record.originalPrice),
+      salePrice: Number(record.salePrice),
       sku: record.sku,
       inventory: record.inventory?.quantity || 0,
     });

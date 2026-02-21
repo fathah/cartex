@@ -1,5 +1,5 @@
 import { getProductBySlug } from "@/actions/product";
-import ProductDetail from "@/components/store/product-detail";
+import ProductDetail from "@/components/store/ProductDetail";
 import { notFound } from "next/navigation";
 
 export default async function ProductPage(props: {

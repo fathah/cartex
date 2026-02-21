@@ -11,7 +11,9 @@ import {
   Popconfirm,
   Space,
 } from "antd";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Image as ImageIcon, X } from "lucide-react";
+import MediaPicker from "../media/media_picker";
+import { getMediaUrl } from "@/utils/media_url";
 import {
   createCategory,
   updateCategory,
@@ -28,6 +30,7 @@ export default function CategoryList({ initialCategories }: CategoryListProps) {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | null>(null);
 
   // Sync prop changes if needed (e.g. after server revalidation)
   React.useEffect(() => {
@@ -38,8 +41,10 @@ export default function CategoryList({ initialCategories }: CategoryListProps) {
     setEditingCategory(category || null);
     if (category) {
       form.setFieldsValue(category);
+      setSelectedMediaUrl(category.image?.url || null);
     } else {
       form.resetFields();
+      setSelectedMediaUrl(null);
     }
     setIsModalVisible(true);
   };
@@ -47,6 +52,7 @@ export default function CategoryList({ initialCategories }: CategoryListProps) {
   const handleCancel = () => {
     setIsModalVisible(false);
     setEditingCategory(null);
+    setSelectedMediaUrl(null);
     form.resetFields();
   };
 
@@ -106,6 +112,24 @@ export default function CategoryList({ initialCategories }: CategoryListProps) {
       title: "Description",
       dataIndex: "description",
       key: "description",
+    },
+    {
+      title: "Image",
+      key: "image",
+      render: (_: any, record: any) =>
+        record.image?.url ? (
+          <div className="w-10 h-10 rounded-md bg-gray-100 overflow-hidden border">
+            <img
+              src={getMediaUrl(record.image.url)}
+              alt="Category"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="w-10 h-10 rounded-md bg-gray-50 flex items-center justify-center border border-dashed">
+            <ImageIcon size={16} className="text-gray-300" />
+          </div>
+        ),
     },
     {
       title: "Products",
@@ -193,8 +217,42 @@ export default function CategoryList({ initialCategories }: CategoryListProps) {
             <Input.TextArea />
           </Form.Item>
 
-          <Form.Item name="imageId" label="Image ID (Optional)">
-            <Input placeholder="Media ID" />
+          <Form.Item name="mediaId" hidden>
+            <Input />
+          </Form.Item>
+
+          <Form.Item label="Image (Optional)">
+            <div className="flex items-center gap-4">
+              {selectedMediaUrl && (
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border shadow-sm group">
+                  <img
+                    src={getMediaUrl(selectedMediaUrl)}
+                    alt="Selected media"
+                    className="w-full h-full object-cover"
+                  />
+                  <div
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                    onClick={() => {
+                      form.setFieldsValue({ mediaId: null });
+                      setSelectedMediaUrl(null);
+                    }}
+                  >
+                    <X className="text-white" size={20} />
+                  </div>
+                </div>
+              )}
+              <MediaPicker
+                onSelect={(media) => {
+                  form.setFieldsValue({ mediaId: media.id });
+                  setSelectedMediaUrl(media.url);
+                }}
+                trigger={
+                  <Button icon={<ImageIcon size={16} />}>
+                    {selectedMediaUrl ? "Change Image" : "Select Image"}
+                  </Button>
+                }
+              />
+            </div>
           </Form.Item>
 
           <Form.Item>
