@@ -153,6 +153,7 @@ export default function CategoryList({ initialCategories }: CategoryListProps) {
         columns={columns}
         rowKey="id"
         pagination={{ pageSize: 10 }}
+        scroll={{ x: 800 }}
       />
 
       <Modal

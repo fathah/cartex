@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs } from "antd";
 import { Store, CreditCard, Truck, User } from "lucide-react";
 import SiteSettings from "./SiteSettings/SiteSettings";
@@ -15,6 +15,14 @@ interface SettingsContainerProps {
 export default function SettingsContainer({
   initialSettings,
 }: SettingsContainerProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const items = [
     {
       key: "site",
@@ -61,7 +69,7 @@ export default function SettingsContainer({
   return (
     <div>
       <Tabs
-        tabPlacement="start"
+        tabPlacement={isMobile ? "top" : "start"}
         items={items}
         defaultActiveKey="site"
         className="min-h-[400px]"
