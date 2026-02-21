@@ -1,7 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
-import { Layout, Menu, theme, Avatar, Dropdown, Space } from "antd";
+import React, { useState, useEffect } from "react";
+import {
+  Layout,
+  Menu,
+  theme,
+  Avatar,
+  Dropdown,
+  Space,
+  Drawer,
+  Button,
+} from "antd";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -13,6 +22,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import Cookies from "js-cookie";
 import { AppKeys } from "@/constants/keys";
+import { Menu as MenuIcon } from "lucide-react";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -22,11 +32,21 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const items = [
     { key: "/admin", icon: <LayoutDashboard size={20} />, label: "Dashboard" },
@@ -49,28 +69,64 @@ export default function AdminLayout({
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={(value) => setCollapsed(value)}
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={(value) => setCollapsed(value)}
+          className="hidden lg:block"
+        >
+          <div
+            style={{
+              height: 32,
+              margin: 16,
+              background: "rgba(255, 255, 255, 0.2)",
+              borderRadius: 6,
+            }}
+          />
+          <Menu
+            theme="dark"
+            selectedKeys={[pathname]}
+            mode="inline"
+            items={items}
+            onClick={({ key }) => router.push(key)}
+          />
+        </Sider>
+      )}
+
+      {/* Mobile Drawer Sidebar */}
+      <Drawer
+        placement="left"
+        closable={false}
+        onClose={() => setMobileMenuOpen(false)}
+        open={mobileMenuOpen}
+        styles={{ body: { padding: 0 } }}
+        width={250}
+        className="lg:hidden"
       >
-        <div
-          style={{
-            height: 32,
-            margin: 16,
-            background: "rgba(255, 255, 255, 0.2)",
-            borderRadius: 6,
-          }}
-        />
-        <Menu
-          theme="dark"
-          defaultSelectedKeys={[pathname]}
-          selectedKeys={[pathname]}
-          mode="inline"
-          items={items}
-          onClick={({ key }) => router.push(key)}
-        />
-      </Sider>
+        <div className="h-full bg-[#001529]">
+          <div
+            style={{
+              height: 32,
+              margin: 16,
+              background: "rgba(255, 255, 255, 0.2)",
+              borderRadius: 6,
+            }}
+          />
+          <Menu
+            theme="dark"
+            selectedKeys={[pathname]}
+            mode="inline"
+            items={items}
+            onClick={({ key }) => {
+              router.push(key);
+              setMobileMenuOpen(false);
+            }}
+          />
+        </div>
+      </Drawer>
+
       <Layout>
         <Header
           style={{
@@ -81,7 +137,17 @@ export default function AdminLayout({
             justifyContent: "space-between",
           }}
         >
-          <h1 className="text-xl font-bold">Admin Panel</h1>
+          <div className="flex items-center gap-4">
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuIcon size={20} />}
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-0"
+              />
+            )}
+            <h1 className="text-xl font-bold m-0">Admin Panel</h1>
+          </div>
           <Dropdown
             menu={{
               items: [
@@ -118,7 +184,7 @@ export default function AdminLayout({
           </div>
         </Content>
         <Footer style={{ textAlign: "center" }}>
-          Cartex Pro ©{new Date().getFullYear()} Created by Ziqx
+          Cartex Pro ©{new Date().getFullYear()} Powered by Ziqx
         </Footer>
       </Layout>
     </Layout>

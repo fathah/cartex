@@ -202,7 +202,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       }}
       onFinish={onFinish}
     >
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1">
           <Card title="Basic Information" className="mb-6">
             <Form.Item name="name" label="Title" rules={[{ required: true }]}>
@@ -254,48 +254,46 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             </Form.Item>
           </Card>
 
-          <Card title="Media" className="mb-6">
-            <div className="flex flex-wrap gap-4 mb-4">
-              {isEdit && (
-                <MediaPicker
-                  onSelect={async (media: any) => {
-                    try {
-                      await linkMedia(initialData.id, media.id);
-                      message.success("Media linked successfully");
-                      setFileList((prev) => [
-                        ...prev,
-                        {
-                          uid: media.id,
-                          name: media.url.split("/").pop() || "image",
-                          status: "done",
-                          url: `${AppConstants.DRIVE_ROOT_URL}/${media.url}`,
-                        },
-                      ]);
-                    } catch (err) {
-                      console.error(err);
-                      message.error(
-                        "Failed to link media. It might already be linked.",
-                      );
-                    }
-                  }}
-                />
-              )}
-            </div>
-            <Upload
-              listType="picture-card"
-              fileList={fileList}
-              onRemove={handleRemove}
-              onPreview={() => {}} // Handle preview if needed
-              showUploadList={{ showPreviewIcon: true, showRemoveIcon: true }}
-            >
-              {/* No upload button rendered here */}
-            </Upload>
-            {!isEdit && (
-              <div className="text-gray-500 text-xs mt-2">
-                Save product to upload or select media.
+          {isEdit && (
+            <Card title="Media" className="mb-6">
+              <div className="flex flex-wrap gap-4 mb-4">
+                {isEdit && (
+                  <MediaPicker
+                    onSelect={async (media: any) => {
+                      try {
+                        await linkMedia(initialData.id, media.id);
+                        message.success("Media linked successfully");
+                        setFileList((prev) => [
+                          ...prev,
+                          {
+                            uid: media.id,
+                            name: media.url.split("/").pop() || "image",
+                            status: "done",
+                            url: `${AppConstants.DRIVE_ROOT_URL}/${media.url}`,
+                          },
+                        ]);
+                      } catch (err) {
+                        console.error(err);
+                        message.error(
+                          "Failed to link media. It might already be linked.",
+                        );
+                      }
+                    }}
+                  />
+                )}
               </div>
-            )}
-          </Card>
+
+              <Upload
+                listType="picture-card"
+                fileList={fileList}
+                onRemove={handleRemove}
+                onPreview={() => {}} // Handle preview if needed
+                showUploadList={{ showPreviewIcon: true, showRemoveIcon: true }}
+              >
+                {/* No upload button rendered here */}
+              </Upload>
+            </Card>
+          )}
 
           {isEdit && (
             <VariantManager
@@ -306,8 +304,8 @@ export default function ProductForm({ initialData }: ProductFormProps) {
           )}
         </div>
 
-        <div className="w-80">
-          <Card title="Status" className="mb-6">
+        <div className="w-full xl:w-80 flex flex-col gap-6">
+          <Card title="Status" className="m-0">
             <Form.Item name="status" className="mb-0">
               <Select>
                 <Select.Option value={ProductStatus.ACTIVE}>
@@ -321,7 +319,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             </Form.Item>
           </Card>
 
-          <Card title="Organization" className="mb-6">
+          <Card title="Collections">
             <Form.Item
               name="collectionIds"
               label="Collections"

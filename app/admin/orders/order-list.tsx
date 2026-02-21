@@ -177,14 +177,15 @@ export default function OrderList({
   );
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold">Orders</h1>
-        <div className="flex gap-2">
-          <Button>Export</Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button className="flex-1 sm:flex-none">Export</Button>
           <Button
             type="primary"
             onClick={() => setDrawer({ isOpen: true, mode: "create" })}
+            className="flex-1 sm:flex-none"
           >
             Create order
           </Button>
@@ -218,26 +219,28 @@ export default function OrderList({
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <Tabs
-            activeKey={activeTab}
-            onChange={(key) => router.push(`/admin/orders?tab=${key}`)}
-            items={[
-              { key: "all", label: "All" },
-              { key: "unfulfilled", label: "Unfulfilled" },
-              { key: "unpaid", label: "Unpaid" },
-              { key: "open", label: "Open" },
-              { key: "closed", label: "Closed" },
-            ]}
-            className="mb-0"
-          />
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+          <div className="w-full overflow-x-auto">
+            <Tabs
+              activeKey={activeTab}
+              onChange={(key) => router.push(`/admin/orders?tab=${key}`)}
+              items={[
+                { key: "all", label: "All" },
+                { key: "unfulfilled", label: "Unfulfilled" },
+                { key: "unpaid", label: "Unpaid" },
+                { key: "open", label: "Open" },
+                { key: "closed", label: "Closed" },
+              ]}
+              className="mb-0"
+            />
+          </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full xl:w-auto mt-2 xl:mt-0">
             <Input
               prefix={<Search size={16} />}
-              placeholder="Search"
-              className="w-64"
+              placeholder="Search orders..."
+              className="w-full xl:w-64"
             />
             <Button>Filter</Button>
           </div>
@@ -248,6 +251,7 @@ export default function OrderList({
           rowKey="id"
           pagination={{ total: initialTotal }}
           loading={loading}
+          scroll={{ x: 1000 }}
         />
       </div>
 
@@ -373,6 +377,7 @@ export default function OrderList({
                 dataSource={selectedOrder.items}
                 rowKey="id"
                 pagination={false}
+                scroll={{ x: 500 }}
                 columns={[
                   {
                     title: "Item",
