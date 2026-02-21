@@ -4,8 +4,7 @@ import { UserRole, Prisma } from "@prisma/client";
 export type CreateUserData = {
   email: string;
   passwordHash?: string;
-  firstName?: string;
-  lastName?: string;
+  fullname?: string;
   role?: UserRole;
   ziqxId?: string | null;
 };

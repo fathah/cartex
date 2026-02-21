@@ -160,7 +160,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end gap-3 mt-8 pt-6 border-t">
+          <div className="flex justify-end gap-3 mt-8 pt-6">
             <Button
               type="default"
               size="large"
@@ -181,29 +181,6 @@ export default function ProfileForm({ user }: ProfileFormProps) {
             </Button>
           </div>
         </Form>
-      </div>
-
-      {/* Account Info Section */}
-      <div className="px-8 pb-8">
-        <div className="bg-gray-50 rounded-lg p-6 border">
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">
-            Account Information
-          </h4>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Account ID</span>
-              <span className="font-mono text-gray-800">
-                {user.id.substring(0, 12)}...
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Account Status</span>
-              <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                Active
-              </span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

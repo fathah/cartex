@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Tabs } from "antd";
 import { Store, CreditCard, Truck, User } from "lucide-react";
 import SiteSettings from "./SiteSettings/SiteSettings";
-import ShippingSettings from "./shipping-settings";
+import ShippingSettings from "./Shipping/ShippingSettings";
 import PaymentSettings from "./Payment/payment-settings";
 import UserAccess from "./UserAccess/UserAccess";
 

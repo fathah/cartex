@@ -72,7 +72,7 @@ export default class CollectionDB {
         variants: {
           take: 1,
           orderBy: {
-            price: "asc",
+            salePrice: "asc",
           },
         },
         collections: {

@@ -11,15 +11,23 @@ export async function getProducts(
   limit = 20,
   status?: ProductStatus,
 ) {
-  return await ProductDB.list(page, limit, status);
+  const result = await ProductDB.list(page, limit, status);
+  return JSON.parse(JSON.stringify(result));
+}
+
+export async function getDeals(page = 1, limit = 20, status?: ProductStatus) {
+  const result = await ProductDB.listDeals(page, limit, status);
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function getProduct(id: string) {
-  return await ProductDB.findById(id);
+  const result = await ProductDB.findById(id);
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function getProductBySlug(slug: string) {
-  return await ProductDB.findBySlug(slug);
+  const result = await ProductDB.findBySlug(slug);
+  return JSON.parse(JSON.stringify(result));
 }
 
 export async function createProduct(data: CreateProductData) {
@@ -65,20 +73,16 @@ export async function generateVariants(productId: string) {
 
 export async function updateVariant(
   variantId: string,
-  data: { price: number; sku?: string; inventory: number },
+  data: {
+    originalPrice: number;
+    salePrice: number;
+    sku?: string;
+    inventory: number;
+  },
 ) {
   await requireAdminAuth();
-  // revalidate the product page where this variant belongs
-  // Since we don't have productId handy here without fetching, we might need it passed or just fetch it.
-  // For simplicity, let's just update and let client handle refresh or pass productId if needed.
-  // Ideally we should revalidate specific product path.
-  // Let's assume the client will trigger a router refresh or we accept productId as arg.
-  // For now, minimal implementation.
   const variant = await ProductDB.updateVariant(variantId, data);
   revalidatePath("/admin/products");
-  // We really want to revalidate `/admin/products/[id]` but we don't know ID easily.
-  // Actually `variant` return might contain productId if we included it, but ProductDB.updateVariant return type depends on prisma.
-  // Let's just return it.
   return variant;
 }
 

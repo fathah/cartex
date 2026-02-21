@@ -129,7 +129,7 @@ export async function createOrder(data: {
     return {
       variant,
       quantity: item.quantity,
-      unitPrice: Number(variant.price),
+      unitPrice: Number(variant.salePrice),
       options: (variant.selectedOptions || []).map((so: any) => ({
         name: so.option?.name,
         value: so.value,
@@ -144,7 +144,7 @@ export async function createOrder(data: {
   const taxTotal = subtotal * TAX_RATE;
 
   const zone = await ShippingDB.findZoneForAddress(
-    address.country,
+    address.country!,
     address.province || undefined,
     address.city || undefined,
     address.zip || undefined,
@@ -191,8 +191,7 @@ export async function createOrder(data: {
         taxTotal,
         totalPrice: total,
         shippingAddress: {
-          firstName: address.firstName,
-          lastName: address.lastName,
+          fullName: address.fullname,
           address1: address.address1,
           address2: address.address2,
           city: address.city,
@@ -202,8 +201,7 @@ export async function createOrder(data: {
           phone: address.phone,
         },
         billingAddress: {
-          firstName: address.firstName,
-          lastName: address.lastName,
+          fullName: address.fullname,
           address1: address.address1,
           address2: address.address2,
           city: address.city,

@@ -36,7 +36,7 @@ export default class WishlistDB {
             variants: {
               take: 1,
               orderBy: {
-                price: "asc",
+                salePrice: "asc",
               },
             },
             collections: {

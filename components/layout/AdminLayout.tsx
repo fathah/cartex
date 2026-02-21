@@ -18,6 +18,8 @@ import {
   Users,
   Settings,
   Package,
+  Images,
+  PanelsTopLeft,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Cookies from "js-cookie";
@@ -62,8 +64,8 @@ export default function AdminLayout({
     },
     { key: "/admin/orders", icon: <ShoppingCart size={20} />, label: "Orders" },
     { key: "/admin/customers", icon: <Users size={20} />, label: "Customers" },
-    { key: "/admin/media", icon: <Users size={20} />, label: "Media" },
-    { key: "/admin/pages", icon: <Users size={20} />, label: "Pages" },
+    { key: "/admin/media", icon: <Images size={20} />, label: "Media" },
+    { key: "/admin/pages", icon: <PanelsTopLeft size={20} />, label: "Pages" },
     { key: "/admin/settings", icon: <Settings size={20} />, label: "Settings" },
   ];
 
@@ -77,14 +79,15 @@ export default function AdminLayout({
           onCollapse={(value) => setCollapsed(value)}
           className="hidden lg:block"
         >
-          <div
-            style={{
-              height: 32,
-              margin: 16,
-              background: "rgba(255, 255, 255, 0.2)",
-              borderRadius: 6,
-            }}
-          />
+          <div className="text-white text-center text-xl font-bold p-4">
+            {collapsed ? (
+              <div className="flex items-center justify-center bg-white text-black rounded-xl w-10 h-10">
+                C
+              </div>
+            ) : (
+              "Cartex Panel"
+            )}
+          </div>
           <Menu
             theme="dark"
             selectedKeys={[pathname]}
@@ -106,14 +109,9 @@ export default function AdminLayout({
         className="lg:hidden"
       >
         <div className="h-full bg-[#001529]">
-          <div
-            style={{
-              height: 32,
-              margin: 16,
-              background: "rgba(255, 255, 255, 0.2)",
-              borderRadius: 6,
-            }}
-          />
+          <div className="text-white text-center text-xl font-bold p-4">
+            Cartex Panel
+          </div>
           <Menu
             theme="dark"
             selectedKeys={[pathname]}
@@ -183,9 +181,6 @@ export default function AdminLayout({
             {children}
           </div>
         </Content>
-        <Footer style={{ textAlign: "center" }}>
-          Cartex Pro ©{new Date().getFullYear()} Powered by Ziqx
-        </Footer>
       </Layout>
     </Layout>
   );

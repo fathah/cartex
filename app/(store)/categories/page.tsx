@@ -35,7 +35,7 @@ export default async function CategoriesIndex() {
           {categories.map((category: any) => (
             <Link
               key={category.id}
-              href={`/category/${category.slug}`}
+              href={`/categories/${category.slug}`}
               className="group block"
             >
               <div className="relative aspect-4/5 bg-[#f8f8f8] rounded-2xl overflow-hidden mb-5 shadow-sm group-hover:shadow-xl transition-all duration-500">

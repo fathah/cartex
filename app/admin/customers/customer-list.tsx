@@ -28,11 +28,7 @@ export default function CustomerList({
             className="bg-emerald-100 text-emerald-700"
           />
           <div>
-            <div className="font-medium">
-              {record.firstName || record.lastName
-                ? `${record.firstName || ""} ${record.lastName || ""}`.trim()
-                : "Unknown"}
-            </div>
+            <div className="font-medium">{record.fullname || "Unknown"}</div>
             <div className="text-xs text-gray-400">
               {record.email || "No email"}
             </div>

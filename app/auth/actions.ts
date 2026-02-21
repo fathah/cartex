@@ -16,7 +16,7 @@ export async function handleAdminLogin(accessToken: string) {
     return null;
   }
 
-  const fullName = decoded?.fullName;
+  const fullname = decoded?.fullName;
   const email = decoded?.email?.toLowerCase();
 
   const count = await UserDB.count();
@@ -24,8 +24,8 @@ export async function handleAdminLogin(accessToken: string) {
     await UserDB.create({
       ziqxId,
       role: "SUPER_ADMIN",
-      email: email,
-      firstName: fullName,
+      email,
+      fullname,
     });
     return true;
   }
@@ -35,9 +35,9 @@ export async function handleAdminLogin(accessToken: string) {
     return null;
   }
   await UserDB.update(user.id, {
-    email: email,
-    ziqxId: ziqxId,
-    firstName: fullName,
+    email,
+    ziqxId,
+    fullname,
   });
 
   return true;

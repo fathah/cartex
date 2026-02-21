@@ -1,5 +1,5 @@
 import { getProducts } from "@/actions/product";
-import ProductListClient from "./product-list-client";
+import ProductListClient from "./ProductListClient";
 
 export default async function ProductsPage(props: {
   searchParams: Promise<{ page?: string }>;

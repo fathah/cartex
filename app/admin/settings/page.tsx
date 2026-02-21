@@ -1,5 +1,5 @@
 import { getSettings } from "@/actions/settings";
-import SettingsContainer from "./settings-container";
+import SettingsContainer from "./SettingsContainer";
 
 export default async function SettingsPage() {
   const settings = await getSettings();

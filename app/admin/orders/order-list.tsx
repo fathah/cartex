@@ -98,9 +98,7 @@ export default function OrderList({
       key: "customer",
       render: (_: any, record: any) => (
         <div>
-          <div className="font-medium">
-            {record.customer?.firstName} {record.customer?.lastName}
-          </div>
+          <div className="font-medium">{record.customer?.fullname}</div>
           <div className="text-xs text-gray-400">{record.customer?.email}</div>
         </div>
       ),
@@ -288,8 +286,7 @@ export default function OrderList({
               size="small"
             >
               <Descriptions.Item label="Name">
-                {selectedOrder.customer?.firstName}{" "}
-                {selectedOrder.customer?.lastName}
+                {selectedOrder.customer?.fullname}
               </Descriptions.Item>
               <Descriptions.Item label="Email">
                 {selectedOrder.customer?.email}

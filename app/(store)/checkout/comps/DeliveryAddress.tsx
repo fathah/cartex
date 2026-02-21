@@ -50,8 +50,11 @@ export default function DeliveryAddress({
                         className="mt-1 text-gray-500 flex-shrink-0"
                       />
                       <div className="flex-1">
-                        <div className="font-semibold">
-                          {addr.firstName} {addr.lastName}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold">{addr.fullname}</span>
+                          <span className="text-[10px] bg-green-100 text-green-800 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
+                            {addr.addressType || "HOME"}
+                          </span>
                         </div>
                         <div className="text-sm text-gray-600">
                           {addr.address1}
@@ -100,7 +103,7 @@ export default function DeliveryAddress({
             >
               <Input
                 size="large"
-                placeholder="John Doe"
+                placeholder="Zaid Omer"
                 className="rounded-lg"
               />
             </Form.Item>
@@ -118,36 +121,51 @@ export default function DeliveryAddress({
             >
               <Input
                 size="large"
-                placeholder="john@example.com"
+                placeholder="zaid@ziqx.cc"
                 className="rounded-lg"
               />
             </Form.Item>
           </div>
 
-          <Form.Item
-            name="phone"
-            label="Phone number"
-            rules={[
-              { required: true, message: "Please enter your phone number" },
-            ]}
-          >
-            <Input
-              size="large"
-              addonBefore={
-                <Select
-                  defaultValue="+1"
-                  style={{ width: 80 }}
-                  className="select-before"
-                >
-                  <Select.Option value="+1">🇺🇸 +1</Select.Option>
-                  <Select.Option value="+44">🇬🇧 +44</Select.Option>
-                  <Select.Option value="+62">🇮🇩 +62</Select.Option>
-                </Select>
-              }
-              placeholder="888 999 1222"
-              className="rounded-lg"
-            />
-          </Form.Item>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item
+              name="phone"
+              label="Phone number"
+              rules={[
+                { required: true, message: "Please enter your phone number" },
+              ]}
+            >
+              <Input
+                size="large"
+                addonBefore={
+                  <Select
+                    defaultValue="+1"
+                    style={{ width: 80 }}
+                    className="select-before"
+                  >
+                    <Select.Option value="+1">🇺🇸 +1</Select.Option>
+                    <Select.Option value="+44">🇬🇧 +44</Select.Option>
+                    <Select.Option value="+62">🇮🇩 +62</Select.Option>
+                  </Select>
+                }
+                placeholder="888 999 1222"
+                className="rounded-lg"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="addressType"
+              label="Address Type"
+              rules={[{ required: true }]}
+              initialValue="HOME"
+            >
+              <Select size="large" className="w-full">
+                <Select.Option value="HOME">Home</Select.Option>
+                <Select.Option value="WORK">Work</Select.Option>
+                <Select.Option value="OTHER">Other</Select.Option>
+              </Select>
+            </Form.Item>
+          </div>
 
           <Form.Item name="address" label="Address" className="mb-0">
             <Input.TextArea

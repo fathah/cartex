@@ -99,7 +99,16 @@ export default function CheckoutForm({
     };
 
     fetchShipping();
-  }, [selectedAddressId, country, state, city, zipCode, subtotal, form, onAddressChange]);
+  }, [
+    selectedAddressId,
+    country,
+    state,
+    city,
+    zipCode,
+    subtotal,
+    form,
+    onAddressChange,
+  ]);
 
   const onFinish = (values: any) => {
     console.log("Received values of form: ", { ...values, selectedAddressId });
@@ -112,7 +121,7 @@ export default function CheckoutForm({
       onFinish={onFinish}
       initialValues={{
         paymentMethod: "credit_card",
-        fullName: customer ? `${customer.firstName} ${customer.lastName}` : "",
+        fullName: customer ? customer.fullname || "" : "",
         email: customer?.email || "",
         phone: customer?.phone || "",
       }}

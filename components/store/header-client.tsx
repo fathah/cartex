@@ -57,7 +57,7 @@ export default function HeaderClient({
               <img
                 src={settings.logoUrl}
                 alt={settings.storeName}
-                className="w-24 lg:w-32 object-contain"
+                className="w-32 lg:w-36 object-contain"
               />
             ) : (
               <div className="flex items-center gap-2">

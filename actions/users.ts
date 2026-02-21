@@ -13,8 +13,7 @@ export async function getAdminUsers() {
 export async function addAdminUser(
   email: string,
   role: UserRole,
-  firstName?: string,
-  lastName?: string,
+  fullname?: string,
 ) {
   await requireAdminAuth();
 
@@ -25,8 +24,7 @@ export async function addAdminUser(
       await UserDB.update(existingUser.id, {
         deletedAt: null,
         role,
-        firstName: firstName || existingUser.firstName,
-        lastName: lastName || existingUser.lastName,
+        fullname: fullname || existingUser.fullname,
       });
       revalidatePath("/admin/settings");
       return { success: true };
@@ -37,8 +35,7 @@ export async function addAdminUser(
   await UserDB.create({
     email,
     role,
-    firstName,
-    lastName,
+    fullname,
     ziqxId: undefined, // Will be linked on first login
   });
 

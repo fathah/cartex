@@ -10,10 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// -----------------------------------------------------------------------------
-// ENUMS
-// -----------------------------------------------------------------------------
-
 enum UserRole {
   SUPER_ADMIN // Platform owner/admin
   ADMIN // Store admin
@@ -86,8 +82,7 @@ model User {
   email        String   @unique
   ziqxId       String?  @unique
   passwordHash String?
-  firstName    String?
-  lastName     String?
+  fullname     String?
   role         UserRole @default(ADMIN)
 
   createdAt DateTime  @default(now())
@@ -169,7 +164,8 @@ model ProductVariant {
   barcode String?
 
   // Pricing
-  price          Decimal  @db.Decimal(10, 2)
+  originalPrice  Decimal  @default(0) @db.Decimal(10, 2)
+  salePrice      Decimal  @default(0) @db.Decimal(10, 2)
   compareAtPrice Decimal? @db.Decimal(10, 2)
   costPrice      Decimal? @db.Decimal(10, 2)
 
@@ -284,17 +280,16 @@ model Address {
   id         String @id @default(cuid())
   customerId String
 
-  type      String  @default("SHIPPING") // SHIPPING, BILLING
-  firstName String?
-  lastName  String?
-
-  address1 String
-  address2 String?
-  city     String
-  province String?
-  zip      String?
-  country  String
-  phone    String?
+  type        String  @default("SHIPPING") // SHIPPING, BILLING
+  fullname    String?
+  addressType String  @default("HOME") // HOME, WORK
+  address1    String?
+  address2    String?
+  city        String?
+  province    String?
+  zip         String?
+  country     String?
+  phone       String?
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
@@ -545,6 +540,15 @@ enum PaymentIntentStatus {
   CANCELLED
 }
 
+model NewsLetterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  @@map("newsletter_subscribers")
+}
+
 model Page {
   id          String  @id @default(uuid())
   name        String
@@ -555,6 +559,8 @@ model Page {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("pages")
 }
 
 model PageBlock {
@@ -570,4 +576,6 @@ model PageBlock {
   config Json
 
   createdAt DateTime @default(now())
+
+  @@map("page_blocks")
 }

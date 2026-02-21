@@ -1,4 +1,4 @@
-import { getProducts } from "@/actions/product";
+import { getDeals } from "@/actions/product";
 import { ProductStatus } from "@prisma/client";
 import ProductCard from "@/components/store/product-card";
 import { Package } from "lucide-react";
@@ -6,17 +6,17 @@ import { Package } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function DealsPage() {
-  const { products } = await getProducts(1, 24, ProductStatus.ACTIVE);
+  const { products } = await getDeals(1, 24, ProductStatus.ACTIVE);
 
   return (
     <div className="container mx-auto px-4 py-8 lg:py-16">
       <div className="text-center mb-12">
         <h1 className="text-3xl lg:text-5xl font-bold tracking-tight text-gray-900 mb-4 font-serif">
-          What&prime;s New
+          Best Deals
         </h1>
         <p className="text-gray-500 max-w-2xl mx-auto">
-          Discover our latest arrivals and exclusive deals. Check out the newest
-          products in our store.
+          Shop our biggest discounts and exclusive markdowns. Grab these amazing
+          offers before they&prime;re gone!
         </p>
       </div>
 

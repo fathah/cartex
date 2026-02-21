@@ -15,7 +15,8 @@ import {
 
 export default function ProductCard({ product }: { product: any }) {
   const currentVariant = product.variants?.[0];
-  const price = currentVariant?.price || 0;
+  const salePrice = currentVariant?.salePrice || 0;
+  const originalPrice = currentVariant?.originalPrice || 0;
   const stockCount = currentVariant?.inventory?.quantity || 0;
   const isOutOfStock = currentVariant ? stockCount <= 0 : true;
 
@@ -46,7 +47,7 @@ export default function ProductCard({ product }: { product: any }) {
       key: `${product.id}${variantId ? `-${variantId}` : ""}`,
       productId: product.id,
       name: product.name,
-      price: Number(price),
+      price: Number(salePrice),
       quantity: 1,
       image: product.mediaProducts?.[0]?.media?.url,
       variantId: variantId,
@@ -88,16 +89,28 @@ export default function ProductCard({ product }: { product: any }) {
   return (
     <div className="group flex flex-col h-full bg-white border border-gray-100 rounded-2xl hover:shadow-lg duration-300">
       {/* Image Container */}
-      <div className="relative aspect-square rounded-2xl mb-4 overflow-hidden  transition-colors">
+      <div className="relative aspect-square rounded-t-2xl mb-4 overflow-hidden bg-linear-to-tr from-[#FDF8F5] via-[#FFF] to-[#F3E1D5] transition-colors">
         <Link
           href={`/product/${product.slug}`}
-          className="block w-full h-full p-6"
+          className={`block w-full h-full ${
+            product.mediaProducts?.[0]?.media?.url
+              ?.toLowerCase()
+              .endsWith(".png")
+              ? "p-6"
+              : ""
+          }`}
         >
           {product.mediaProducts?.[0]?.media?.url ? (
             <img
               alt={product.name}
               src={getMediaUrl(product.mediaProducts[0].media.url)}
-              className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+              className={`w-full h-full group-hover:scale-105 transition-transform duration-500 ${
+                product.mediaProducts[0].media.url
+                  .toLowerCase()
+                  .endsWith(".png")
+                  ? "object-contain mix-blend-multiply"
+                  : "object-cover"
+              }`}
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
@@ -107,7 +120,7 @@ export default function ProductCard({ product }: { product: any }) {
         </Link>
 
         {isOutOfStock && (
-          <div className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-sm">
+          <div className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-sm z-10">
             Out of Stock
           </div>
         )}
@@ -115,7 +128,7 @@ export default function ProductCard({ product }: { product: any }) {
         <button
           onClick={handleWishlistToggle}
           disabled={wishlistLoading || !mounted}
-          className={`absolute top-4 right-4 p-2 rounded-full bg-white/80 hover:bg-white transition-colors shadow-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 duration-300 ${
+          className={`absolute z-10 top-4 right-4 p-2 rounded-full bg-white/80 hover:bg-white transition-colors shadow-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 duration-300 ${
             mounted && isInWishlist
               ? "text-red-500"
               : "text-gray-700 hover:text-red-500"
@@ -137,8 +150,18 @@ export default function ProductCard({ product }: { product: any }) {
           >
             {product.name}
           </Link>
-          <div className="font-bold text-green-600 shrink-0">
-            <Currency value={price} />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <Currency
+              value={salePrice}
+              className="font-bold text-green-600 shrink-0"
+            />
+            <span className="text-xs text-gray-400">
+              {salePrice !== originalPrice && (
+                <Currency value={originalPrice} className="line-through" />
+              )}
+            </span>
           </div>
         </div>
 

@@ -22,7 +22,7 @@ import {
 import { getCollections } from "@/actions/collection";
 import { useRouter } from "next/navigation";
 import { ProductStatus } from "@prisma/client";
-import VariantManager from "./variant-manager";
+import VariantManager from "./VariantManager";
 import { Upload } from "antd";
 import { AppConstants } from "@/constants/constants";
 import { useCurrency } from "@/components/providers/currency-provider";

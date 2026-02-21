@@ -33,6 +33,7 @@ const AccountPageLayout = async ({
           </div>
         </div>
       </div>
+      <div className=" bg-gray-50 h-20"></div>
     </UserProvider>
   );
 };

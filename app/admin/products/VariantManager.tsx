@@ -15,6 +15,8 @@ import {
 } from "antd";
 import { Plus, Trash2, Edit } from "lucide-react";
 import { addOption, updateVariant } from "@/actions/product";
+import Currency from "@/components/common/Currency";
+import { useCurrency } from "@/components/providers/currency-provider";
 
 interface VariantManagerProps {
   productId: string;
@@ -33,6 +35,7 @@ export default function VariantManager({
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
+  const { currency } = useCurrency();
 
   const handleAddOption = async (values: any) => {
     setLoading(true);
@@ -82,11 +85,18 @@ export default function VariantManager({
   const variantColumns = [
     { title: "Variant", dataIndex: "title", key: "title" },
     {
-      title: "Price",
-      dataIndex: "price",
-      key: "price",
-      render: (val: any) => `$${Number(val).toFixed(2)}`,
+      title: "Original Price",
+      dataIndex: "originalPrice",
+      key: "originalPrice",
+      render: (val: any) => <Currency value={val} />,
     },
+    {
+      title: "Sale Price",
+      dataIndex: "salePrice",
+      key: "salePrice",
+      render: (val: any) => <Currency value={val} />,
+    },
+
     {
       title: "Inventory",
       dataIndex: "inventory",
@@ -192,9 +202,25 @@ export default function VariantManager({
         footer={null}
       >
         <Form form={editForm} onFinish={handleEditVariant} layout="vertical">
-          <Form.Item name="price" label="Price" rules={[{ required: true }]}>
+          <Form.Item
+            name="originalPrice"
+            label="Original Price"
+            rules={[{ required: true }]}
+          >
             <InputNumber
-              prefix="$"
+              prefix={<Currency value={0} currencyOnly />}
+              style={{ width: "100%" }}
+              min={0}
+              precision={2}
+            />
+          </Form.Item>
+          <Form.Item
+            name="salePrice"
+            label="Sale Price"
+            rules={[{ required: true }]}
+          >
+            <InputNumber
+              prefix={<Currency value={0} currencyOnly />}
               style={{ width: "100%" }}
               min={0}
               precision={2}

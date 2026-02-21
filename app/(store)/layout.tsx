@@ -17,7 +17,6 @@ export default function StoreLayout({
         {children}
         <CartDrawer />
       </main>
-      <StoreFooter />
     </div>
   );
 }

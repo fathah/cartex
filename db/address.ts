@@ -1,17 +1,17 @@
-import prisma from './prisma';
+import prisma from "./prisma";
 
 export type CreateAddressData = {
-    customerId: string;
-    type?: string;
-    firstName?: string;
-    lastName?: string;
-    address1: string;
-    address2?: string;
-    city: string;
-    province?: string;
-    zip?: string;
-    country: string;
-    phone?: string;
+  customerId: string;
+  type?: string;
+  fullname?: string;
+  addressType?: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  province?: string;
+  zip?: string;
+  country: string;
+  phone?: string;
 };
 
 export default class AddressDB {
@@ -35,8 +35,8 @@ export default class AddressDB {
 
   static async update(id: string, data: Partial<CreateAddressData>) {
     return await prisma.address.update({
-        where: { id },
-        data
+      where: { id },
+      data,
     });
   }
 }

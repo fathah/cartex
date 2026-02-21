@@ -49,9 +49,8 @@ CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "ziqxId" TEXT,
-    "passwordHash" TEXT NOT NULL,
-    "firstName" TEXT,
-    "lastName" TEXT,
+    "passwordHash" TEXT,
+    "fullname" TEXT,
     "role" "UserRole" NOT NULL DEFAULT 'ADMIN',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -103,7 +102,8 @@ CREATE TABLE "product_variants" (
     "title" TEXT NOT NULL,
     "sku" TEXT,
     "barcode" TEXT,
-    "price" DECIMAL(10,2) NOT NULL,
+    "originalPrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "salePrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "compareAtPrice" DECIMAL(10,2),
     "costPrice" DECIMAL(10,2),
     "inventoryPolicy" "InventoryPolicy" NOT NULL DEFAULT 'DENY',
@@ -165,8 +165,7 @@ CREATE TABLE "customers" (
     "id" TEXT NOT NULL,
     "email" TEXT,
     "phone" TEXT,
-    "firstName" TEXT,
-    "lastName" TEXT,
+    "fullname" TEXT,
     "passwordHash" TEXT,
     "otp" TEXT,
     "otpExpiresAt" TIMESTAMP(3),
@@ -182,14 +181,14 @@ CREATE TABLE "addresses" (
     "id" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'SHIPPING',
-    "firstName" TEXT,
-    "lastName" TEXT,
-    "address1" TEXT NOT NULL,
+    "fullname" TEXT,
+    "addressType" TEXT NOT NULL DEFAULT 'HOME',
+    "address1" TEXT,
     "address2" TEXT,
-    "city" TEXT NOT NULL,
+    "city" TEXT,
     "province" TEXT,
     "zip" TEXT,
-    "country" TEXT NOT NULL,
+    "country" TEXT,
     "phone" TEXT,
 
     CONSTRAINT "addresses_pkey" PRIMARY KEY ("id")
@@ -225,6 +224,9 @@ CREATE TABLE "orders" (
     "subtotal" DECIMAL(10,2) NOT NULL,
     "taxTotal" DECIMAL(10,2) NOT NULL,
     "shippingTotal" DECIMAL(10,2) NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "shippingAddress" JSONB NOT NULL DEFAULT '{}',
+    "billingAddress" JSONB NOT NULL DEFAULT '{}',
     "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
     "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING',
     "fulfillmentStatus" TEXT NOT NULL DEFAULT 'UNFULFILLED',
@@ -247,6 +249,17 @@ CREATE TABLE "order_items" (
     "price" DECIMAL(10,2) NOT NULL,
 
     CONSTRAINT "order_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "wishlists" (
+    "id" TEXT NOT NULL,
+    "customerId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "wishlists_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -305,6 +318,9 @@ CREATE TABLE "payment_methods" (
     "description" TEXT,
     "type" "PaymentMethodType" NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "fee" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "feeLabel" TEXT,
+    "feeType" TEXT NOT NULL DEFAULT 'FLAT',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -339,6 +355,40 @@ CREATE TABLE "payment_intents" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "payment_intents_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "newsletter_subscribers" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "name" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "newsletter_subscribers_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "pages" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "isPublished" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "pages_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "page_blocks" (
+    "id" TEXT NOT NULL,
+    "pageId" TEXT NOT NULL,
+    "blockType" TEXT NOT NULL,
+    "order" INTEGER NOT NULL,
+    "config" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "page_blocks_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -401,6 +451,12 @@ CREATE UNIQUE INDEX "payment_methods_code_key" ON "payment_methods"("code");
 CREATE UNIQUE INDEX "payment_gateways_code_key" ON "payment_gateways"("code");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "newsletter_subscribers_email_key" ON "newsletter_subscribers"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "pages_slug_key" ON "pages"("slug");
+
+-- CreateIndex
 CREATE INDEX "_OptionValueToProductVariant_B_index" ON "_OptionValueToProductVariant"("B");
 
 -- CreateIndex
@@ -455,6 +511,12 @@ ALTER TABLE "orders" ADD CONSTRAINT "orders_customerId_fkey" FOREIGN KEY ("custo
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "wishlists" ADD CONSTRAINT "wishlists_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "wishlists" ADD CONSTRAINT "wishlists_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "shipping_rates" ADD CONSTRAINT "shipping_rates_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "shipping_methods"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -468,6 +530,9 @@ ALTER TABLE "payment_intents" ADD CONSTRAINT "payment_intents_paymentMethodId_fk
 
 -- AddForeignKey
 ALTER TABLE "payment_intents" ADD CONSTRAINT "payment_intents_gatewayId_fkey" FOREIGN KEY ("gatewayId") REFERENCES "payment_gateways"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "page_blocks" ADD CONSTRAINT "page_blocks_pageId_fkey" FOREIGN KEY ("pageId") REFERENCES "pages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_OptionValueToProductVariant" ADD CONSTRAINT "_OptionValueToProductVariant_A_fkey" FOREIGN KEY ("A") REFERENCES "option_values"("id") ON DELETE CASCADE ON UPDATE CASCADE;

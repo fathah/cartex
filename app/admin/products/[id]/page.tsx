@@ -1,5 +1,5 @@
 import { getProduct } from "@/actions/product";
-import ProductForm from "../product-form";
+import ProductForm from "../ProductForm";
 import { Button } from "antd";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";

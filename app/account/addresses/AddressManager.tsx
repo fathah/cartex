@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Home, CheckCircle2 } from "lucide-react";
+import { Plus, Home, CheckCircle2, Building, MapPin } from "lucide-react";
 import { deleteAddress } from "@/actions/addresses";
 import AddressModal from "@/components/AddressModal";
 import { Popconfirm, message } from "antd";
@@ -9,11 +9,11 @@ import { Popconfirm, message } from "antd";
 // Reusing the type from DB or defining locally for UI
 type Address = {
   id: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  address1: string;
-  city: string;
-  country: string;
+  fullname?: string | null;
+  addressType: string;
+  address1: string | null;
+  city: string | null;
+  country: string | null;
   phone?: string | null;
   isDefault?: boolean;
 };
@@ -76,30 +76,35 @@ const AddressManager = ({ addresses }: { addresses: Address[] }) => {
         {addresses.map((addr) => (
           <div
             key={addr.id}
-            className="bg-white border rounded-lg p-6 shadow-sm relative flex flex-col justify-between min-h-[200px]"
+            className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm relative flex flex-col justify-between min-h-[200px]"
           >
             <div className="flex gap-4">
               <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center shrink-0">
-                <Home size={20} className="text-gray-600" />
+                {addr.addressType === "HOME" ? (
+                  <Home size={20} className="text-gray-600" />
+                ) : addr.addressType === "WORK" ? (
+                  <Building size={20} className="text-gray-600" />
+                ) : (
+                  <MapPin size={20} className="text-gray-600" />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-bold text-gray-900">Work</h4>
+                  <h4 className="font-bold text-gray-900">
+                    {addr.addressType}
+                  </h4>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed mb-2">
                   {addr.address1}, {addr.city}, {addr.country}
                 </p>
                 <div className="flex items-center gap-2 text-sm text-gray-700 font-medium">
-                  <span>
-                    {addr.firstName} {addr.lastName}
-                  </span>
-                  , <span>{addr.phone}</span>
+                  <span>{addr.fullname}</span>, <span>{addr.phone}</span>
                   <CheckCircle2 size={14} className="text-green-600" />
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 mt-6 pt-4 border-t text-sm font-medium">
+            <div className="flex items-center gap-4 mt-6 pt-4 border-t-2 border-gray-200 text-sm font-medium">
               <button
                 onClick={() => handleEdit(addr)}
                 className="text-blue-600 hover:underline"

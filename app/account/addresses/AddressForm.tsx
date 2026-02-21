@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { addAddress, updateAddress } from "@/actions/addresses";
-import { Button, Input, Form, message } from "antd";
+import { Button, Input, Form, message, Select } from "antd";
 
 const AddressForm = ({
   onClose,
@@ -44,20 +44,27 @@ const AddressForm = ({
         onFinish={handleSubmit}
         initialValues={initialValues}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <Form.Item
-            name="firstName"
-            label="First Name"
+            name="fullName"
+            label="Full Name"
             rules={[{ required: true }]}
+            className="mb-0"
           >
-            <Input placeholder="e.g. Faab" />
+            <Input placeholder="e.g. Zaid Omer" />
           </Form.Item>
           <Form.Item
-            name="lastName"
-            label="Last Name"
+            name="addressType"
+            label="Address Type"
             rules={[{ required: true }]}
+            initialValue="HOME"
+            className="mb-0"
           >
-            <Input placeholder="e.g. Yorker" />
+            <Select>
+              <Select.Option value="HOME">Home</Select.Option>
+              <Select.Option value="WORK">Work</Select.Option>
+              <Select.Option value="OTHER">Other</Select.Option>
+            </Select>
           </Form.Item>
         </div>
 

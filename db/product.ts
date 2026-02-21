@@ -8,12 +8,13 @@ export type CreateProductData = {
   slug: string;
   seoTitle?: string;
   seoDesc?: string;
-  price?: number; // Optional initial price
+  originalPrice?: number; // Optional initial price
+  salePrice?: number; // Optional initial price
 };
 
 export default class ProductDB {
   static async create(data: CreateProductData) {
-    const { price, ...productData } = data;
+    const { originalPrice, salePrice, ...productData } = data;
 
     return await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -25,7 +26,8 @@ export default class ProductDB {
         data: {
           productId: product.id,
           title: "Default Variant",
-          price: price || 0,
+          originalPrice: originalPrice || 0,
+          salePrice: salePrice || 0,
           sku: "", // Generate or empty
         },
       });
@@ -111,6 +113,57 @@ export default class ProductDB {
     return { products, total, totalPages: Math.ceil(total / limit) };
   }
 
+  static async listDeals(page = 1, limit = 20, status?: ProductStatus) {
+    const skip = (page - 1) * limit;
+
+    // Prisma doesn't natively support comparing two columns inside the same relational table easily via 'where'.
+    // We fetch all active products, then filter them by JS math where salePrice > 0 and salePrice < originalPrice
+
+    // First retrieve the matching base products
+    const rawProducts = await prisma.product.findMany({
+      where: {
+        deletedAt: null,
+        ...(status && { status }),
+      },
+      include: {
+        variants: {
+          include: { inventory: true },
+        },
+        mediaProducts: {
+          take: 1,
+          include: { media: true },
+        },
+        collections: {
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Filter in JS for the "deal" condition on the primary variant
+    let deals = rawProducts.filter((p) => {
+      if (!p.variants || p.variants.length === 0) return false;
+      const v = p.variants[0];
+      const sale = Number(v.salePrice) || 0;
+      const orig = Number(v.originalPrice) || 0;
+      return sale > 0 && sale < orig;
+    });
+
+    // Sort by salePrice ascending
+    deals.sort((a, b) => {
+      const saleA = Number(a.variants[0].salePrice) || 0;
+      const saleB = Number(b.variants[0].salePrice) || 0;
+      return saleA - saleB;
+    });
+
+    const total = deals.length;
+
+    // Manual pagination
+    deals = deals.slice(skip, skip + limit);
+
+    return { products: deals, total, totalPages: Math.ceil(total / limit) };
+  }
+
   static async update(id: string, data: Prisma.ProductUpdateInput) {
     return await prisma.product.update({
       where: { id },
@@ -181,7 +234,8 @@ export default class ProductDB {
           data: {
             productId,
             title,
-            price: 0, // Default
+            originalPrice: 0,
+            salePrice: 0,
             selectedOptions: {
               connect: combo.map((c) => ({ id: c.id })),
             },
@@ -192,14 +246,20 @@ export default class ProductDB {
   }
   static async updateVariant(
     variantId: string,
-    data: { price: number; sku?: string; inventory: number },
+    data: {
+      originalPrice: number;
+      salePrice: number;
+      sku?: string;
+      inventory: number;
+    },
   ) {
     return await prisma.$transaction(async (tx) => {
       // Update variant details
       const variant = await tx.productVariant.update({
         where: { id: variantId },
         data: {
-          price: data.price,
+          originalPrice: data.originalPrice,
+          salePrice: data.salePrice,
           sku: data.sku,
         },
       });

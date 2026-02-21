@@ -2,7 +2,7 @@
 
 import { Modal, Form, Input, Select, Button, message } from "antd";
 import { useState } from "react";
-import { addAddress } from "@/actions/addresses";
+import { addAddress, updateAddress } from "@/actions/addresses";
 
 interface AddressModalProps {
   open: boolean;
@@ -28,8 +28,13 @@ export default function AddressModal({
     });
 
     try {
-      await addAddress(formData);
-      message.success("Address saved successfully");
+      if (initialValues?.id) {
+        await updateAddress(initialValues.id, formData);
+        message.success("Address updated successfully");
+      } else {
+        await addAddress(formData);
+        message.success("Address saved successfully");
+      }
       form.resetFields();
       onSuccess();
     } catch (error) {
@@ -47,7 +52,11 @@ export default function AddressModal({
 
   return (
     <Modal
-      title={initialValues?.id ? "Edit Address" : "Add New Address"}
+      title={
+        <span className="text-2xl">
+          {initialValues?.id ? "Edit Address" : "Add New Address"}
+        </span>
+      }
       open={open}
       onCancel={handleCancel}
       footer={null}
@@ -57,22 +66,31 @@ export default function AddressModal({
         form={form}
         layout="vertical"
         onFinish={handleFinish}
-        initialValues={initialValues || { country: "UAE" }}
+        initialValues={initialValues || { country: "AE" }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
           <Form.Item
-            name="firstName"
-            label="First Name"
-            rules={[{ required: true, message: "Please enter first name" }]}
+            name="fullName"
+            label="Full Name"
+            rules={[{ required: true, message: "Please enter your full name" }]}
+            className="mb-0"
           >
-            <Input placeholder="e.g. Faab" />
+            <Input placeholder="e.g. Zaid Omer" />
           </Form.Item>
           <Form.Item
-            name="lastName"
-            label="Last Name"
-            rules={[{ required: true, message: "Please enter last name" }]}
+            name="addressType"
+            label="Address Type"
+            rules={[
+              { required: true, message: "Please select an address type" },
+            ]}
+            initialValue="HOME"
+            className="mb-0"
           >
-            <Input placeholder="e.g. Yorker" />
+            <Select>
+              <Select.Option value="HOME">Home</Select.Option>
+              <Select.Option value="WORK">Work</Select.Option>
+              <Select.Option value="OTHER">Other</Select.Option>
+            </Select>
           </Form.Item>
         </div>
 

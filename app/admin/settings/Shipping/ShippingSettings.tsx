@@ -248,7 +248,7 @@ export default function ShippingSettings() {
         <div className="grid gap-6">
           {zones.map((zone) => (
             <Card key={zone.id} className="shadow-sm border-gray-200">
-              <div className="flex justify-between items-start mb-4 border-b pb-4">
+              <div className="flex justify-between items-start mb-4 border-b border-gray-200 pb-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <Globe size={18} className="text-gray-400" />
@@ -279,7 +279,10 @@ export default function ShippingSettings() {
 
               <div className="space-y-3">
                 {zone.methods.map((method: any) => (
-                  <div key={method.id} className="border rounded-md p-3">
+                  <div
+                    key={method.id}
+                    className="border border-gray-200 rounded-md p-3"
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
                         <Truck size={16} className="text-blue-500" />

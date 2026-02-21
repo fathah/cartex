@@ -52,8 +52,7 @@ const UserAccess = () => {
       const res = await addAdminUser(
         values.email,
         values.role,
-        values.firstName,
-        values.lastName,
+        values.fullname,
       );
       if (res.success) {
         message.success("User added successfully");
@@ -90,9 +89,7 @@ const UserAccess = () => {
       key: "name",
       render: (_: any, record: any) => (
         <div>
-          <div className="font-medium">
-            {record.firstName} {record.lastName}
-          </div>
+          <div className="font-medium">{record.fullname}</div>
         </div>
       ),
     },
@@ -199,16 +196,14 @@ const UserAccess = () => {
             </Select>
           </Form.Item>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="mb-4">
             <Form.Item
-              name="firstName"
-              label="First Name"
-              rules={[{ required: true }]}
+              name="fullname"
+              label="Full Name"
+              rules={[{ required: true, message: "Please enter full name" }]}
+              className="mb-0"
             >
-              <Input placeholder="John" />
-            </Form.Item>
-            <Form.Item name="lastName" label="Last Name">
-              <Input placeholder="Doe" />
+              <Input placeholder="Zaid Omer" />
             </Form.Item>
           </div>
 
