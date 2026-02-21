@@ -14,7 +14,6 @@ export default function WishlistSync() {
         const productIds = wishlistItems.map((item: any) => item.productId);
         setWishlistItems(productIds);
       } catch (error) {
-        // User not logged in or error fetching wishlist
         console.log("Could not sync wishlist");
       }
     };
