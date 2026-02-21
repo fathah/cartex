@@ -27,8 +27,9 @@ export default class UserDB {
   }
 
   static async findByEmail(email: string) {
+    const lowerCaseEmail = email.toLowerCase();
     return await prisma.user.findUnique({
-      where: { email },
+      where: { email: lowerCaseEmail },
     });
   }
 

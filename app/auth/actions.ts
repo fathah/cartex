@@ -17,7 +17,7 @@ export async function handleAdminLogin(accessToken: string) {
   }
 
   const fullName = decoded?.fullName;
-  const email = decoded?.email;
+  const email = decoded?.email?.toLowerCase();
 
   const count = await UserDB.count();
   if (count === 0) {
@@ -30,7 +30,7 @@ export async function handleAdminLogin(accessToken: string) {
     return true;
   }
 
-  const user = await UserDB.findByZiqxId(ziqxId);
+  const user = await UserDB.findByEmail(email);
   if (!user) {
     return null;
   }
