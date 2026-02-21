@@ -1,5 +1,5 @@
 import { getCategories } from "@/actions/categories";
-import CategoryList from "./category-list";
+import CategoryList from "./CategoryList";
 
 export const dynamic = "force-dynamic";
 

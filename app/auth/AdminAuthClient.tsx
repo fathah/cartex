@@ -9,6 +9,7 @@ import Cookies from "js-cookie";
 import { handleAdminLogin } from "./actions";
 import { useState } from "react";
 import { Button } from "antd";
+import { AppConstants } from "@/constants/constants";
 
 const AdminAuthClient = ({ accessToken }: { accessToken: string | null }) => {
   const [isAuthValid, setIsAuthValid] = useState(true);
@@ -21,7 +22,7 @@ const AdminAuthClient = ({ accessToken }: { accessToken: string | null }) => {
       redirectUrl:
         process.env.NODE_ENV === "development"
           ? "http://localhost:3000/auth"
-          : process.env.NEXT_PUBLIC_ZAUTH_URL!,
+          : `${AppConstants.PUBLIC_URL}/auth`,
     });
   }, []);
 

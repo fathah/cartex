@@ -169,6 +169,46 @@ export default class ProductDB {
     return { products: deals, total, totalPages: Math.ceil(total / limit) };
   }
 
+  static async listByBrandId(
+    brandId: string,
+    page = 1,
+    limit = 20,
+    status?: ProductStatus,
+  ) {
+    const skip = (page - 1) * limit;
+    const where: Prisma.ProductWhereInput = {
+      deletedAt: null,
+      productBrandId: brandId,
+      ...(status && { status }),
+    };
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          variants: {
+            take: 1,
+            include: { inventory: true },
+          },
+          mediaProducts: {
+            take: 1,
+            include: { media: true },
+          },
+          collections: {
+            take: 1,
+          },
+          brand: true,
+        },
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return { products, total, totalPages: Math.ceil(total / limit) };
+  }
+
   static async update(id: string, data: Prisma.ProductUpdateInput) {
     return await prisma.product.update({
       where: { id },

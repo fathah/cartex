@@ -1,5 +1,6 @@
 "use server";
 
+import { AppConstants } from "@/constants/constants";
 import { AppKeys } from "@/constants/keys";
 import { ZAuthTokenService } from "@ziqx/auth";
 import { cookies } from "next/headers";
@@ -44,7 +45,7 @@ export async function getZiqxAccessToken(authcode?: string) {
   const redirectUri =
     process.env.NODE_ENV === "development"
       ? "http://localhost:3000/auth"
-      : process.env.NEXT_PUBLIC_ZAUTH_URL!;
+      : `${AppConstants.PUBLIC_URL}/auth`;
   const codeVerifier = "cartex";
   const auth = new ZAuthTokenService();
   const resp = await auth.getAuthToken({

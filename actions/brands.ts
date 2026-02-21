@@ -9,6 +9,11 @@ export async function getBrands() {
   return JSON.parse(JSON.stringify(result));
 }
 
+export async function getBrand(id: string) {
+  const result = await ProductBrandDB.findById(id);
+  return JSON.parse(JSON.stringify(result));
+}
+
 export async function createBrand(name: string, logo?: string) {
   await requireAdminAuth();
   const brand = await ProductBrandDB.create(name, logo);

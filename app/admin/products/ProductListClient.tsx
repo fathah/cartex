@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Table, Button, Tag, Space, Modal, message } from "antd";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, LinkIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Product } from "@prisma/client"; // Import type
 import Link from "next/link";
@@ -27,9 +27,20 @@ export default function ProductListClient({
       key: "name",
     },
     {
-      title: "Slug",
+      title: "Link",
       dataIndex: "slug",
       key: "slug",
+      render: (slug: string) => (
+        <div
+          className="inline-flex items-center gap-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-md"
+          onClick={() => {
+            navigator.clipboard.writeText(slug);
+            message.success("Link copied to clipboard");
+          }}
+        >
+          <LinkIcon size={16} /> Copy Link
+        </div>
+      ),
     },
     {
       title: "Status",

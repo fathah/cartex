@@ -8,6 +8,7 @@ import { useCartStore } from "@/lib/store/cart";
 import Currency from "../common/Currency";
 import ProductReviews from "./ProductReviews";
 import { getProductReviews } from "@/actions/reviews";
+import Link from "next/link";
 
 interface ProductDetailProps {
   product: any;
@@ -175,9 +176,12 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       <div className="flex flex-col">
         {product.brand && (
           <div className="mb-2">
-            <div className="inline text-gray-600 bg-gray-200 px-2 py-1 rounded-lg font-medium tracking-wide text-sm uppercase mb-1">
+            <Link
+              href={`/brands/${product.brand.id}`}
+              className="inline text-gray-600 bg-gray-200 px-2 py-1 rounded-lg font-medium tracking-wide text-sm uppercase mb-1"
+            >
               {product.brand.name}
-            </div>
+            </Link>
           </div>
         )}
         <h1 className="text-4xl font-bold mb-2 tracking-tight">

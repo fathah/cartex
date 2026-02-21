@@ -15,7 +15,7 @@ module.exports = {
         JWT_SECRET: process.env.JWT_SECRET,
         ZAUTH_SECRET: process.env.ZAUTH_SECRET,
         NEXT_PUBLIC_ZAUTH_KEY: process.env.NEXT_PUBLIC_ZAUTH_KEY,
-        NEXT_PUBLIC_ZAUTH_URL: process.env.NEXT_PUBLIC_ZAUTH_URL,
+        NEXT_PUBLIC_URL: process.env.NEXT_PUBLIC_URL,
         PORT: 3137,
       },
     },

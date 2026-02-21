@@ -108,11 +108,7 @@ export default function CategoryList({ initialCategories }: CategoryListProps) {
       dataIndex: "slug",
       key: "slug",
     },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-    },
+
     {
       title: "Image",
       key: "image",

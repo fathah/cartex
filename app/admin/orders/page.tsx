@@ -6,9 +6,10 @@ export const dynamic = "force-dynamic";
 const OrdersIndex = async ({
   searchParams,
 }: {
-  searchParams: { tab?: string };
+  searchParams: Promise<{ tab?: string }>;
 }) => {
-  const currentTab = searchParams.tab || "all";
+  const resolvedSearchParams = await searchParams;
+  const currentTab = resolvedSearchParams.tab || "all";
 
   const [{ orders, total }, stats] = await Promise.all([
     getAdminOrders({ tab: currentTab }),
