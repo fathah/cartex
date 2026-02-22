@@ -75,7 +75,9 @@ export default class CollectionDB {
           orderBy: {
             salePrice: "asc",
           },
+          include: { inventory: true },
         },
+
         collections: {
           select: {
             id: true,
