@@ -125,16 +125,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
-    const currentSlug = form.getFieldValue("slug");
-    // Auto-generate slug if it was empty or previously matches the slugified title pattern
-    // For simplicity based on request "slug should be auto generated on user typing and title":
-    // We will update it. But we should respect if user manually edited it?
-    // Let's stick to: Always update slug when title changes unless we detect manual override...
-    // actually simplest UX is: update slug = slugify(title). User can edit slug *after* title is done.
-    // If they edit title again, the slug resets. This is common in many CMS unless there is a "lock" button.
-    // Given complexity, let's just one-way bind: Title -> Slug.
-
     const newSlug = slugify(title);
+    if (isEdit) {
+      return;
+    }
     form.setFieldsValue({ slug: newSlug });
   };
 

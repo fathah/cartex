@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Table, Button, Tag, Space, Modal, message } from "antd";
-import { Plus, Edit, Trash2, LinkIcon } from "lucide-react";
+import { Plus, Edit, Trash2, LinkIcon, Import } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Product } from "@prisma/client"; // Import type
+import { Product } from "@prisma/client";
 import Link from "next/link";
+import ImportProducts from "./ImportProducts";
+import { AppConstants } from "@/constants/constants";
 
 interface ProductListClientProps {
   initialProducts: any[]; // Prism types are tricky to import exactly sometimes if referencing relation types
@@ -19,6 +21,7 @@ export default function ProductListClient({
   currentPage,
 }: ProductListClientProps) {
   const router = useRouter();
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const columns = [
     {
@@ -32,9 +35,10 @@ export default function ProductListClient({
       key: "slug",
       render: (slug: string) => (
         <div
-          className="inline-flex items-center gap-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-md"
+          className="inline-flex items-center gap-2 text-xs text-blue-600 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded-md cursor-pointer"
           onClick={() => {
-            navigator.clipboard.writeText(slug);
+            const link = `${AppConstants.PUBLIC_URL}/product/${slug}`;
+            navigator.clipboard.writeText(link);
             message.success("Link copied to clipboard");
           }}
         >
@@ -84,11 +88,20 @@ export default function ProductListClient({
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Products</h2>
-        <Link href="/admin/products/new">
-          <Button type="primary" icon={<Plus size={16} />}>
-            Add Product
+        <div className="flex gap-2">
+          <Link href="/admin/products/new">
+            <Button type="primary" icon={<Plus size={16} />}>
+              Add Product
+            </Button>
+          </Link>
+          <Button
+            type="default"
+            icon={<Import size={16} />}
+            onClick={() => setIsImportOpen(true)}
+          >
+            Import Product
           </Button>
-        </Link>
+        </div>
       </div>
 
       <Table
@@ -102,6 +115,14 @@ export default function ProductListClient({
           onChange: (page) => router.push(`/admin/products?page=${page}`),
         }}
         scroll={{ x: 800 }}
+      />
+
+      <ImportProducts
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onSuccess={() => {
+          router.refresh(); // Refresh page data strictly inside NextJS cache
+        }}
       />
     </div>
   );

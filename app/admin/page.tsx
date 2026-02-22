@@ -65,7 +65,7 @@ export default function AdminDashboard() {
             />
           </Card>
         </Col>
-        <Col xs={24} md={12} lg={6}>
+        <Col xs={24} md={12} lg ={6}>
           <Card bordered={false}>
             <Statistic
               title="Active Users"
