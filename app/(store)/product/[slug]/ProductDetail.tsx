@@ -5,8 +5,8 @@ import { Button, Tag, Divider, InputNumber, message } from "antd";
 import { ShoppingCart } from "lucide-react";
 import { AppConstants } from "@/constants/constants";
 import { useCartStore } from "@/lib/store/cart";
-import Currency from "../common/Currency";
-import ProductReviews from "./ProductReviews";
+import Currency from "../../../../components/common/Currency";
+import ProductReviews from "../../../../components/store/ProductReviews";
 import { getProductReviews } from "@/actions/reviews";
 import Link from "next/link";
 
@@ -175,12 +175,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       {/* Info */}
       <div className="flex flex-col">
         {product.brand && (
-          <div className="mb-2">
-            <Link
-              href={`/brands/${product.brand.id}`}
-              className="inline text-gray-600 bg-gray-200 px-2 py-1 rounded-lg font-medium tracking-wide text-sm uppercase mb-1"
-            >
-              {product.brand.name}
+          <div className="mb-2 inline-block">
+            <Link href={`/brands/${product.brand.id}`}>
+              {product.brand.logo ? (
+                <img
+                  src={getFullImageUrl(product.brand.logo)}
+                  alt={product.brand.name}
+                  className="h-16 object-contain"
+                />
+              ) : (
+                <span className=" text-gray-600 bg-gray-200 px-2 py-1 rounded-lg font-medium tracking-wide text-sm uppercase mb-1">
+                  {product.brand.name}
+                </span>
+              )}
             </Link>
           </div>
         )}

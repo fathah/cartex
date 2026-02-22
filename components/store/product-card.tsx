@@ -86,6 +86,9 @@ export default function ProductCard({ product }: { product: any }) {
     }
   };
 
+  const brandLogo = product.brand?.logo;
+  const brandId = product.brand?.id;
+
   return (
     <div className="group flex flex-col h-full bg-white border border-gray-100 rounded-2xl hover:shadow-lg duration-300">
       {/* Image Container */}
@@ -123,6 +126,19 @@ export default function ProductCard({ product }: { product: any }) {
           <div className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-sm z-10">
             Out of Stock
           </div>
+        )}
+        {brandLogo && brandId && (
+          <Link
+            href={`/brands/${brandId}`}
+            className="absolute bottom-2 left-4 "
+            target="_blank"
+          >
+            <img
+              src={getMediaUrl(brandLogo)}
+              alt="Brand Logo"
+              className="h-10 object-contain"
+            />
+          </Link>
         )}
 
         <button
