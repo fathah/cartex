@@ -9,6 +9,7 @@ import {
   User,
   WalletCards,
   Percent,
+  FileDown,
 } from "lucide-react";
 import SiteSettings from "./SiteSettings/SiteSettings";
 import ShippingSettings from "./Shipping/ShippingSettings";
@@ -16,6 +17,7 @@ import PaymentSettings from "./Payment/payment-settings";
 import UserAccess from "./UserAccess/UserAccess";
 import PaymentGateways from "./Payment/PaymentGateways";
 import TaxCurrencySettings from "./TaxCurrency/TaxCurrencySettings";
+import DataExport from "./DataExport/page";
 
 interface SettingsContainerProps {
   initialSettings: any;
@@ -92,6 +94,15 @@ export default function SettingsContainer({
         </span>
       ),
       children: <UserAccess />,
+    },
+    {
+      key: "data-export",
+      label: (
+        <span className="flex items-center gap-2">
+          <FileDown size={16} /> Data Export
+        </span>
+      ),
+      children: <DataExport />,
     },
   ];
 
