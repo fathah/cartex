@@ -11,6 +11,7 @@ import {
   Space,
   InputNumber,
   Divider,
+  Switch,
 } from "antd";
 import {
   createProduct,
@@ -225,6 +226,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       initialValues={{
         ...initialData,
         status: initialData?.status || "DRAFT",
+        isFeatured: initialData?.isFeatured || false,
         collectionIds: initialData?.collections?.map((c: any) => c.id) || [],
       }}
       onFinish={onFinish}
@@ -335,7 +337,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
         <div className="w-full xl:w-80 flex flex-col gap-6">
           <Card title="Status" className="m-0">
-            <Form.Item name="status" className="mb-0">
+            <Form.Item name="status" className="mb-4">
               <Select>
                 <Select.Option value={ProductStatus.ACTIVE}>
                   Active
@@ -345,6 +347,16 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                   Archived
                 </Select.Option>
               </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="isFeatured"
+              label="Featured Product"
+              valuePropName="checked"
+              className="mb-0"
+              help="Show this product in the Curated Collections section on the homepage"
+            >
+              <Switch />
             </Form.Item>
           </Card>
 

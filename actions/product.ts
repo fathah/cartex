@@ -20,6 +20,11 @@ export async function getDeals(page = 1, limit = 20, status?: ProductStatus) {
   return JSON.parse(JSON.stringify(result));
 }
 
+export async function getFeaturedProducts(limit = 4) {
+  const result = await ProductDB.listFeatured(limit);
+  return JSON.parse(JSON.stringify(result));
+}
+
 export async function getBrandProducts(
   brandId: string,
   page = 1,

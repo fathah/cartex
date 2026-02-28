@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Google_Sans } from "next/font/google";
+import { Funnel_Display } from "next/font/google";
 
 export const dynamic = "force-dynamic";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import "./globals.css";
 
-const font = Google_Sans({
+const font = Funnel_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });

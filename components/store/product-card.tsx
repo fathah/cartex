@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Heart, Image as ImageIcon } from "lucide-react";
+import { Heart, Image as ImageIcon, Check } from "lucide-react";
 import { getMediaUrl } from "@/utils/media_url";
 import Currency from "@/components/common/Currency";
 import { useCartStore } from "@/lib/store/cart";
@@ -21,6 +21,7 @@ export default function ProductCard({ product }: { product: any }) {
   const isOutOfStock = currentVariant ? stockCount <= 0 : true;
 
   const addToCart = useCartStore((state) => state.addToCart);
+  const cartItems = useCartStore((state) => state.items);
 
   const isInWishlist = useWishlistStore((state) =>
     state.isInWishlist(product.id),
@@ -38,6 +39,9 @@ export default function ProductCard({ product }: { product: any }) {
     setMounted(true);
   }, []);
 
+  const isAddedToCart =
+    mounted && cartItems.some((item) => item.productId === product.id);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -53,7 +57,7 @@ export default function ProductCard({ product }: { product: any }) {
       variantId: variantId,
       slug: product.slug,
     });
-    message.success("Added to cart");
+    // Removed the message.success("Added to cart") since the UI now shows it immediately
   };
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {
@@ -89,10 +93,18 @@ export default function ProductCard({ product }: { product: any }) {
   const brandLogo = product.brand?.logo;
   const brandId = product.brand?.id;
 
+  const gradientClass =
+    "bg-linear-to-tr from-[#FDF8F5] via-[#FFF] to-[#F3E1D5]";
+
   return (
     <div className="group flex flex-col h-full bg-white border border-gray-100 rounded-2xl hover:shadow-lg duration-300">
       {/* Image Container */}
-      <div className="relative aspect-square rounded-t-2xl mb-4 overflow-hidden bg-linear-to-tr from-[#FDF8F5] via-[#FFF] to-[#F3E1D5] transition-colors">
+      <div
+        className={`relative aspect-square rounded-t-2xl mb-4 overflow-hidden ${gradientClass} transition-colors`}
+        style={{
+          backgroundImage: "url('/images/patterns/clean-gray-paper.png')",
+        }}
+      >
         <Link
           href={`/product/${product.slug}`}
           className={`block w-full h-full ${
@@ -187,14 +199,25 @@ export default function ProductCard({ product }: { product: any }) {
 
         <button
           onClick={handleAddToCart}
-          disabled={isOutOfStock}
+          disabled={isOutOfStock || isAddedToCart}
           className={`w-full mt-auto py-2.5 rounded-full border font-medium text-sm transition-all active:scale-95 ${
             isOutOfStock
               ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-              : "border-gray-900 hover:bg-gray-900 hover:text-white"
+              : isAddedToCart
+                ? "bg-emerald-50 border-emerald-200 text-emerald-600 flex items-center justify-center gap-2 cursor-default"
+                : "border-gray-900 hover:bg-gray-900 hover:text-white"
           }`}
         >
-          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+          {isOutOfStock ? (
+            "Out of Stock"
+          ) : isAddedToCart ? (
+            <>
+              <Check size={16} className="text-emerald-500" />
+              Added to Cart
+            </>
+          ) : (
+            "Add to Cart"
+          )}
         </button>
       </div>
     </div>

@@ -3,7 +3,7 @@ import React from "react";
 export const dynamic = "force-dynamic";
 import StoreHeader from "@/components/store/header";
 import StoreFooter from "@/components/store/footer";
-import CartDrawer from "@/components/store/cart-drawer";
+import CartDrawer from "@/components/store/CartDrawer";
 
 export default function StoreLayout({
   children,

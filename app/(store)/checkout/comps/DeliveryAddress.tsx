@@ -76,12 +76,12 @@ export default function DeliveryAddress({
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center text-gray-600 hover:border-[#003d29] hover:text-[#003d29] hover:bg-green-50/20 transition-colors min-h-[100px]"
+                className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center  hover:border-[#003d29]  hover:bg-green-50/20 transition-colors min-h-[100px]"
               >
                 <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                   <Plus size={24} />
                 </div>
-                <span className="font-medium">Add New Address</span>
+                <div>Add New Address</div>
               </button>
             </div>
           </Radio.Group>

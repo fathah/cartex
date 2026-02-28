@@ -36,7 +36,14 @@ export async function getOrderStats() {
 
 export async function updateOrderStatus(id: string, data: any) {
   await requireAdminAuth();
-  await OrderDB.update(id, data);
+
+  const updateData = { ...data };
+  if (updateData.status === "COMPLETED") {
+    updateData.status = "FULFILLED";
+    updateData.fulfillmentStatus = "FULFILLED";
+  }
+
+  await OrderDB.update(id, updateData);
   revalidatePath("/admin/orders");
   return { success: true };
 }

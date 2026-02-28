@@ -17,19 +17,22 @@ import Testinomials from "./Testinomials";
 import Promotional from "./Promotional";
 import NewsLetter from "./NewsLetter";
 import Footer from "./Footer";
+import CuratedCollections from "./CuratedCollections";
 
 interface PerfumeShopProps {
   products?: any[];
+  featuredProducts?: any[];
   settings?: any;
 }
 
 const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
   products = [],
+  featuredProducts = [],
   settings,
 }) => {
   // Fallback or subset of products for different sections
-  const featuredProducts = products.slice(0, 4);
-  const collectionProducts = products.slice(0, 4); // Ideally different, but safely slicing
+  const collectionProducts = featuredProducts;
+  const latestProducts = products.slice(0, 4);
 
   return (
     <div className="bg-[#FDF8F5] min-h-screen  text-[#4A3B32]">
@@ -39,7 +42,7 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
           <span className="inline-block px-3 py-1 bg-[#E8D4C5] text-[#8B5E3C] text-xs font-bold tracking-wider uppercase rounded-sm">
             Luxury & Premium
           </span>
-          <h1 className="text-4xl md:text-5xl lg:text-7xl text-[#4A3B32] font-black leading-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-7xl text-[#4A3B32] font-black leading-18">
             Revel The Beauty <br className="hidden md:block" /> Inside You
           </h1>
           <p className="text-[#6D5D52] text-base md:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed">
@@ -113,43 +116,18 @@ const PerfumeShopTemplate: React.FC<PerfumeShopProps> = ({
       </section>
 
       {/* Curated Collections */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h2 className="text-3xl md:text-4xl font-serif mb-12 relative inline-block">
-          Curated Collections
-          <span className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-[#E8D4C5]/30 rounded-full blur-xl"></span>
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 text-left">
-          {collectionProducts.length > 0 ? (
-            collectionProducts.map((p) => (
-              <ProductCard product={p} key={p.id} />
-            ))
-          ) : (
-            <div className="col-span-full text-center text-gray-400 italic">
-              Add products to see collections
-            </div>
-          )}
-        </div>
-
-        <div className="mt-12">
-          <Link href="/categories">
-            <button className="bg-[#6F4E37] text-white px-8 py-4 uppercase text-xs tracking-widest hover:bg-[#5D4030] transition-colors rounded-xl">
-              View Full Collection
-            </button>
-          </Link>
-        </div>
-      </section>
+      <CuratedCollections products={collectionProducts} />
 
       <Promotional />
 
-      {/* Fragrance Favourites */}
+      {/*  Latest Collections */}
       <section className="container mx-auto px-4 py-20 text-center bg-[#FCFCFB]">
         <h2 className="text-4xl font-serif mb-16 text-[#4A3B32]">
-          Fragrance Favourites
+          Latest Collections
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-          {featuredProducts.map((p) => (
+          {latestProducts.map((p) => (
             <ProductCard product={p} key={p.id} />
           ))}
         </div>

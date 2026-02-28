@@ -2,7 +2,7 @@
 
 import { useCartStore } from "@/lib/store/cart";
 import { Drawer, Button } from "antd";
-import CartList from "./cart-list";
+import CartList from "./CartList";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Currency from "../common/Currency";

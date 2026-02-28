@@ -11,6 +11,7 @@ export type CreateProductData = {
   originalPrice?: number; // Optional initial price
   salePrice?: number; // Optional initial price
   productBrandId?: string;
+  isFeatured?: boolean;
 };
 
 export default class ProductDB {
@@ -207,6 +208,32 @@ export default class ProductDB {
     ]);
 
     return { products, total, totalPages: Math.ceil(total / limit) };
+  }
+
+  static async listFeatured(limit = 4) {
+    return await prisma.product.findMany({
+      where: {
+        deletedAt: null,
+        status: "ACTIVE",
+        isFeatured: true,
+      },
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        variants: {
+          take: 1,
+          include: { inventory: true },
+        },
+        mediaProducts: {
+          take: 1,
+          include: { media: true },
+        },
+        collections: {
+          take: 1,
+        },
+        brand: true,
+      },
+    });
   }
 
   static async update(id: string, data: Prisma.ProductUpdateInput) {

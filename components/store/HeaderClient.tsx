@@ -15,7 +15,7 @@ import {
 import { Badge, Dropdown, MenuProps, Drawer } from "antd";
 import { useCartStore } from "@/lib/store/cart";
 import { AppConstants } from "@/constants/constants";
-import SearchOverlay from "./search-overlay";
+import SearchOverlay from "./SearchOverlay";
 
 export default function HeaderClient({
   settings,

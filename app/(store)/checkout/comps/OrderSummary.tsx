@@ -15,6 +15,9 @@ interface OrderSummaryProps {
   paymentFeeLabel?: string;
   onCompleteOrder?: () => void;
   loading?: boolean;
+  currentStep?: number;
+  taxRate?: number;
+  taxMode?: string;
 }
 
 export default function OrderSummary({
@@ -25,6 +28,9 @@ export default function OrderSummary({
   paymentFeeLabel = "",
   onCompleteOrder,
   loading = false,
+  currentStep = 3,
+  taxRate = 5,
+  taxMode = "EXCLUSIVE",
 }: OrderSummaryProps) {
   const { items, getTotalItems } = useCartStore();
   const [mounted, setMounted] = useState(false);
@@ -36,18 +42,31 @@ export default function OrderSummary({
 
   if (!mounted) return null;
 
-  const subtotal = items.reduce(
+  const cartSum = items.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0,
   );
+
+  let subtotal = 0; // The net tax-exclusive amount
+  let taxAmount = 0;
+
+  if (taxMode === "INCLUSIVE") {
+    // cartSum includes tax
+    subtotal = cartSum / (1 + taxRate / 100);
+    taxAmount = cartSum - subtotal;
+  } else {
+    // Tax added on top
+    subtotal = cartSum;
+    taxAmount = (subtotal * taxRate) / 100;
+  }
+
   const shipping = shippingCost;
-  const taxes = subtotal * 0.05; // 5% tax
-
-  // Use the passed paymentFee directly
   const appliedPaymentFee = paymentFee;
-  const total = subtotal + shipping + taxes + appliedPaymentFee;
 
-  const isDisabled = loading || !shippingMethodName || !paymentMethodCode;
+  // Total is simply the sum of all tax-exclusive and tax components
+  const total = subtotal + taxAmount + shipping + appliedPaymentFee;
+
+  const isDisabled = loading || !paymentMethodCode;
 
   return (
     <div className="bg-gray-50 p-8 rounded-2xl sticky top-24">
@@ -121,9 +140,13 @@ export default function OrderSummary({
         </div>
 
         <div className="flex justify-between text-gray-600">
-          <span>Taxes (5%)</span>
           <span>
-            <Currency value={taxes} />
+            {taxMode === "INCLUSIVE"
+              ? `Includes Taxes (${taxRate}%)`
+              : `Taxes (${taxRate}%)`}
+          </span>
+          <span>
+            <Currency value={taxAmount} />
           </span>
         </div>
 
@@ -164,23 +187,33 @@ export default function OrderSummary({
         </div>
       </div>
 
-      {/* High-conversion CTA */}
-      <button
-        type="button"
-        onClick={onCompleteOrder}
-        disabled={isDisabled}
-        className={`w-full bg-[#003d29] hover:bg-[#002a1c] text-white h-14 text-lg font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-[#003d29]/20 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer
-          ${isDisabled ? "opacity-50 cursor-not-allowed transform-none hover:shadow-none hover:bg-[#003d29]" : ""}
-        `}
-      >
-        {loading ? (
-          <>processing...</>
-        ) : (
-          <>
-            Complete Order • <Currency value={total} className="font-bold" />
-          </>
-        )}
-      </button>
+      {/* CTA — only on step 3 */}
+      {currentStep === 4 ? (
+        <button
+          type="button"
+          onClick={onCompleteOrder}
+          disabled={isDisabled}
+          className={`w-full bg-[#003d29] hover:bg-[#002a1c] text-white h-14 text-lg font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-[#003d29]/20 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer
+            ${isDisabled ? "opacity-50 cursor-not-allowed transform-none hover:shadow-none hover:bg-[#003d29]" : ""}
+          `}
+        >
+          {loading ? (
+            <>Processing...</>
+          ) : (
+            <>
+              Complete Order • <Currency value={total} className="font-bold" />
+            </>
+          )}
+        </button>
+      ) : (
+        <div className="w-full h-14 flex items-center justify-center rounded-xl bg-gray-100 text-gray-400 text-sm font-medium">
+          {currentStep === 1
+            ? "Select an address to continue"
+            : currentStep === 2
+              ? "Select a shipping method to continue"
+              : "Select a payment method to continue"}
+        </div>
+      )}
 
       {/* Trust indicators */}
       <div className="flex items-center justify-center gap-4 mt-4 text-xs text-gray-400">

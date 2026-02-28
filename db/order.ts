@@ -120,10 +120,10 @@ const OrderDB = {
           where.paymentStatus = "PENDING";
           break;
         case "open":
-          where.status = { notIn: ["COMPLETED", "CANCELLED", "REFUNDED"] }; // Assuming open means it's not finished
+          where.status = { notIn: ["FULFILLED", "CANCELLED", "REFUNDED"] }; // Assuming open means it's not finished
           break;
         case "closed":
-          where.status = { in: ["COMPLETED", "CANCELLED", "REFUNDED"] };
+          where.status = { in: ["FULFILLED", "CANCELLED", "REFUNDED"] };
           break;
       }
     }

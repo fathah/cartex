@@ -9,7 +9,7 @@ interface ShippingMethodsProps {
   shippingMethods: any[];
   form: any;
   subtotal: number;
-  onShippingChange: (cost: number, methodName?: string) => void;
+  onShippingChange: (cost: number, methodName?: string, code?: string) => void;
 }
 
 export default function ShippingMethods({
@@ -25,7 +25,11 @@ export default function ShippingMethods({
       (m: any) => m.code === selectedCode,
     );
     if (selectedMethod) {
-      onShippingChange(selectedMethod.calculatedPrice, selectedMethod.name);
+      onShippingChange(
+        selectedMethod.calculatedPrice,
+        selectedMethod.name,
+        selectedMethod.code,
+      );
     }
   };
 

@@ -8,6 +8,7 @@ import {
   Sparkles,
   ChevronRight,
   ArrowRight,
+  Image as ImageIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input, Spin } from "antd";
@@ -31,6 +32,7 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [popularSearches, setPopularSearches] = useState<string[]>([]);
 
   const hasQuery = useMemo(() => query.trim().length > 0, [query]);
 
@@ -43,6 +45,9 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
       ]);
       setProducts(results.products || []);
       setSuggestions(recos.suggestions || []);
+      if (!q && "popularCategories" in recos) {
+        setPopularSearches((recos.popularCategories as string[]) || []);
+      }
     } finally {
       setLoading(false);
     }
@@ -50,8 +55,8 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
 
   useEffect(() => {
     if (isOpen) {
-      // Reset or fetch initial data if needed
-      if (query) fetchData(query);
+      // Fetch initial popular categories when opening without a query
+      fetchData(query);
     }
   }, [isOpen]);
 
@@ -151,13 +156,16 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
                         <Sparkles size={14} /> Popular Searches
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {[
-                          "Perfume",
-                          "Room Spray",
-                          "Gift Set",
-                          "Candles",
-                          "Oud",
-                        ].map((term) => (
+                        {(popularSearches.length > 0
+                          ? popularSearches
+                          : [
+                              "Perfume",
+                              "Room Spray",
+                              "Gift Set",
+                              "Candles",
+                              "Oud",
+                            ]
+                        ).map((term) => (
                           <button
                             key={term}
                             onClick={() => setQuery(term)}
@@ -241,17 +249,19 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
                                 >
                                   <div className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3">
                                     {product.mediaProducts?.[0]?.media?.url ? (
-                                      <Image
+                                      <img
                                         src={getMediaUrl(
                                           product.mediaProducts[0].media.url,
                                         )}
                                         alt={product.name}
-                                        fill
-                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                       />
                                     ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                        <SearchIcon size={32} />
+                                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
+                                        <ImageIcon
+                                          size={32}
+                                          strokeWidth={1.5}
+                                        />
                                       </div>
                                     )}
                                   </div>
@@ -261,7 +271,7 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
                                   <p className="text-sm text-gray-500 mt-1">
                                     <Currency
                                       value={Number(
-                                        product.variants[0]?.price || 0,
+                                        product.variants[0]?.salePrice || 0,
                                       )}
                                     />
                                   </p>

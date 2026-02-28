@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Table, Button, Tag, Space, Modal, message } from "antd";
+import { Table, Button, Tag, Space, Modal, message, Switch } from "antd";
 import { Plus, Edit, Trash2, LinkIcon, Import } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Product } from "@prisma/client";
+import { updateProduct } from "@/actions/product";
 import Link from "next/link";
 import ImportProducts from "./ImportProducts";
 import { AppConstants } from "@/constants/constants";
@@ -22,6 +23,28 @@ export default function ProductListClient({
 }: ProductListClientProps) {
   const router = useRouter();
   const [isImportOpen, setIsImportOpen] = useState(false);
+
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+
+  const handleToggleFeatured = async (id: string, isFeatured: boolean) => {
+    try {
+      setLoadingIds((prev) => new Set(prev).add(id));
+      await updateProduct(id, { isFeatured });
+      message.success(
+        `Product is now ${isFeatured ? "featured" : "unfeatured"}`,
+      );
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to update featured status");
+    } finally {
+      setLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   const columns = [
     {
@@ -62,6 +85,18 @@ export default function ProductListClient({
         >
           {status}
         </Tag>
+      ),
+    },
+    {
+      title: "Featured?",
+      dataIndex: "isFeatured",
+      key: "isFeatured",
+      render: (isFeatured: boolean, record: any) => (
+        <Switch
+          checked={isFeatured}
+          loading={loadingIds.has(record.id)}
+          onChange={(checked) => handleToggleFeatured(record.id, checked)}
+        />
       ),
     },
     {

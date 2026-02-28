@@ -62,6 +62,8 @@ model Settings {
 
   // Commerce Settings
   currency String @default("USD")
+  taxRate  Float  @default(5) // percentage, e.g. 5 = 5%
+  taxMode  String @default("EXCLUSIVE") // INCLUSIVE | EXCLUSIVE
 
   // SEO
   seoTitle       String?
@@ -121,6 +123,8 @@ model Product {
   // SEO
   seoTitle String?
   seoDesc  String?
+
+  isFeatured Boolean @default(false)
 
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

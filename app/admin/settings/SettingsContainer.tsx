@@ -2,11 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { Tabs } from "antd";
-import { Store, CreditCard, Truck, User } from "lucide-react";
+import {
+  Store,
+  CreditCard,
+  Truck,
+  User,
+  WalletCards,
+  Percent,
+} from "lucide-react";
 import SiteSettings from "./SiteSettings/SiteSettings";
 import ShippingSettings from "./Shipping/ShippingSettings";
 import PaymentSettings from "./Payment/payment-settings";
 import UserAccess from "./UserAccess/UserAccess";
+import PaymentGateways from "./Payment/PaymentGateways";
+import TaxCurrencySettings from "./TaxCurrency/TaxCurrencySettings";
 
 interface SettingsContainerProps {
   initialSettings: any;
@@ -35,6 +44,16 @@ export default function SettingsContainer({
       children: <SiteSettings initialSettings={initialSettings} />,
     },
     {
+      key: "tax-currency",
+      label: (
+        <span className="flex items-center gap-2">
+          <Percent size={16} />
+          Tax & Currency
+        </span>
+      ),
+      children: <TaxCurrencySettings initialSettings={initialSettings} />,
+    },
+    {
       key: "payment",
       label: (
         <span className="flex items-center gap-2">
@@ -43,6 +62,16 @@ export default function SettingsContainer({
         </span>
       ),
       children: <PaymentSettings />,
+    },
+    {
+      key: "payment-gateway",
+      label: (
+        <span className="flex items-center gap-2">
+          <WalletCards size={16} />
+          Payment Gateway
+        </span>
+      ),
+      children: <PaymentGateways />,
     },
     {
       key: "shipping",

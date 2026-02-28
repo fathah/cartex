@@ -139,5 +139,6 @@ export async function getSearchRecommendations(query?: string) {
         href: `/product/${p.slug}`,
       })),
     ],
+    popularCategories: collections.map((c) => c.name),
   };
 }

@@ -7,19 +7,13 @@ import {
   Button,
   Card,
   message,
-  Select,
   Upload,
   Divider,
   Row,
   Col,
 } from "antd";
-import {
-  UploadOutlined,
-  LoadingOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { LoadingOutlined, PlusOutlined } from "@ant-design/icons";
 import { updateSettings } from "@/actions/settings";
-import { useCurrency } from "@/components/providers/currency-provider";
 import { generateSignedUrl } from "@/services/zdrive";
 import { uploadFile } from "@/services/zdrive-client";
 import { AppConstants } from "@/constants/constants";
@@ -106,15 +100,11 @@ const ImageUploader = ({
 export default function SiteSettings({ initialSettings }: SiteSettingsProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const { setCurrency } = useCurrency();
 
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
       await updateSettings(values);
-      if (values.currency) {
-        setCurrency(values.currency);
-      }
       message.success("Settings updated successfully");
     } catch (error) {
       message.error("Failed to update settings");
@@ -133,28 +123,13 @@ export default function SiteSettings({ initialSettings }: SiteSettingsProps) {
       >
         <h3 className="text-lg font-medium mb-4">General Information</h3>
         <Row gutter={24}>
-          <Col span={12}>
+          <Col span={24}>
             <Form.Item
               name="storeName"
               label="Store Name"
               rules={[{ required: true, message: "Please enter store name" }]}
             >
               <Input placeholder="My E-commerce Store" size="large" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="currency"
-              label="Store Currency"
-              rules={[{ required: true }]}
-            >
-              <Select size="large">
-                <Select.Option value="AED">AED (AED)</Select.Option>
-                <Select.Option value="USD">USD ($)</Select.Option>
-                <Select.Option value="EUR">EUR (€)</Select.Option>
-                <Select.Option value="GBP">GBP (£)</Select.Option>
-                <Select.Option value="INR">INR (₹)</Select.Option>
-              </Select>
             </Form.Item>
           </Col>
         </Row>

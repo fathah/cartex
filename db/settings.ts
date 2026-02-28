@@ -6,6 +6,8 @@ export interface UpdateSettingsData {
   faviconUrl?: string;
   themeConfig?: any;
   currency?: string;
+  taxRate?: number;
+  taxMode?: string;
   seoTitle?: string;
   seoDescription?: string;
 }

@@ -7,8 +7,6 @@ import SettingsDB from "@/db/settings";
 import { ShippingDB } from "@/db/shipping";
 import { InventoryPolicy } from "@prisma/client";
 
-const TAX_RATE = 0.05;
-
 function calculateShippingForMethod(method: any, subtotal: number): number {
   const activeRates = (method.rates || [])
     .filter((r: any) => r.isActive)
@@ -137,11 +135,25 @@ export async function createOrder(data: {
     };
   });
 
-  const subtotal = lineItems.reduce(
+  const cartSum = lineItems.reduce(
     (acc, item) => acc + item.unitPrice * item.quantity,
     0,
   );
-  const taxTotal = subtotal * TAX_RATE;
+
+  const settings = await SettingsDB.get();
+  const taxRate = settings.taxRate || 0;
+  const taxMode = settings.taxMode || "EXCLUSIVE";
+
+  let taxTotal = 0;
+  let subtotal = 0; // Net tax-exclusive amount
+
+  if (taxMode === "INCLUSIVE") {
+    subtotal = cartSum / (1 + taxRate / 100);
+    taxTotal = cartSum - subtotal;
+  } else {
+    subtotal = cartSum;
+    taxTotal = (subtotal * taxRate) / 100;
+  }
 
   const zone = await ShippingDB.findZoneForAddress(
     address.country!,
@@ -175,10 +187,9 @@ export async function createOrder(data: {
     }
   }
 
-  const settings = await SettingsDB.get();
   const currency = settings.currency || "USD";
 
-  const total = subtotal + shippingTotal + taxTotal + paymentFee;
+  const total = subtotal + taxTotal + shippingTotal + paymentFee;
 
   // 3. Create Order in a transaction and adjust inventory
   const order = await prisma.$transaction(async (tx) => {

@@ -114,6 +114,24 @@ export async function deletePaymentMethod(id: string) {
 
 // --- Gateways ---
 
+/**
+ * Public-safe: returns only active gateways with non-sensitive fields.
+ * Used in storefront checkout to display available gateway logos/options.
+ */
+export async function getActiveGatewaysForCheckout(): Promise<
+  { id: string; code: string; name: string; environment: string }[]
+> {
+  const gateways = await PaymentDB.listGateways();
+  return gateways
+    .filter((g: any) => g.isActive)
+    .map((g: any) => ({
+      id: g.id,
+      code: g.code,
+      name: g.name,
+      environment: g.environment,
+    }));
+}
+
 export async function getPaymentGateways() {
   return await PaymentDB.listGateways();
 }
