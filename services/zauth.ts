@@ -6,8 +6,6 @@ import { ZAuthTokenService } from "@ziqx/auth";
 import { cookies } from "next/headers";
 
 export async function validateAdminAuthToken(code?: string) {
-  console.log("Validate Admin Auth Token", code);
-
   let token = code;
   if (!code) {
     const store = await cookies();
@@ -21,8 +19,6 @@ export async function validateAdminAuthToken(code?: string) {
   const tokenService = new ZAuthTokenService();
 
   const isValid = await tokenService.validate(token);
-
-  console.log("isValid", isValid);
 
   if (isValid) {
     return true;

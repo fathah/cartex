@@ -24,10 +24,12 @@ enum DiscountType {
 
 enum OrderStatus {
   PENDING
-  PAID
+  ORDERED
+  PROCESSING
+  SHIPPED
   FULFILLED
   CANCELLED
-  REFUNDED
+  RETURNED
 }
 
 enum ProductStatus {
@@ -50,6 +52,17 @@ enum CartStatus {
 // -----------------------------------------------------------------------------
 // SETTINGS (Single Tenant Global Config)
 // -----------------------------------------------------------------------------
+
+model Config {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("config")
+}
 
 model Settings {
   id String @id @default("global")
@@ -362,7 +375,7 @@ model Order {
   shippingAddress Json @default("{}")
   billingAddress  Json @default("{}")
 
-  status            OrderStatus @default(PENDING)
+  status            OrderStatus @default(ORDERED)
   paymentStatus     String      @default("PENDING") // PENDING, PAID, FAILED
   fulfillmentStatus String      @default("UNFULFILLED")
 

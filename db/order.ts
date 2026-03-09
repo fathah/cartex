@@ -120,10 +120,10 @@ const OrderDB = {
           where.paymentStatus = "PENDING";
           break;
         case "open":
-          where.status = { notIn: ["FULFILLED", "CANCELLED", "REFUNDED"] }; // Assuming open means it's not finished
+          where.status = { notIn: ["FULFILLED", "CANCELLED", "RETURNED"] }; // Assuming open means it's not finished
           break;
         case "closed":
-          where.status = { in: ["FULFILLED", "CANCELLED", "REFUNDED"] };
+          where.status = { in: ["FULFILLED", "CANCELLED", "RETURNED"] };
           break;
       }
     }
@@ -181,7 +181,7 @@ const OrderDB = {
         prisma.order.count({ where: { fulfillmentStatus: "FULFILLED" } }),
         prisma.order.count({ where: { paymentStatus: "PENDING" } }), // Assuming PENDING is unpaid
         // No explicit return status in enum, using CANCELLED for approximation or 0
-        prisma.order.count({ where: { status: "REFUNDED" } }),
+        prisma.order.count({ where: { status: "RETURNED" } }),
         prisma.order.aggregate({
           _sum: {
             totalPrice: true,
@@ -223,7 +223,7 @@ const OrderDB = {
         shippingTotal: data.shippingTotal,
         taxTotal: data.taxTotal,
         totalPrice: data.totalPrice,
-        status: "PENDING",
+        status: "ORDERED",
         paymentStatus: "PENDING",
         fulfillmentStatus: "UNFULFILLED",
         items: {
@@ -248,6 +248,54 @@ const OrderDB = {
       where: { id },
       data,
     });
+  },
+
+  getRecentOrders: async (limit = 5) => {
+    const orders = await prisma.order.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: { customer: true },
+    });
+    return orders;
+  },
+
+  getDailySales: async (days = 7) => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const orders = await prisma.order.findMany({
+      where: {
+        createdAt: { gte: startDate },
+        paymentStatus: "PAID",
+      },
+      select: {
+        totalPrice: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    // Group by date in JS for simplicity (Prisma groupBy on dates can be tricky with timezones/truncation)
+    const salesMap = new Map();
+    for (let i = 0; i < days; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      salesMap.set(dateStr, { date: dateStr, sales: 0, orders: 0 });
+    }
+
+    orders.forEach((o) => {
+      const dateStr = o.createdAt.toISOString().split("T")[0];
+      if (salesMap.has(dateStr)) {
+        const entry = salesMap.get(dateStr);
+        entry.sales += Number(o.totalPrice);
+        entry.orders += 1;
+      }
+    });
+
+    return Array.from(salesMap.values()).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
   },
 };
 

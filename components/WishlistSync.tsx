@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useWishlistStore } from "@/lib/store/wishlist";
-import { getWishlist } from "@/app/account/wishlist/actions";
+import { getWishlist } from "@/actions/wishlists";
 
 export default function WishlistSync() {
   const setWishlistItems = useWishlistStore((state) => state.setWishlistItems);

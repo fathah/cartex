@@ -380,13 +380,15 @@ export async function getOrder(orderId: string) {
 
   const variantsMap = new Map(variants.map((v) => [v.id, v]));
 
+  const { paymentIntents, ...orderData } = order;
+
   return {
-    ...order,
-    totalPrice: Number(order.totalPrice),
-    subtotal: Number(order.subtotal),
-    taxTotal: Number(order.taxTotal),
-    shippingTotal: Number(order.shippingTotal),
-    items: order.items.map((item) => {
+    ...orderData,
+    totalPrice: Number(orderData.totalPrice),
+    subtotal: Number(orderData.subtotal),
+    taxTotal: Number(orderData.taxTotal),
+    shippingTotal: Number(orderData.shippingTotal),
+    items: orderData.items.map((item) => {
       let image: string | null = null;
       if (item.variantId) {
         const variant = variantsMap.get(item.variantId);
@@ -406,6 +408,6 @@ export async function getOrder(orderId: string) {
       };
     }),
     // flattened payment info if needed
-    paymentMethod: order.paymentIntents?.[0]?.paymentMethod?.name || "Unknown",
+    paymentMethod: paymentIntents?.[0]?.paymentMethod?.name || "Unknown",
   };
 }

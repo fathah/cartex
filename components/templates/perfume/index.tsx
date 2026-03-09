@@ -12,7 +12,7 @@ import {
 import Link from "next/link";
 import { Button, Carousel } from "antd";
 import { getMediaUrl } from "@/utils/media_url";
-import ProductCard from "@/components/store/product-card";
+import ProductCard from "@/components/store/ProductCard";
 import Testinomials from "./Testinomials";
 import Promotional from "./Promotional";
 import NewsLetter from "./NewsLetter";

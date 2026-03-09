@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input, Spin } from "antd";
 import { Search as SearchIcon, Sparkles } from "lucide-react";
 import { getSearchRecommendations, searchProducts } from "@/actions/search";
-import ProductCard from "@/components/store/product-card";
+import ProductCard from "@/components/store/ProductCard";
 
 type Suggestion = { type: string; label: string; href: string };
 

@@ -8,10 +8,7 @@ import Currency from "@/components/common/Currency";
 import { useCartStore } from "@/lib/store/cart";
 import { useWishlistStore } from "@/lib/store/wishlist";
 import { message } from "antd";
-import {
-  addToWishlist,
-  removeFromWishlist,
-} from "@/app/account/wishlist/actions";
+import { addToWishlist, removeFromWishlist } from "@/actions/wishlists";
 
 export default function ProductCard({ product }: { product: any }) {
   const currentVariant = product.variants?.[0];

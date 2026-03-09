@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import CollectionDB from "@/db/collection";
-import ProductCard from "@/components/store/product-card";
+import ProductCard from "@/components/store/ProductCard";
 import { Package } from "lucide-react";
 
 interface CategoryPageProps {

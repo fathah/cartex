@@ -166,7 +166,7 @@ export default function HeaderClient({
         onClose={() => setIsMobileMenuOpen(false)}
         open={isMobileMenuOpen}
         className="lg:hidden"
-        width={300}
+        size={"default"}
       >
         <div className="flex flex-col gap-6 font-medium text-lg text-gray-700">
           <Link

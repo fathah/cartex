@@ -1,6 +1,6 @@
 import { getDeals } from "@/actions/product";
 import { ProductStatus } from "@prisma/client";
-import ProductCard from "@/components/store/product-card";
+import ProductCard from "@/components/store/ProductCard";
 import { Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";

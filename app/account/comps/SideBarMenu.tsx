@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useUser } from "./UserContext";
 import ClientMenuSection from "./ClientMenuSection";
 import { useEffect, useState } from "react";
-import { getWishlistCount } from "./wishlist/actions";
+import { getWishlistCount } from "@/actions/wishlists";
 
 export default function SideBarMenu() {
   const { user } = useUser();

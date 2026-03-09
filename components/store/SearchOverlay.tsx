@@ -13,7 +13,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Input, Spin } from "antd";
 import { getSearchRecommendations, searchProducts } from "@/actions/search";
-import ProductCard from "@/components/store/product-card";
+import ProductCard from "@/components/store/ProductCard";
 import Link from "next/link";
 import Image from "next/image";
 import { getMediaUrl } from "@/utils/media_url";

@@ -1,5 +1,5 @@
 import { getAdminOrders, getOrderStats } from "@/actions/admin-orders";
-import OrderList from "./order-list";
+import OrderList from "./OrderList";
 
 export const dynamic = "force-dynamic";
 

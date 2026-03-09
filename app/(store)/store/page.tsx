@@ -1,5 +1,5 @@
 import { getProducts } from "@/actions/product";
-import ProductCard from "@/components/store/product-card";
+import ProductCard from "@/components/store/ProductCard";
 import { ProductStatus } from "@prisma/client";
 
 export default async function StorePage(props: {

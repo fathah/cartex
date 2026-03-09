@@ -34,7 +34,7 @@ export default function Testinomials() {
       </h2>
 
       <div className="max-w-4xl mx-auto px-4">
-        <Carousel autoplay effect="fade" dotPosition="bottom">
+        <Carousel autoplay effect="fade" dotPlacement="bottom">
           {reviews.map((review, idx) => (
             <div key={idx} className="pb-12">
               <div className="flex justify-center gap-1 text-[#DFA048] mb-6">

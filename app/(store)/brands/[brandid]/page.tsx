@@ -1,7 +1,7 @@
 import { getBrandProducts } from "@/actions/product";
 import { getBrand } from "@/actions/brands";
 import { ProductStatus } from "@prisma/client";
-import ProductCard from "@/components/store/product-card";
+import ProductCard from "@/components/store/ProductCard";
 import { Package, Component } from "lucide-react";
 import { notFound } from "next/navigation";
 

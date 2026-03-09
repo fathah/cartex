@@ -1,9 +1,9 @@
 import React from "react";
 import StoreHeader from "@/components/store/header";
-import SideBarMenu from "./SideBarMenu";
+import SideBarMenu from "./comps/SideBarMenu";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/actions/user";
-import { UserProvider } from "./UserContext";
+import { UserProvider } from "./comps/UserContext";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +25,7 @@ const AccountPageLayout = async ({
       <div className="min-h-screen bg-gray-50">
         <StoreHeader />
 
-        <div className="container mx-auto px-4 mt-10">
-          <div className="flex flex-col lg:flex-row gap-6">
-            <SideBarMenu />
-
-            <main className="w-full lg:w-3/4">{children}</main>
-          </div>
-        </div>
+        <div className="container mx-auto px-4 mt-10">{children}</div>
       </div>
       <div className=" bg-gray-50 h-20"></div>
     </UserProvider>

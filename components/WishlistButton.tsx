@@ -3,10 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
 import { Button, message } from "antd";
-import {
-  addToWishlist,
-  removeFromWishlist,
-} from "@/app/account/wishlist/actions";
+import { addToWishlist, removeFromWishlist } from "@/actions/wishlists";
 
 interface WishlistButtonProps {
   productId: string;

@@ -56,7 +56,19 @@ export async function searchProducts(query: string, limit: number = 24) {
     },
   });
 
-  return { products };
+  const serialize = (plist: any[]) =>
+    plist.map((p) => ({
+      ...p,
+      variants: p.variants.map((v: any) => ({
+        ...v,
+        originalPrice: Number(v.originalPrice || 0),
+        salePrice: Number(v.salePrice || 0),
+        compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null,
+        costPrice: v.costPrice ? Number(v.costPrice) : null,
+      })),
+    }));
+
+  return { products: serialize(products) };
 }
 
 export async function getSearchRecommendations(query?: string) {

@@ -3,10 +3,10 @@
 import React, { useState } from "react";
 import { Heart, Trash2, ShoppingCart } from "lucide-react";
 import { Button, message, Empty } from "antd";
-import { removeFromWishlist } from "./actions";
 import { getMediaUrl } from "@/utils/media_url";
 import Link from "next/link";
 import Currency from "@/components/common/Currency";
+import { removeFromWishlist } from "@/actions/wishlists";
 
 interface WishlistItem {
   id: string;
