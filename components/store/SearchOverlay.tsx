@@ -11,11 +11,8 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Input, Spin } from "antd";
+import { Spin } from "antd";
 import { getSearchRecommendations, searchProducts } from "@/actions/search";
-import ProductCard from "@/components/store/ProductCard";
-import Link from "next/link";
-import Image from "next/image";
 import { getMediaUrl } from "@/utils/media_url";
 import Currency from "@/components/common/Currency";
 
@@ -55,7 +52,6 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
 
   useEffect(() => {
     if (isOpen) {
-      // Fetch initial popular categories when opening without a query
       fetchData(query);
     }
   }, [isOpen]);
