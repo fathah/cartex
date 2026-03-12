@@ -4,6 +4,7 @@ import { ProductStatus } from "@prisma/client";
 import ProductCard from "@/components/store/ProductCard";
 import { Package, Component } from "lucide-react";
 import { notFound } from "next/navigation";
+import { PUBLIC_ENV } from "@/constants/env_public";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function BrandProductsIndex({ params }: PageProps) {
           <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400 shadow-sm border border-gray-200 overflow-hidden mix-blend-multiply">
             {brand.logo ? (
               <img
-                src={`${process.env.NEXT_PUBLIC_ZDRIVE_ROOT}/${brand.logo}`}
+                src={`${PUBLIC_ENV.DRIVE_ROOT_URL}/${brand.logo}`}
                 alt={brand.name}
                 className="w-full h-full object-contain p-2"
               />

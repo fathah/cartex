@@ -1,10 +1,16 @@
 #!/bin/sh
 
-# Exit on error
 set -e
 
-echo "Running migrations..."
-npx prisma migrate deploy
+if [ "${RUN_DATABASE_MIGRATIONS:-false}" = "true" ]; then
+  if [ -z "${DATABASE_URL:-}" ]; then
+    echo "DATABASE_URL is required when RUN_DATABASE_MIGRATIONS=true"
+    exit 1
+  fi
+
+  echo "Running Prisma migrations..."
+  npx prisma migrate deploy
+fi
 
 echo "Starting server..."
-exec node server.js
+exec "$@"

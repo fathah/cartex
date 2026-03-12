@@ -1,5 +1,6 @@
 "use server";
 
+import { PUBLIC_ENV } from "@/constants/env_public";
 import { ENV } from "@/constants/envs";
 import prisma from "@/db/prisma";
 import Stripe from "stripe";
@@ -65,7 +66,7 @@ export async function initiateGatewayPayment(
       const secretKey = config.secretKey as string;
       const stripe = new Stripe(secretKey, { apiVersion: "2026-02-25.clover" });
 
-      const baseUrl = ENV.BASE_URL || "http://localhost:3000";
+      const baseUrl = PUBLIC_ENV.BASE_URL || "http://localhost:3000";
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items: [
@@ -136,7 +137,7 @@ export async function initiateGatewayPayment(
         ? "https://api-gateway.sandbox.ngenius-payments.com"
         : "https://api-gateway.ngenius-payments.com";
 
-      const appUrl = ENV.BASE_URL || "http://localhost:3000";
+      const appUrl = PUBLIC_ENV.BASE_URL || "http://localhost:3000";
 
       // Create an order/payment session on Network International
       const tokenRes = await fetch(`${baseUrl}/identity/auth/access-token`, {
@@ -198,7 +199,7 @@ export async function initiateGatewayPayment(
         ? "https://api-preprod.phonepe.com/apis/pg-sandbox"
         : "https://api.phonepe.com/apis/hermes";
 
-      const appUrl = ENV.BASE_URL || "http://localhost:3000";
+      const appUrl = PUBLIC_ENV.BASE_URL || "http://localhost:3000";
       const crypto = await import("crypto");
 
       const payload = {
