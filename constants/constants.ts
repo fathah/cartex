@@ -1,5 +1,7 @@
+import { PUBLIC_ENV } from "./env_public";
+
 export const AppConstants = {
   SHOP_NAME: "Cartex Pro",
-  DRIVE_ROOT_URL: process.env.NEXT_PUBLIC_ZDRIVE_ROOT!,
-  PUBLIC_URL: process.env.NEXT_PUBLIC_URL!,
+  DRIVE_ROOT_URL: PUBLIC_ENV.DRIVE_ROOT_URL!,
+  PUBLIC_URL: PUBLIC_ENV.BASE_URL!,
 };

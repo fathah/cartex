@@ -12,7 +12,10 @@ import {
   InputNumber,
   Divider,
   Switch,
+  Tabs,
+  Typography,
 } from "antd";
+import { Edit } from "lucide-react";
 import {
   createProduct,
   updateProduct,
@@ -22,6 +25,7 @@ import {
   checkSlugAvailability,
 } from "@/actions/product";
 import { getCollections } from "@/actions/collection";
+import { createCategory } from "@/actions/categories";
 import { getBrands, createBrand } from "@/actions/brands";
 import { useRouter } from "next/navigation";
 import { ProductStatus } from "@prisma/client";
@@ -33,10 +37,17 @@ import MediaPicker from "@/app/admin/media/media_picker";
 
 interface ProductFormProps {
   initialData?: any;
+  onSuccess?: (productId: string, mode: "create" | "update") => void;
+  onRefreshProduct?: (productId: string) => void | Promise<void>;
 }
 
-export default function ProductForm({ initialData }: ProductFormProps) {
+export default function ProductForm({
+  initialData,
+  onSuccess,
+  onRefreshProduct,
+}: ProductFormProps) {
   const [form] = Form.useForm();
+  const currentSlug = Form.useWatch("slug", form);
   const [loading, setLoading] = React.useState(false);
   const router = useRouter();
   const isEdit = !!initialData;
@@ -57,6 +68,9 @@ export default function ProductForm({ initialData }: ProductFormProps) {
   const [loadingBrands, setLoadingBrands] = React.useState(true);
   const [newBrandName, setNewBrandName] = React.useState("");
   const inputRef = React.useRef<any>(null);
+  const categoryInputRef = React.useRef<any>(null);
+  const [newCategoryName, setNewCategoryName] = React.useState("");
+  const [isSlugEditing, setIsSlugEditing] = React.useState(!isEdit);
 
   // Fetch collections on mount
   React.useEffect(() => {
@@ -83,6 +97,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     setNewBrandName(event.target.value);
   };
 
+  const onCategoryNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setNewCategoryName(event.target.value);
+  };
+
   const addBrand = async (
     e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>,
   ) => {
@@ -97,6 +115,34 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     } catch (err) {
       console.error(err);
       message.error("Failed to create brand");
+    }
+  };
+
+  const addCategory = async (
+    e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>,
+  ) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    try {
+      const slug = slugify(newCategoryName.trim());
+      const result = await createCategory({
+        name: newCategoryName.trim(),
+        slug,
+      });
+      if (result.success && result.category) {
+        setCollections([...collections, result.category]);
+        setNewCategoryName("");
+        message.success("Category added");
+        const currentSelected = form.getFieldValue("collectionIds") || [];
+        form.setFieldsValue({
+          collectionIds: [...currentSelected, result.category.id],
+        });
+      } else {
+        message.error(result.error || "Failed to create category");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to create category");
     }
   };
 
@@ -206,10 +252,15 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       if (isEdit) {
         await updateProduct(initialData.id, productData);
         message.success("Product updated");
+        onSuccess?.(initialData.id, "update");
       } else {
         const product = await createProduct(productData);
         message.success("Product created");
-        router.push(`/admin/products/${product.id}`);
+        if (onSuccess) {
+          onSuccess(product.id, "create");
+        } else {
+          router.push(`/admin/products/${product.id}`);
+        }
       }
     } catch (error) {
       message.error("Operation failed");
@@ -218,6 +269,238 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       setLoading(false);
     }
   };
+
+  const handleRefresh = () => {
+    if (initialData?.id) {
+      onRefreshProduct?.(initialData.id);
+    }
+  };
+
+  const basicInfo = (
+    <Card title="Basic Information" className="mb-6">
+      <Form.Item name="name" label="Title" rules={[{ required: true }]}>
+        <Input
+          placeholder="Short Sleeve T-Shirt"
+          onChange={handleTitleChange}
+          onBlur={handleTitleBlur}
+        />
+      </Form.Item>
+
+      {!isEdit && (
+        <Form.Item
+          name="originalPrice"
+          label="Base Price"
+          rules={[
+            {
+              required: !isEdit,
+              message: "Price is required for new products",
+            },
+          ]}
+          help={
+            isEdit
+              ? "To update price, edit the variants below"
+              : "Initial price for the default variant"
+          }
+        >
+          <InputNumber
+            prefix={currency}
+            style={{ width: "100%" }}
+            min={0}
+            precision={2}
+            disabled={isEdit && initialData.variants?.length > 0}
+          />
+        </Form.Item>
+      )}
+
+      <Form.Item name="slug" label="URL Slug" rules={[{ required: true }]}>
+        {isSlugEditing ? (
+          <div className="flex gap-2">
+            <Input
+              value={currentSlug}
+              placeholder="short-sleeve-t-shirt"
+              onChange={(e) => form.setFieldsValue({ slug: e.target.value })}
+              onBlur={handleSlugBlur}
+              addonBefore={`${AppConstants.PUBLIC_URL}/product/`}
+            />
+            <Button
+              type="default"
+              onClick={() => {
+                const currentSlug = form.getFieldValue("slug");
+                if (currentSlug) {
+                  form.setFieldsValue({ slug: slugify(currentSlug) });
+                }
+                setIsSlugEditing(false);
+              }}
+            >
+              Done
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3 py-1">
+            <div className="break-all text-blue-700">
+              <span>{`${AppConstants.PUBLIC_URL}/product/`}</span>
+              <span className="underline decoration-dashed underline-offset-4">
+                {currentSlug || ""}
+              </span>
+            </div>
+            <Button
+              type="text"
+              icon={<Edit size={16} />}
+              onClick={() => setIsSlugEditing(true)}
+            />
+          </div>
+        )}
+      </Form.Item>
+
+      <Form.Item name="description" label="Description">
+        <Input.TextArea rows={4} />
+      </Form.Item>
+    </Card>
+  );
+
+  const mediaSection = isEdit ? (
+    <Card title="Media" className="mb-6">
+      <div className="flex flex-wrap gap-4 mb-4">
+        <MediaPicker
+          onSelect={async (media: any) => {
+            try {
+              await linkMedia(initialData.id, media.id);
+              message.success("Media linked successfully");
+              setFileList((prev) => [
+                ...prev,
+                {
+                  uid: media.id,
+                  name: media.url.split("/").pop() || "image",
+                  status: "done",
+                  url: `${AppConstants.DRIVE_ROOT_URL}/${media.url}`,
+                },
+              ]);
+            } catch (err) {
+              console.error(err);
+              message.error(
+                "Failed to link media. It might already be linked.",
+              );
+            }
+          }}
+        />
+      </div>
+
+      <Upload
+        listType="picture-card"
+        fileList={fileList}
+        onRemove={handleRemove}
+        onPreview={() => {}} // Handle preview if needed
+        showUploadList={{ showPreviewIcon: true, showRemoveIcon: true }}
+      >
+        {/* No upload button rendered here */}
+      </Upload>
+    </Card>
+  ) : null;
+
+  const variantsSection = isEdit ? (
+    <VariantManager
+      productId={initialData.id}
+      options={initialData.options || []}
+      variants={initialData.variants || []}
+      onRefresh={handleRefresh}
+    />
+  ) : null;
+
+  const organizationSection = (
+    <div className="flex flex-col gap-6">
+      <Card className="m-0">
+        <Form.Item name="collectionIds" label="Collections">
+          <Select
+            mode="multiple"
+            placeholder="Select collections"
+            loading={loadingCollections}
+            disabled={loadingCollections}
+            allowClear
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+            options={collections.map((collection) => ({
+              label: collection.name,
+              value: collection.id,
+            }))}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                <Divider style={{ margin: "8px 0" }} />
+                <Space style={{ padding: "0 8px 4px" }}>
+                  <Input
+                    placeholder="Please enter category"
+                    ref={categoryInputRef}
+                    value={newCategoryName}
+                    onChange={onCategoryNameChange}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                  <Button type="text" onClick={addCategory}>
+                    Add Category
+                  </Button>
+                </Space>
+              </>
+            )}
+          />
+        </Form.Item>
+
+        <Form.Item name="productBrandId" label="Product Brand" className="mb-0">
+          <Select
+            placeholder="Select a brand"
+            loading={loadingBrands}
+            disabled={loadingBrands}
+            allowClear
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+            options={brands.map((b) => ({
+              label: b.name,
+              value: b.id,
+            }))}
+            dropdownRender={(menu) => (
+              <>
+                {menu}
+                <Divider style={{ margin: "8px 0" }} />
+                <Space style={{ padding: "0 8px 4px" }}>
+                  <Input
+                    placeholder="Please enter brand"
+                    ref={inputRef}
+                    value={newBrandName}
+                    onChange={onNameChange}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                  <Button type="text" onClick={addBrand}>
+                    Add Brand
+                  </Button>
+                </Space>
+              </>
+            )}
+          />
+        </Form.Item>
+
+        <Form.Item name="status" label="Visibility Status" className="mb-4">
+          <Select>
+            <Select.Option value={ProductStatus.ACTIVE}>Active</Select.Option>
+            <Select.Option value={ProductStatus.DRAFT}>Draft</Select.Option>
+            <Select.Option value={ProductStatus.ARCHIVED}>
+              Archived
+            </Select.Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="isFeatured"
+          label="Mark as Featured"
+          valuePropName="checked"
+          className="mb-0"
+        >
+          <Switch />
+        </Form.Item>
+      </Card>
+    </div>
+  );
 
   return (
     <Form
@@ -231,206 +514,38 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       }}
       onFinish={onFinish}
     >
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1">
-          <Card title="Basic Information" className="mb-6">
-            <Form.Item name="name" label="Title" rules={[{ required: true }]}>
-              <Input
-                placeholder="Short Sleeve T-Shirt"
-                onChange={handleTitleChange}
-                onBlur={handleTitleBlur}
-              />
-            </Form.Item>
-
-            {!isEdit && (
-              <Form.Item
-                name="originalPrice"
-                label="Base Price"
-                rules={[
-                  {
-                    required: !isEdit,
-                    message: "Price is required for new products",
-                  },
-                ]}
-                help={
-                  isEdit
-                    ? "To update price, edit the variants below"
-                    : "Initial price for the default variant"
-                }
-              >
-                <InputNumber
-                  prefix={currency}
-                  style={{ width: "100%" }}
-                  min={0}
-                  precision={2}
-                  disabled={isEdit && initialData.variants?.length > 0}
-                />
-              </Form.Item>
-            )}
-
-            <Form.Item
-              name="slug"
-              label="Slug"
-              rules={[{ required: true }]}
-              help="Unique URL identifier"
-            >
-              <Input
-                placeholder="short-sleeve-t-shirt"
-                onBlur={handleSlugBlur}
-              />
-            </Form.Item>
-
-            <Form.Item name="description" label="Description">
-              <Input.TextArea rows={4} />
-            </Form.Item>
-          </Card>
-
-          {isEdit && (
-            <Card title="Media" className="mb-6">
-              <div className="flex flex-wrap gap-4 mb-4">
-                {isEdit && (
-                  <MediaPicker
-                    onSelect={async (media: any) => {
-                      try {
-                        await linkMedia(initialData.id, media.id);
-                        message.success("Media linked successfully");
-                        setFileList((prev) => [
-                          ...prev,
-                          {
-                            uid: media.id,
-                            name: media.url.split("/").pop() || "image",
-                            status: "done",
-                            url: `${AppConstants.DRIVE_ROOT_URL}/${media.url}`,
-                          },
-                        ]);
-                      } catch (err) {
-                        console.error(err);
-                        message.error(
-                          "Failed to link media. It might already be linked.",
-                        );
-                      }
-                    }}
-                  />
-                )}
-              </div>
-
-              <Upload
-                listType="picture-card"
-                fileList={fileList}
-                onRemove={handleRemove}
-                onPreview={() => {}} // Handle preview if needed
-                showUploadList={{ showPreviewIcon: true, showRemoveIcon: true }}
-              >
-                {/* No upload button rendered here */}
-              </Upload>
-            </Card>
-          )}
-
-          {isEdit && (
-            <VariantManager
-              productId={initialData.id}
-              options={initialData.options || []}
-              variants={initialData.variants || []}
-            />
-          )}
+      {isEdit ? (
+        <Tabs
+          defaultActiveKey="basic"
+          items={[
+            {
+              key: "basic",
+              label: "Basic Info",
+              children: (
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="flex-1">{basicInfo}</div>
+                  <div className="w-full xl:w-80">{organizationSection}</div>
+                </div>
+              ),
+            },
+            {
+              key: "media",
+              label: "Media",
+              children: <div className="max-w-4xl">{mediaSection}</div>,
+            },
+            {
+              key: "variants",
+              label: "Variants",
+              children: <div className="max-w-5xl">{variantsSection}</div>,
+            },
+          ]}
+        />
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1">{basicInfo}</div>
+          <div className="w-full xl:w-80">{organizationSection}</div>
         </div>
-
-        <div className="w-full xl:w-80 flex flex-col gap-6">
-          <Card title="Status" className="m-0">
-            <Form.Item name="status" className="mb-4">
-              <Select>
-                <Select.Option value={ProductStatus.ACTIVE}>
-                  Active
-                </Select.Option>
-                <Select.Option value={ProductStatus.DRAFT}>Draft</Select.Option>
-                <Select.Option value={ProductStatus.ARCHIVED}>
-                  Archived
-                </Select.Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="isFeatured"
-              label="Featured Product"
-              valuePropName="checked"
-              className="mb-0"
-              help="Show this product in the Curated Collections section on the homepage"
-            >
-              <Switch />
-            </Form.Item>
-          </Card>
-
-          <Card title="Collections">
-            <Form.Item
-              name="collectionIds"
-              label="Collections"
-              help="Select one or more collections for this product"
-            >
-              <Select
-                mode="multiple"
-                placeholder="Select collections"
-                loading={loadingCollections}
-                disabled={loadingCollections}
-                allowClear
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                options={collections.map((collection) => ({
-                  label: collection.name,
-                  value: collection.id,
-                }))}
-              />
-            </Form.Item>
-          </Card>
-          {/* IMPLEMENT PRODUCT BRAND SELECTION HERE */}
-          <Card title="Brand">
-            <Form.Item
-              name="productBrandId"
-              label="Product Brand"
-              help="Select a brand or add a new one"
-              className="mb-0"
-            >
-              <Select
-                placeholder="Select a brand"
-                loading={loadingBrands}
-                disabled={loadingBrands}
-                allowClear
-                showSearch
-                filterOption={(input, option) =>
-                  (option?.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                options={brands.map((b) => ({
-                  label: b.name,
-                  value: b.id,
-                }))}
-                dropdownRender={(menu) => (
-                  <>
-                    {menu}
-                    <Divider style={{ margin: "8px 0" }} />
-                    <Space style={{ padding: "0 8px 4px" }}>
-                      <Input
-                        placeholder="Please enter brand"
-                        ref={inputRef}
-                        value={newBrandName}
-                        onChange={onNameChange}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                      <Button type="text" onClick={addBrand}>
-                        Add Brand
-                      </Button>
-                    </Space>
-                  </>
-                )}
-              />
-            </Form.Item>
-          </Card>
-        </div>
-      </div>
+      )}
 
       <div className="flex justify-end border-t pt-4 bg-white sticky bottom-0 p-4 -mx-4 -mb-4 mt-4">
         <Button type="primary" htmlType="submit" loading={loading}>

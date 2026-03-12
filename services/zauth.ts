@@ -1,6 +1,8 @@
 "use server";
 
 import { AppConstants } from "@/constants/constants";
+import { PUBLIC_ENV } from "@/constants/env_public";
+import { ENV } from "@/constants/envs";
 import { AppKeys } from "@/constants/keys";
 import { ZAuthTokenService } from "@ziqx/auth";
 import { cookies } from "next/headers";
@@ -45,8 +47,8 @@ export async function getZiqxAccessToken(authcode?: string) {
   const codeVerifier = "cartex";
   const auth = new ZAuthTokenService();
   const resp = await auth.getAuthToken({
-    authAppKey: process.env.NEXT_PUBLIC_ZAUTH_KEY!,
-    authSecret: process.env.ZAUTH_SECRET!,
+    authAppKey: PUBLIC_ENV.ZAUTH_KEY!,
+    authSecret: ENV.ZAUTH_SECRET!,
     code: authcode,
     redirectUri,
     codeVerifier,

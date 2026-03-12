@@ -10,12 +10,13 @@ import { handleAdminLogin } from "./actions";
 import { useState } from "react";
 import { Button } from "antd";
 import { AppConstants } from "@/constants/constants";
+import { PUBLIC_ENV } from "@/constants/env_public";
 
 const AdminAuthClient = ({ accessToken }: { accessToken: string | null }) => {
   const [isAuthValid, setIsAuthValid] = useState(true);
   const login = useCallback(() => {
     const auth = new ZAuthClient({
-      authKey: process.env.NEXT_PUBLIC_ZAUTH_KEY!,
+      authKey: PUBLIC_ENV.ZAUTH_KEY!,
     });
     auth.login({
       codeChallenge: "cartex",

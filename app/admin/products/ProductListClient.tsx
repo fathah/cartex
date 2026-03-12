@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Table, Button, Tag, Space, Modal, message, Switch } from "antd";
-import { Plus, Edit, Trash2, LinkIcon, Import } from "lucide-react";
+import { Table, Button, Tag, Space, Modal, message, Switch, Spin } from "antd";
+import { Plus, Edit, LinkIcon, Import } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Product } from "@prisma/client";
-import { updateProduct } from "@/actions/product";
-import Link from "next/link";
+import { getProduct, updateProduct } from "@/actions/product";
 import ImportProducts from "./ImportProducts";
 import { AppConstants } from "@/constants/constants";
+import ProductForm from "./ProductForm";
 
 interface ProductListClientProps {
   initialProducts: any[]; // Prism types are tricky to import exactly sometimes if referencing relation types
@@ -23,6 +23,11 @@ export default function ProductListClient({
 }: ProductListClientProps) {
   const router = useRouter();
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [formLoading, setFormLoading] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
 
@@ -44,6 +49,56 @@ export default function ProductListClient({
         return next;
       });
     }
+  };
+
+  const openCreateModal = () => {
+    setFormMode("create");
+    setEditingProduct(null);
+    setFormKey((prev) => prev + 1);
+    setIsFormOpen(true);
+  };
+
+  const openEditModal = async (id: string) => {
+    setFormMode("edit");
+    setIsFormOpen(true);
+    setFormLoading(true);
+    try {
+      const product = await getProduct(id);
+      setEditingProduct(product);
+      setFormKey((prev) => prev + 1);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to load product");
+      setIsFormOpen(false);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const refreshEditingProduct = async (productId?: string) => {
+    const id = productId || editingProduct?.id;
+    if (!id) return;
+    try {
+      const product = await getProduct(id);
+      setEditingProduct(product);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to refresh product");
+    }
+  };
+
+  const handleFormSuccess = async (
+    productId: string,
+    mode: "create" | "update",
+  ) => {
+    if (mode === "create") {
+      router.refresh();
+      await openEditModal(productId);
+      return;
+    }
+    router.refresh();
+    setIsFormOpen(false);
+    setEditingProduct(null);
   };
 
   const columns = [
@@ -110,9 +165,11 @@ export default function ProductListClient({
       key: "action",
       render: (_: any, record: Product) => (
         <Space size="middle">
-          <Link href={`/admin/products/${record.id}`}>
-            <Button icon={<Edit size={16} />} size="small" />
-          </Link>
+          <Button
+            icon={<Edit size={16} />}
+            size="small"
+            onClick={() => openEditModal(record.id)}
+          />
           {/* Delete implementation later */}
         </Space>
       ),
@@ -124,11 +181,13 @@ export default function ProductListClient({
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Products</h2>
         <div className="flex gap-2">
-          <Link href="/admin/products/new">
-            <Button type="primary" icon={<Plus size={16} />}>
-              Add Product
-            </Button>
-          </Link>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={openCreateModal}
+          >
+            Add Product
+          </Button>
           <Button
             type="default"
             icon={<Import size={16} />}
@@ -159,6 +218,35 @@ export default function ProductListClient({
           router.refresh(); // Refresh page data strictly inside NextJS cache
         }}
       />
+
+      <Modal
+        title={
+          <span className="text-2xl">
+            {formMode === "create" ? "Add Product" : "Edit Product"}
+          </span>
+        }
+        open={isFormOpen}
+        onCancel={() => {
+          setIsFormOpen(false);
+          setEditingProduct(null);
+        }}
+        footer={null}
+        width={1100}
+        destroyOnClose
+      >
+        {formLoading ? (
+          <div className="flex justify-center py-16">
+            <Spin size="large" />
+          </div>
+        ) : (
+          <ProductForm
+            key={formKey}
+            initialData={formMode === "edit" ? editingProduct : undefined}
+            onSuccess={handleFormSuccess}
+            onRefreshProduct={refreshEditingProduct}
+          />
+        )}
+      </Modal>
     </div>
   );
 }

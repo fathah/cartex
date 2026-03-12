@@ -1,4 +1,5 @@
-import { SignJWT, jwtVerify, decodeJwt } from 'jose';
+import { ENV } from "@/constants/envs";
+import { SignJWT, jwtVerify, decodeJwt } from "jose";
 
 export interface JWTPayload {
   userId: string;
@@ -8,9 +9,9 @@ export interface JWTPayload {
 
 export default class CartexUserTokenService {
   private static getSecret(): Uint8Array {
-    const secret = process.env.JWT_SECRET;
+    const secret = ENV.JWT_SECRET;
     if (!secret) {
-      throw new Error('JWT_SECRET environment variable is not defined');
+      throw new Error("JWT_SECRET environment variable is not defined");
     }
     return new TextEncoder().encode(secret);
   }
@@ -21,11 +22,14 @@ export default class CartexUserTokenService {
    * @param expiresIn - Token expiration time (default: 30 days)
    * @returns JWT token string
    */
-  static async generateJWT(userId: string, expiresIn: string = '10d'): Promise<string> {
+  static async generateJWT(
+    userId: string,
+    expiresIn: string = "10d",
+  ): Promise<string> {
     const secret = this.getSecret();
-    
+
     const token = await new SignJWT({ userId })
-      .setProtectedHeader({ alg: 'HS256' })
+      .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime(expiresIn)
       .sign(secret);
@@ -41,19 +45,19 @@ export default class CartexUserTokenService {
    */
   static async verifyJWT(token?: string): Promise<JWTPayload> {
     if (!token) {
-      throw new Error('Token is required');
+      throw new Error("Token is required");
     }
     try {
       const secret = this.getSecret();
       const { payload } = await jwtVerify(token, secret);
-      
-      if (!payload.userId || typeof payload.userId !== 'string') {
-        throw new Error('Invalid token payload');
+
+      if (!payload.userId || typeof payload.userId !== "string") {
+        throw new Error("Invalid token payload");
       }
-      
+
       return payload as unknown as JWTPayload;
     } catch (error) {
-      throw new Error('Invalid or expired token');
+      throw new Error("Invalid or expired token");
     }
   }
 
@@ -68,7 +72,7 @@ export default class CartexUserTokenService {
       const payload = decodeJwt(token);
       return payload as unknown as JWTPayload;
     } catch (error) {
-      throw new Error('Invalid token format');
+      throw new Error("Invalid token format");
     }
   }
 }

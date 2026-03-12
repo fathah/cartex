@@ -80,6 +80,27 @@ export async function addOption(
   revalidatePath(`/admin/products/${productId}`);
 }
 
+export async function updateOption(
+  productId: string,
+  optionId: string,
+  name: string,
+  values: string[],
+) {
+  await requireAdminAuth();
+  await ProductDB.updateOption(optionId, name, values);
+  await ProductDB.syncVariants(productId);
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${productId}`);
+}
+
+export async function deleteOption(productId: string, optionId: string) {
+  await requireAdminAuth();
+  await ProductDB.deleteOption(optionId);
+  await ProductDB.syncVariants(productId);
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${productId}`);
+}
+
 export async function generateVariants(productId: string) {
   await requireAdminAuth();
   await ProductDB.generateVariants(productId);
@@ -98,6 +119,15 @@ export async function updateVariant(
   await requireAdminAuth();
   const variant = await ProductDB.updateVariant(variantId, data);
   revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${variant.productId}`);
+  return variant;
+}
+
+export async function deleteVariant(variantId: string) {
+  await requireAdminAuth();
+  const variant = await ProductDB.deleteVariant(variantId);
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${variant.productId}`);
   return variant;
 }
 

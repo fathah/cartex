@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Funnel_Display } from "next/font/google";
+import { ConfigProvider } from "antd";
 
 export const dynamic = "force-dynamic";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
@@ -25,6 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 import { getSettings } from "../actions/settings";
 import { CurrencyProvider } from "@/components/providers/currency-provider";
 import WishlistSync from "@/components/WishlistSync";
+import { PublicEnvScript } from "next-runtime-env";
 
 export default async function RootLayout({
   children,
@@ -35,12 +37,37 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <PublicEnvScript />
+      </head>
       <body className={`${font.className} overflow-x-hidden`}>
         <AntdRegistry>
-          <CurrencyProvider initialCurrency={settings.currency}>
-            <WishlistSync />
-            {children}
-          </CurrencyProvider>
+          <ConfigProvider
+            theme={{
+              token: {
+                controlHeight: 44,
+                controlHeightSM: 38,
+                controlHeightLG: 50,
+              },
+              components: {
+                Input: {
+                  paddingBlock: 10,
+                },
+                InputNumber: {
+                  paddingBlock: 10,
+                },
+                Select: {
+                  controlHeight: 44,
+                  optionHeight: 40,
+                },
+              },
+            }}
+          >
+            <CurrencyProvider initialCurrency={settings.currency}>
+              <WishlistSync />
+              {children}
+            </CurrencyProvider>
+          </ConfigProvider>
         </AntdRegistry>
       </body>
     </html>

@@ -1,11 +1,11 @@
 "use server";
 
+import { ENV } from "@/constants/envs";
 import { ZDrive } from "@ziqx/drive";
 
 export async function generateSignedUrl(fileName: string) {
-  const drive = new ZDrive(process.env.ZDRIVE_KEY!, process.env.ZDRIVE_SECRET!);
+  const drive = new ZDrive(ENV.ZDRIVE_KEY!, ENV.ZDRIVE_SECRET!);
 
-  
   const signed = await drive.generatePutUrl(fileName);
 
   if (signed.success && signed.url) {

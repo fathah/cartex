@@ -1,0 +1,12 @@
+import { env } from "next-runtime-env";
+
+export const ENV = {
+  DATABASE_URL: env("DATABASE_URL"),
+  ZDRIVE_KEY: env("ZDRIVE_KEY"),
+  ZDRIVE_SECRET: env("ZDRIVE_SECRET"),
+  SMTP_HOST: env("SMTP_HOST"),
+  SMTP_USER: env("SMTP_USER"),
+  SMTP_PASSWORD: env("SMTP_PASSWORD"),
+  JWT_SECRET: env("JWT_SECRET"),
+  ZAUTH_SECRET: env("ZAUTH_SECRET"),
+};
