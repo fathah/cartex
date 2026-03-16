@@ -9,7 +9,7 @@ if [ "${RUN_DATABASE_MIGRATIONS:-false}" = "true" ]; then
   fi
 
   echo "Running Prisma migrations..."
-  npx prisma migrate deploy
+  prisma migrate deploy
 fi
 
 echo "Starting server..."
