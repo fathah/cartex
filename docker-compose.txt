@@ -1,0 +1,13 @@
+services:
+  cartex:
+    image: ghcr.io/fathah/cartex-pro:latest
+    container_name: cartex
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    env_file:
+      - .env
+    environment:
+      - RUN_DATABASE_MIGRATIONS=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

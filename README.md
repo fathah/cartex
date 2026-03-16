@@ -117,6 +117,12 @@ These are used to build:
 DATABASE_URL=postgresql://USERNAME:PASSWORD@HOST:PORT/DATABASE_NAME
 ```
 
+For external DB's use the following instead of localhost
+
+```
+host.docker.internal
+```
+
 ### File / Media Service Information
 
 - `ZDRIVE_KEY`
@@ -155,7 +161,7 @@ Copy the PostgreSQL connection string. You will use it as `DATABASE_URL`.
 
 ### 2. Create a Runtime Environment File
 
-Create a file named `.env.runtime` with all required values:
+Create a file named `.env` with all required values:
 
 ```env
 DATABASE_URL=postgresql://postgres:password@db.example.com:5432/cartex
@@ -189,41 +195,65 @@ docker pull ghcr.io/fathah/cartex-pro:latest
 
 ### Start The Container
 
-```bash
-docker run -d \
-  --name cartex-pro \
-  --restart unless-stopped \
-  --env-file .env.runtime \
-  -p 3000:3000 \
-  ghcr.io/fathah/cartex-pro:latest
+Create docker-compose.yml
+
+```docker-compose
+services:
+  cartex:
+    image: ghcr.io/fathah/cartex-pro:latest
+    container_name: cartex
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    env_file:
+      - .env
+    environment:
+      - RUN_DATABASE_MIGRATIONS=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 ```
 
-Open the app at:
+### Start Container
+
+```bash
+docker compose up -d
+```
+
+### See Logs
+
+```bash
+docker compose logs -f
+```
+
+### Stop Container
+
+```bash
+docker compose down
+```
+
+### If `.env` is changed, restart the container
+
+```bash
+docker compose up -d --force-recreate
+```
+
+### Open the app
 
 ```txt
 http://YOUR_SERVER_IP:3000
-```
-
-## Run Database Migrations
-
-The container supports optional startup migrations.
-
-If you want the container to run Prisma migrations on startup:
-
-```bash
-docker run -d \
-  --name cartex-pro \
-  --restart unless-stopped \
-  --env-file .env.runtime \
-  -e RUN_DATABASE_MIGRATIONS=true \
-  -p 3000:3000 \
-  ghcr.io/fathah/cartex-pro:latest
 ```
 
 Recommended:
 
 - use `RUN_DATABASE_MIGRATIONS=true` only when you intentionally want that container to apply schema changes
 - for multiple app instances, prefer running migrations once before scaling out
+
+### Pull the latest image
+
+```bash
+docker compose pull
+docker compose up -d
+```
 
 ## Local Development
 
