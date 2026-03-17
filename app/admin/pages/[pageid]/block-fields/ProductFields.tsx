@@ -44,6 +44,7 @@ const ProductFields: React.FC<ProductFieldsProps> = ({
           <Select.Option value="COLLECTION">By Collection</Select.Option>
           <Select.Option value="LATEST">Latest Products</Select.Option>
           <Select.Option value="OFFER">Offer Products (On Sale)</Select.Option>
+          <Select.Option value="FEATURED">Featured Products</Select.Option>
           <Select.Option value="CUSTOM">Custom Selection</Select.Option>
         </Select>
       </Form.Item>

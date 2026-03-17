@@ -7,6 +7,7 @@ import {
   getProductsByIds,
   getProducts,
   getDeals,
+  getFeaturedProducts,
 } from "@/actions/product";
 import { ProductStatus } from "@prisma/client";
 
@@ -14,7 +15,7 @@ interface ProductsGridProps {
   title?: string;
   subtitle?: string;
   alignment?: "left" | "center" | "right";
-  sourceType?: "COLLECTION" | "LATEST" | "OFFER" | "CUSTOM";
+  sourceType?: "COLLECTION" | "LATEST" | "OFFER" | "FEATURED" | "CUSTOM";
   collectionId?: string;
   productIds?: string[];
   limit?: number;
@@ -53,6 +54,8 @@ const ProductsGrid = ({
         } else if (sourceType === "OFFER") {
           const res = await getDeals(1, limit, ProductStatus.ACTIVE);
           fetchedProducts = res.products;
+        } else if (sourceType === "FEATURED") {
+          fetchedProducts = await getFeaturedProducts(limit);
         } else if (
           sourceType === "CUSTOM" &&
           productIds &&
