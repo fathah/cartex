@@ -19,22 +19,15 @@ const PageEdit = async ({ params }: PageEditProps) => {
   }
 
   return (
-    <div>
-      <div className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+    <div className="h-screen flex flex-col overflow-hidden">
+      <div className="bg-white border-b px-6 py-4 flex justify-between items-center z-10 shadow-sm shrink-0">
         <div>
           <h1 className="text-xl font-bold">{page.name}</h1>
           <p className="text-xs text-gray-500">/{page.slug}</p>
         </div>
-
-        {/* Note: In a real app we might open the PageFormModal here. 
-                For now simplifying to just view, assuming editing properties is done on the list page 
-                or we can direct link back if needed.
-             */}
       </div>
 
-      <div className="min-h-screen bg-gray-50">
-        <BlockList pageId={page.id} blocks={page.blocks} />
-      </div>
+      <BlockList pageId={page.id} blocks={page.blocks} />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Form, Input } from "antd";
+import { Form, Input, ColorPicker } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import MediaPicker from "../../../media/media_picker";
 import { AppConstants } from "@/constants/constants";
@@ -31,6 +31,13 @@ const HeroModernFields = ({ form }: { form: any }) => {
           <Input />
         </Form.Item>
       </div>
+      <Form.Item
+        name="backgroundColor"
+        label="Background Color"
+        getValueFromEvent={(color) => color.toHexString()}
+      >
+        <ColorPicker showText />
+      </Form.Item>
       <Form.Item
         name="imageUrl"
         label="Illustration"

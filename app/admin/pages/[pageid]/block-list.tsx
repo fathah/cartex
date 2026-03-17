@@ -14,6 +14,7 @@ import BlockFormModal from "./block-form";
 import SortableBlock from "./sortable-block";
 import { getGroupedBlockTypes } from "@/lib/pageblocks/registry";
 import BlockPickerModal from "./block-picker";
+import PagePreview from "./page-preview";
 import {
   DndContext,
   closestCenter,
@@ -130,58 +131,63 @@ const BlockList: React.FC<BlockListProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Page Content</h2>
-          <p className="text-gray-500 text-sm mt-1">
-            Manage and reorder your page blocks
-          </p>
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-gray-50/50">
+      {/* Sidebar - 30% */}
+      <div className="w-[30%] min-w-[350px] flex flex-col border-r bg-white">
+        <div className="p-6 border-b">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Blocks</h2>
+              <p className="text-gray-500 text-xs">Manage your page content</p>
+            </div>
+            <Button
+              type="primary"
+              shape="circle"
+              icon={<Plus size={18} />}
+              onClick={handleAddClick}
+              className="flex items-center justify-center"
+            />
+          </div>
         </div>
-        <Button
-          type="primary"
-          size="large"
-          icon={<Plus size={18} />}
-          onClick={handleAddClick}
-          className="h-12 px-6 rounded-xl font-semibold shadow-lg shadow-blue-100 flex items-center"
-        >
-          Add Block
-        </Button>
-      </div>
 
-      <div className="space-y-4">
-        {blocks.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-            <div className="max-w-xs mx-auto">
-              <Plus className="mx-auto text-gray-300 mb-4" size={48} />
-              <p className="text-gray-500 font-medium">
-                No content blocks yet. Click the "Add Block" button to start
-                building your page.
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {blocks.length === 0 && (
+            <div className="text-center py-10 px-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <Plus className="mx-auto text-gray-300 mb-2" size={32} />
+              <p className="text-gray-400 text-xs">
+                No blocks yet. Add a block to get started.
               </p>
             </div>
-          </div>
-        )}
+          )}
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={blocks.map((b) => b.id)}
-            strategy={verticalListSortingStrategy}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            {blocks.map((block) => (
-              <SortableBlock
-                key={block.id}
-                id={block.id}
-                block={block}
-                onEdit={handleEditClick}
-                onDelete={handleDelete}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+            <SortableContext
+              items={blocks.map((b) => b.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {blocks.map((block) => (
+                <SortableBlock
+                  key={block.id}
+                  id={block.id}
+                  block={block}
+                  onEdit={handleEditClick}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      </div>
+
+      {/* Preview - 70% */}
+      <div className="flex-1 overflow-y-auto p-8 bg-gray-100/50">
+        <div className="max-w-5xl mx-auto h-full">
+          <PagePreview blocks={blocks} />
+        </div>
       </div>
 
       <BlockPickerModal

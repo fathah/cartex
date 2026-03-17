@@ -22,9 +22,7 @@ export default function Error({
         <AlertCircle className="w-12 h-12 text-red-500" />
       </div>
 
-      <h1 className="text-3xl font-bold mb-2 text-foreground">
-        Something went wrong
-      </h1>
+      <h1 className="text-3xl font-bold mb-2 ">Something went wrong</h1>
 
       <p className="text-muted-foreground mb-8 max-w-md mx-auto">
         We encountered an unexpected error. Don't worry, it's not your fault.
@@ -54,6 +52,9 @@ export default function Error({
           Error ID: {error.digest}
         </p>
       )}
+      <div className="fixed w-full bottom-4">
+        <p className="text-center text-gray-400">Ziqx Cartex</p>
+      </div>
     </div>
   );
 }

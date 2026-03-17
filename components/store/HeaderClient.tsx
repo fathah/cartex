@@ -116,11 +116,6 @@ export default function HeaderClient({
               </button>
             </div>
           </div>
-
-          <SearchOverlay
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-          />
         </div>
 
         {/* Mobile Search Icon */}
@@ -132,7 +127,6 @@ export default function HeaderClient({
             <Search size={22} />
           </button>
         </div>
-
         {/* Actions */}
         <div className="flex items-center gap-6">
           <Link
@@ -159,6 +153,11 @@ export default function HeaderClient({
           </div>
         </div>
       </div>
+
+      <SearchOverlay
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
 
       <Drawer
         title={<span className="font-bold text-gray-800">Menu</span>}

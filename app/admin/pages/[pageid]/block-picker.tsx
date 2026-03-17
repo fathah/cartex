@@ -30,8 +30,8 @@ const BlockPickerModal: React.FC<BlockPickerModalProps> = ({
       footer={null}
       width="80%"
       style={{ top: 40 }}
-      bodyStyle={{ padding: "24px 0", minHeight: "60vh" }}
-      destroyOnClose
+      styles={{ body: { padding: "24px 0", minHeight: "60vh" } }}
+      destroyOnHidden
     >
       <Tabs
         tabPosition="left"

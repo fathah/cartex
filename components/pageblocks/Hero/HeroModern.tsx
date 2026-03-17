@@ -12,6 +12,7 @@ interface HeroModernProps {
   secondaryCtaText?: string;
   secondaryCtaLink?: string;
   imageUrl?: string;
+  backgroundColor?: string;
 }
 
 const HeroModern: React.FC<HeroModernProps> = ({
@@ -22,9 +23,17 @@ const HeroModern: React.FC<HeroModernProps> = ({
   secondaryCtaText = "Learn More",
   secondaryCtaLink = "#",
   imageUrl = "https://framerusercontent.com/images/4O8s4G4G4G4G4G4G4G4G.png", // Placeholder for 3D illustration
+  backgroundColor,
 }) => {
   return (
-    <section className="relative min-h-[800px] flex items-center justify-center py-20 px-6 overflow-hidden bg-[radial-gradient(circle_at_top_left,#ff0055_0%,#00aaff_50%,#ffaa00_100%)]">
+    <section
+      className={`relative min-h-[800px] flex items-center justify-center py-20 px-6 overflow-hidden ${
+        backgroundColor
+          ? ""
+          : "bg-[radial-gradient(circle_at_top_left,#ff0055_0%,#00aaff_50%,#ffaa00_100%)]"
+      }`}
+      style={{ backgroundColor }}
+    >
       {/* Animated background shapes could go here for more "WOW" effect */}
       <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
 

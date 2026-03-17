@@ -11,6 +11,7 @@ interface HeroProps {
   ctaText?: string;
   ctaLink?: string;
   imageUrl?: string;
+  backgroundColor?: string;
 }
 
 const Hero: React.FC<HeroProps> = ({
@@ -19,9 +20,13 @@ const Hero: React.FC<HeroProps> = ({
   ctaText,
   ctaLink,
   imageUrl,
+  backgroundColor,
 }) => {
   return (
-    <section className="relative h-[600px] flex items-center justify-center text-white text-center bg-gray-900 overflow-hidden">
+    <section
+      className="relative h-[600px] flex items-center justify-center text-white text-center bg-gray-900 overflow-hidden"
+      style={{ backgroundColor }}
+    >
       {imageUrl && (
         <img
           src={

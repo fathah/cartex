@@ -3,7 +3,6 @@
 import { useCartStore, CartItem } from "@/lib/store/cart";
 import { Button, InputNumber, Empty } from "antd";
 import { Trash2, Plus, Minus } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { AppConstants } from "@/constants/constants";
 import Currency from "@/components/common/Currency";

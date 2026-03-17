@@ -10,6 +10,7 @@ import HeroModernFields from "./block-fields/HeroModernFields";
 import TextFields from "./block-fields/TextFields";
 import ProductFields from "./block-fields/ProductFields";
 import TestimonialFields from "./block-fields/TestimonialFields";
+import CarouselFields from "./block-fields/CarouselFields";
 
 interface BlockFormModalProps {
   open: boolean;
@@ -72,6 +73,10 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
         );
       case "TESTIMONIALS":
         return <TestimonialFields form={form} />;
+      case "CAROUSEL_1_3":
+      case "CAROUSEL_1_2":
+      case "CAROUSEL_FULL":
+        return <CarouselFields form={form} />;
       default:
         return <div>Unknown Block Type</div>;
     }
@@ -84,7 +89,7 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
       onCancel={onCancel}
       onOk={form.submit}
       width={700}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>
         {renderFields()}

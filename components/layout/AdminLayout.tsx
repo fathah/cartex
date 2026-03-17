@@ -107,8 +107,7 @@ export default function AdminLayout({
         closable={false}
         onClose={() => setMobileMenuOpen(false)}
         open={mobileMenuOpen}
-        styles={{ body: { padding: 0 } }}
-        width={250}
+        styles={{ body: { padding: 0 }, wrapper: { width: 250 } }}
         className="lg:hidden"
       >
         <div className="h-full bg-[#001529]">

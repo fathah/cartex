@@ -5,6 +5,7 @@ export type BlockCategory =
   | "Products"
   | "Content"
   | "Social"
+  | "Media"
   | "Other";
 
 export type BlockType =
@@ -13,7 +14,10 @@ export type BlockType =
   | "TEXT"
   | "PRODUCTS_GRID"
   | "PRODUCTS_SLIDER"
-  | "TESTIMONIALS";
+  | "TESTIMONIALS"
+  | "CAROUSEL_1_3"
+  | "CAROUSEL_1_2"
+  | "CAROUSEL_FULL";
 
 export interface BlockDefinition {
   type: BlockType;
@@ -72,6 +76,33 @@ export const BLOCK_REGISTRY: Record<BlockType, BlockDefinition> = {
     ),
     description: "A section to display customer testimonials.",
   },
+  CAROUSEL_1_3: {
+    type: "CAROUSEL_1_3",
+    label: "Compact Carousel (1/3)",
+    category: "Media",
+    component: dynamic(
+      () => import("@/components/pageblocks/Carousel/Carousel"),
+    ),
+    description: "Full-width carousel with 1/3 page height.",
+  },
+  CAROUSEL_1_2: {
+    type: "CAROUSEL_1_2",
+    label: "Medium Carousel (1/2)",
+    category: "Media",
+    component: dynamic(
+      () => import("@/components/pageblocks/Carousel/Carousel"),
+    ),
+    description: "Full-width carousel with 1/2 page height.",
+  },
+  CAROUSEL_FULL: {
+    type: "CAROUSEL_FULL",
+    label: "Full Page Carousel",
+    category: "Media",
+    component: dynamic(
+      () => import("@/components/pageblocks/Carousel/Carousel"),
+    ),
+    description: "Full-width carousel with 100vh height.",
+  },
 };
 
 export const getBlockDefinition = (type: string) => {
@@ -88,6 +119,7 @@ export const getGroupedBlockTypes = () => {
     Products: [],
     Content: [],
     Social: [],
+    Media: [],
     Other: [],
   };
 

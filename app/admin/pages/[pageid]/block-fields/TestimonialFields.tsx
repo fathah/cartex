@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Form, Input, Select, Button } from "antd";
+import { Form, Input, Select, Button, ColorPicker } from "antd";
 import {
   MinusCircleOutlined,
   PlusOutlined,
@@ -17,6 +17,13 @@ const TestimonialFields = ({ form }: { form: any }) => {
       </Form.Item>
       <Form.Item name="subtitle" label="Subtitle">
         <Input.TextArea placeholder="A brief description for the testimonials section" />
+      </Form.Item>
+      <Form.Item
+        name="backgroundColor"
+        label="Background Color"
+        getValueFromEvent={(color) => color.toHexString()}
+      >
+        <ColorPicker showText />
       </Form.Item>
       <Form.List name="testimonials">
         {(fields, { add, remove }) => (

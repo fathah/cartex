@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Form, Input, Select, InputNumber } from "antd";
+import { Form, Input, Select, InputNumber, ColorPicker } from "antd";
 
 interface ProductFieldsProps {
   collections: any[];
@@ -26,6 +26,13 @@ const ProductFields: React.FC<ProductFieldsProps> = ({
           <Select.Option value="center">Center</Select.Option>
           <Select.Option value="right">Right</Select.Option>
         </Select>
+      </Form.Item>
+      <Form.Item
+        name="backgroundColor"
+        label="Background Color"
+        getValueFromEvent={(color) => color.toHexString()}
+      >
+        <ColorPicker showText />
       </Form.Item>
       <Form.Item
         name="sourceType"
