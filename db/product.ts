@@ -87,7 +87,7 @@ export default class ProductDB {
   }
 
   static async list(page = 1, limit = 20, status?: ProductStatus) {
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
       ...(status && { status }),
@@ -97,7 +97,7 @@ export default class ProductDB {
       prisma.product.findMany({
         where,
         skip,
-        take: limit,
+        take: Number(limit),
         orderBy: { createdAt: "desc" },
         include: {
           variants: {
@@ -174,16 +174,20 @@ export default class ProductDB {
     return { products: deals, total, totalPages: Math.ceil(total / limit) };
   }
 
-  static async listByBrandId(
-    brandId: string,
+  static async listByCollectionId(
+    collectionId: string,
     page = 1,
     limit = 20,
     status?: ProductStatus,
   ) {
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
-      productBrandId: brandId,
+      collections: {
+        some: {
+          id: collectionId,
+        },
+      },
       ...(status && { status }),
     };
 
@@ -191,7 +195,7 @@ export default class ProductDB {
       prisma.product.findMany({
         where,
         skip,
-        take: limit,
+        take: Number(limit),
         orderBy: { createdAt: "desc" },
         include: {
           variants: {
@@ -213,6 +217,71 @@ export default class ProductDB {
     ]);
 
     return { products, total, totalPages: Math.ceil(total / limit) };
+  }
+
+  static async listByBrandId(
+    brandId: string,
+    page = 1,
+    limit = 20,
+    status?: ProductStatus,
+  ) {
+    const skip = (Number(page) - 1) * Number(limit);
+    const where: Prisma.ProductWhereInput = {
+      deletedAt: null,
+      productBrandId: brandId,
+      ...(status && { status }),
+    };
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        orderBy: { createdAt: "desc" },
+        include: {
+          variants: {
+            take: 1,
+            where: { deletedAt: null },
+            include: { inventory: true },
+          },
+          mediaProducts: {
+            take: 1,
+            include: { media: true },
+          },
+          collections: {
+            take: 1,
+          },
+          brand: true,
+        },
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    return { products, total, totalPages: Math.ceil(total / limit) };
+  }
+
+  static async listByIds(ids: string[]) {
+    return await prisma.product.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+      include: {
+        variants: {
+          take: 1,
+          where: { deletedAt: null },
+          include: { inventory: true },
+        },
+        mediaProducts: {
+          take: 1,
+          include: { media: true },
+        },
+        collections: {
+          take: 1,
+        },
+        brand: true,
+      },
+    });
   }
 
   static async listFeatured(limit = 4) {
@@ -306,7 +375,9 @@ export default class ProductDB {
       });
 
       const existing = option.values;
-      const remainingLower = new Set(normalizedValues.map((v) => v.toLowerCase()));
+      const remainingLower = new Set(
+        normalizedValues.map((v) => v.toLowerCase()),
+      );
 
       for (const val of existing) {
         const lower = val.value.toLowerCase();
@@ -361,8 +432,12 @@ export default class ProductDB {
 
       if (!product) return;
 
-      const activeVariants = product.variants.filter((v) => v.deletedAt === null);
-      const deletedVariants = product.variants.filter((v) => v.deletedAt !== null);
+      const activeVariants = product.variants.filter(
+        (v) => v.deletedAt === null,
+      );
+      const deletedVariants = product.variants.filter(
+        (v) => v.deletedAt !== null,
+      );
       const baseVariant =
         activeVariants.find(
           (v) => Number(v.originalPrice) > 0 || Number(v.salePrice) > 0,
@@ -445,7 +520,10 @@ export default class ProductDB {
       for (const variant of activeVariants) {
         const selected = variant.selectedOptions || [];
         const ordered = selected
-          .map((value) => ({ id: value.id, optionId: valueToOption.get(value.id) }))
+          .map((value) => ({
+            id: value.id,
+            optionId: valueToOption.get(value.id),
+          }))
           .sort((a, b) => {
             const aPos = optionOrder.get(a.optionId || "") ?? 0;
             const bPos = optionOrder.get(b.optionId || "") ?? 0;
@@ -479,7 +557,10 @@ export default class ProductDB {
       for (const variant of deletedVariants) {
         const selected = variant.selectedOptions || [];
         const ordered = selected
-          .map((value) => ({ id: value.id, optionId: valueToOption.get(value.id) }))
+          .map((value) => ({
+            id: value.id,
+            optionId: valueToOption.get(value.id),
+          }))
           .sort((a, b) => {
             const aPos = optionOrder.get(a.optionId || "") ?? 0;
             const bPos = optionOrder.get(b.optionId || "") ?? 0;

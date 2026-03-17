@@ -12,6 +12,8 @@ import {
 } from "@/actions/app_page_blocks";
 import BlockFormModal from "./block-form";
 import SortableBlock from "./sortable-block";
+import { getGroupedBlockTypes } from "@/lib/pageblocks/registry";
+import BlockPickerModal from "./block-picker";
 import {
   DndContext,
   closestCenter,
@@ -33,18 +35,13 @@ interface BlockListProps {
   blocks: PageBlock[];
 }
 
-const BLOCK_TYPES = [
-  { key: "HERO", label: "Hero Section" },
-  { key: "TEXT", label: "Text Content" },
-  { key: "IMAGE_GRID", label: "Image Grid" },
-];
-
 const BlockList: React.FC<BlockListProps> = ({
   pageId,
   blocks: initialBlocks,
 }) => {
   const [blocks, setBlocks] = useState(initialBlocks);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<PageBlock | null>(null);
   const [selectedType, setSelectedType] = useState<string>("TEXT");
 
@@ -68,13 +65,12 @@ const BlockList: React.FC<BlockListProps> = ({
         const newIndex = items.findIndex((item) => item.id === over?.id);
         const newItems = arrayMove(items, oldIndex, newIndex);
 
-        // Optimistic update
         reorderBlocks(
           pageId,
           newItems.map((item) => item.id),
         ).catch(() => {
           message.error("Failed to save order");
-          setBlocks(items); // Revert
+          setBlocks(items);
         });
 
         return newItems;
@@ -82,16 +78,21 @@ const BlockList: React.FC<BlockListProps> = ({
     }
   };
 
-  const handleAddClick = (type: string) => {
+  const handleAddClick = () => {
+    setIsPickerOpen(true);
+  };
+
+  const handleTypeSelect = (type: string) => {
     setEditingBlock(null);
     setSelectedType(type);
-    setIsModalOpen(true);
+    setIsPickerOpen(false);
+    setIsFormOpen(true);
   };
 
   const handleEditClick = (block: PageBlock) => {
     setEditingBlock(block);
     setSelectedType(block.blockType);
-    setIsModalOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -121,7 +122,7 @@ const BlockList: React.FC<BlockListProps> = ({
           message.success("Block added");
         }
       }
-      setIsModalOpen(false);
+      setIsFormOpen(false);
     } catch (error) {
       console.error(error);
       message.error("Operation failed");
@@ -129,30 +130,35 @@ const BlockList: React.FC<BlockListProps> = ({
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Page Content</h2>
-        <Dropdown
-          menu={{
-            items: BLOCK_TYPES.map((t) => ({
-              key: t.key,
-              label: t.label,
-              onClick: () => handleAddClick(t.key),
-            })),
-          }}
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Page Content</h2>
+          <p className="text-gray-500 text-sm mt-1">
+            Manage and reorder your page blocks
+          </p>
+        </div>
+        <Button
+          type="primary"
+          size="large"
+          icon={<Plus size={18} />}
+          onClick={handleAddClick}
+          className="h-12 px-6 rounded-xl font-semibold shadow-lg shadow-blue-100 flex items-center"
         >
-          <Button type="primary" icon={<Plus size={16} />}>
-            Add Block
-          </Button>
-        </Dropdown>
+          Add Block
+        </Button>
       </div>
 
       <div className="space-y-4">
         {blocks.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-            <p className="text-gray-500">
-              No content blocks yet. Add one to get started.
-            </p>
+          <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+            <div className="max-w-xs mx-auto">
+              <Plus className="mx-auto text-gray-300 mb-4" size={48} />
+              <p className="text-gray-500 font-medium">
+                No content blocks yet. Click the "Add Block" button to start
+                building your page.
+              </p>
+            </div>
           </div>
         )}
 
@@ -178,9 +184,15 @@ const BlockList: React.FC<BlockListProps> = ({
         </DndContext>
       </div>
 
+      <BlockPickerModal
+        open={isPickerOpen}
+        onCancel={() => setIsPickerOpen(false)}
+        onSelect={handleTypeSelect}
+      />
+
       <BlockFormModal
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        open={isFormOpen}
+        onCancel={() => setIsFormOpen(false)}
         onSuccess={handleFormSuccess}
         initialConfig={editingBlock?.config}
         blockType={selectedType}

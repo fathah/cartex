@@ -1,10 +1,15 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Modal, Form, Input, Select, Upload, Button, message } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import { generateSignedUrl } from "@/services/zdrive";
-import { uploadFile } from "@/services/zdrive-client";
+import { Modal, Form } from "antd";
+import { getCollections } from "@/actions/collection";
+import { getProducts } from "@/actions/product";
+
+import HeroFields from "./block-fields/HeroFields";
+import HeroModernFields from "./block-fields/HeroModernFields";
+import TextFields from "./block-fields/TextFields";
+import ProductFields from "./block-fields/ProductFields";
+import TestimonialFields from "./block-fields/TestimonialFields";
 
 interface BlockFormModalProps {
   open: boolean;
@@ -22,7 +27,22 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
   blockType,
 }) => {
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [cols, { products }] = await Promise.all([
+        getCollections(),
+        getProducts(1, 1000),
+      ]);
+      setCollections(cols);
+      setAllProducts(products);
+    };
+    if (open) {
+      fetchData();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -33,98 +53,25 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
     }
   }, [open, initialConfig, form]);
 
-  const handleUpload = async (options: any) => {
-    const { file, onSuccess, onError } = options;
-    try {
-      const signedUrl = await generateSignedUrl(file.name);
-      if (!signedUrl) throw new Error("Failed to get signed URL");
-
-      const uploadRes = await uploadFile(file, signedUrl);
-      if (!uploadRes.success || !uploadRes.filename)
-        throw new Error("Upload to ZDrive failed");
-
-      onSuccess(uploadRes.filename);
-    } catch (err) {
-      console.error(err);
-      onError(new Error("Upload failed"));
-      message.error("Upload failed");
-    }
-  };
-
-  const normFile = (e: any) => {
-    if (Array.isArray(e)) {
-      return e;
-    }
-    return e?.fileList;
-  };
-
   const onFinish = (values: any) => {
-    // Process values if needed (e.g. extract image URL from upload)
-    const processedValues = { ...values };
-
-    if (values.image && values.image[0]?.response) {
-      processedValues.imageUrl = values.image[0].response;
-      delete processedValues.image;
-    } else if (values.image && typeof values.image === "string") {
-      processedValues.imageUrl = values.image;
-    }
-
-    onSuccess(processedValues);
+    onSuccess(values);
   };
 
   const renderFields = () => {
     switch (blockType) {
       case "HERO":
-        return (
-          <>
-            <Form.Item name="title" label="Title" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="subtitle" label="Subtitle">
-              <Input />
-            </Form.Item>
-            <Form.Item name="ctaText" label="CTA Text">
-              <Input />
-            </Form.Item>
-            <Form.Item name="ctaLink" label="CTA Link">
-              <Input />
-            </Form.Item>
-            <Form.Item
-              name="image"
-              label="Background Image"
-              valuePropName="fileList"
-              getValueFromEvent={normFile}
-            >
-              <Upload
-                customRequest={handleUpload}
-                listType="picture"
-                maxCount={1}
-              >
-                <Button icon={<UploadOutlined />}>Upload</Button>
-              </Upload>
-            </Form.Item>
-            {/* If editing and has existing image, we might want to show it or handle it better. 
-                 For simplicity, this assumes a fresh upload or just overwriting. 
-                 Real implementation would handle initial fileList for existing image.
-              */}
-          </>
-        );
+        return <HeroFields form={form} />;
+      case "HERO_MODERN":
+        return <HeroModernFields form={form} />;
       case "TEXT":
+        return <TextFields />;
+      case "PRODUCTS_GRID":
+      case "PRODUCTS_SLIDER":
         return (
-          <Form.Item
-            name="content"
-            label="Content"
-            rules={[{ required: true }]}
-          >
-            <Input.TextArea rows={6} />
-          </Form.Item>
+          <ProductFields collections={collections} allProducts={allProducts} />
         );
-      case "IMAGE_GRID":
-        return (
-          <div className="text-gray-500">
-            Image Grid configuration coming soon.
-          </div>
-        );
+      case "TESTIMONIALS":
+        return <TestimonialFields form={form} />;
       default:
         return <div>Unknown Block Type</div>;
     }
@@ -136,6 +83,8 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
       open={open}
       onCancel={onCancel}
       onOk={form.submit}
+      width={700}
+      destroyOnClose
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>
         {renderFields()}
