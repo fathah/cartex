@@ -10,6 +10,7 @@ import {
   WalletCards,
   Percent,
   FileDown,
+  Globe,
 } from "lucide-react";
 import SiteSettings from "./SiteSettings/SiteSettings";
 import ShippingSettings from "./Shipping/ShippingSettings";
@@ -18,6 +19,7 @@ import UserAccess from "./UserAccess/UserAccess";
 import PaymentGateways from "./Payment/PaymentGateways";
 import TaxCurrencySettings from "./TaxCurrency/TaxCurrencySettings";
 import DataExport from "./DataExport/page";
+import ShopMarket from "./Market/Market";
 
 interface SettingsContainerProps {
   initialSettings: any;
@@ -94,6 +96,16 @@ export default function SettingsContainer({
         </span>
       ),
       children: <UserAccess />,
+    },
+    {
+      key: "market-country",
+      label: (
+        <span className="flex items-center gap-2">
+          <Globe size={16} />
+          Market Country
+        </span>
+      ),
+      children: <ShopMarket />,
     },
     {
       key: "data-export",
