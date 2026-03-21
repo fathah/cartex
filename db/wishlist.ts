@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { resolveCurrentMarket } from "@/lib/market";
 
 export default class WishlistDB {
   static async create(customerId: string, productId: string) {
@@ -20,6 +21,7 @@ export default class WishlistDB {
   }
 
   static async findByCustomer(customerId: string) {
+    const market = await resolveCurrentMarket();
     return await prisma.wishlist.findMany({
       where: {
         customerId,
@@ -34,9 +36,21 @@ export default class WishlistDB {
               take: 1,
             },
             variants: {
-              take: 1,
               orderBy: {
-                salePrice: "asc",
+                createdAt: "asc",
+              },
+              include: {
+                selectedOptions: true,
+                inventory: true,
+                ...(market?.id
+                  ? {
+                      variantMarkets: {
+                        where: { marketId: market.id },
+                        take: 1,
+                        include: { market: true },
+                      },
+                    }
+                  : {}),
               },
             },
             collections: {

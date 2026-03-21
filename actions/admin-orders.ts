@@ -5,6 +5,7 @@ import CustomerDB from "@/db/customer";
 import prisma from "@/db/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAdminAuth } from "@/services/zauth";
+import { resolveCurrentMarket } from "@/lib/market";
 
 export async function getAdminOrders({
   page = 1,
@@ -59,6 +60,7 @@ export async function createAdminOrder(data: {
   items: { variantId: string; quantity: number }[];
 }) {
   await requireAdminAuth();
+  const market = await resolveCurrentMarket();
 
   return await prisma.$transaction(async (tx) => {
     let customerId = data.customerId;
@@ -91,12 +93,33 @@ export async function createAdminOrder(data: {
     for (const item of data.items) {
       const variant = await tx.productVariant.findUnique({
         where: { id: item.variantId },
-        include: { product: true },
+        include: {
+          product: true,
+          ...(market?.id
+            ? {
+                variantMarkets: {
+                  where: { marketId: market.id },
+                  take: 1,
+                },
+              }
+            : {}),
+        },
       });
 
       if (!variant) throw new Error(`Variant ${item.variantId} not found`);
 
-      const price = Number(variant.salePrice || variant.originalPrice);
+      const marketVariant = Array.isArray(variant.variantMarkets)
+        ? variant.variantMarkets[0]
+        : null;
+      const price = Number(marketVariant?.salePrice || variant.salePrice || 0);
+      const availableQuantity = marketVariant?.inventoryQuantity;
+      if (
+        availableQuantity !== undefined &&
+        availableQuantity !== null &&
+        availableQuantity < item.quantity
+      ) {
+        throw new Error(`Insufficient inventory for ${variant.product.name}`);
+      }
       const itemTotal = price * item.quantity;
       subtotal += itemTotal;
 
@@ -110,10 +133,17 @@ export async function createAdminOrder(data: {
       });
 
       // 3. Deduct Inventory
-      await tx.inventory.update({
-        where: { variantId: variant.id },
-        data: { quantity: { decrement: item.quantity } },
-      });
+      if (marketVariant) {
+        await tx.variantMarket.update({
+          where: { id: marketVariant.id },
+          data: { inventoryQuantity: { decrement: item.quantity } },
+        });
+      } else {
+        await tx.inventory.update({
+          where: { variantId: variant.id },
+          data: { quantity: { decrement: item.quantity } },
+        });
+      }
     }
 
     // 4. Create Order
@@ -121,6 +151,7 @@ export async function createAdminOrder(data: {
       data: {
         customerId: customerId!,
         subtotal: subtotal,
+        currency: market?.currencyCode || "USD",
         totalPrice: subtotal, // Simplification: No tax/shipping for admin manual orders for now unless specified
         taxTotal: 0,
         shippingTotal: 0,

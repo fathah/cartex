@@ -15,6 +15,7 @@ import {
   Popconfirm,
   Select,
   Typography,
+  Switch,
 } from "antd";
 import { Plus, Trash2, Edit } from "lucide-react";
 import {
@@ -24,7 +25,8 @@ import {
   updateVariant,
   deleteVariant,
 } from "@/actions/product";
-import Currency from "@/components/common/Currency";
+import { getMarkets } from "@/actions/market";
+import AdminMoney from "@/components/common/AdminMoney";
 
 interface VariantManagerProps {
   productId: string;
@@ -56,6 +58,20 @@ export default function VariantManager({
   const [selectedVariantIds, setSelectedVariantIds] = useState<React.Key[]>([]);
   const [optionForm] = Form.useForm<OptionFormValues>();
   const [variantForm] = Form.useForm();
+  const [markets, setMarkets] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        const data = await getMarkets();
+        setMarkets(data.filter((market: any) => market.isActive));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchMarkets();
+  }, []);
 
   const closeOptionModal = () => {
     setIsOptionModalOpen(false);
@@ -135,11 +151,46 @@ export default function VariantManager({
 
   const openEditVariantModal = (variant: any) => {
     setCurrentVariant(variant);
+    const marketPrices = markets.map((market) => {
+      const existing = (variant.variantMarkets || []).find(
+        (entry: any) => entry.marketId === market.id,
+      );
+      return {
+        marketId: market.id,
+        marketName: market.name,
+        currencyCode: market.currencyCode,
+        salePrice: Number(existing?.salePrice ?? variant.salePrice ?? 0),
+        compareAtPrice:
+          existing?.compareAtPrice !== null &&
+          existing?.compareAtPrice !== undefined
+            ? Number(existing.compareAtPrice)
+            : null,
+        costPrice:
+          existing?.costPrice !== null && existing?.costPrice !== undefined
+            ? Number(existing.costPrice)
+            : null,
+        inventoryQuantity:
+          existing?.inventoryQuantity !== null &&
+          existing?.inventoryQuantity !== undefined
+            ? Number(existing.inventoryQuantity)
+            : 0,
+        isAvailable: existing?.isAvailable ?? true,
+        isPublished: existing?.isPublished ?? true,
+      };
+    });
     variantForm.setFieldsValue({
-      originalPrice: Number(variant.originalPrice),
       salePrice: Number(variant.salePrice),
+      compareAtPrice:
+        variant.compareAtPrice !== null && variant.compareAtPrice !== undefined
+          ? Number(variant.compareAtPrice)
+          : null,
+      costPrice:
+        variant.costPrice !== null && variant.costPrice !== undefined
+          ? Number(variant.costPrice)
+          : null,
       sku: variant.sku,
       inventory: variant.inventory?.quantity || 0,
+      marketPrices,
     });
     setIsEditVariantModalOpen(true);
   };
@@ -217,22 +268,55 @@ export default function VariantManager({
       ),
     },
     {
-      title: "Original Price",
-      dataIndex: "originalPrice",
-      key: "originalPrice",
-      render: (value: any) => <Currency value={value} />,
-    },
-    {
       title: "Sale Price",
       dataIndex: "salePrice",
       key: "salePrice",
-      render: (value: any) => <Currency value={value} />,
+      render: (value: any) => <AdminMoney value={value} />,
+    },
+    {
+      title: "Market Pricing",
+      key: "marketPricing",
+      render: (_: any, record: any) => (
+        <Space wrap>
+          {(record.variantMarkets || []).length > 0 ? (
+            record.variantMarkets.map((entry: any) => (
+              <Tag
+                key={entry.id}
+                color={entry.isAvailable ? "blue" : "default"}
+              >
+                {entry.market?.code || entry.marketId}:{" "}
+                {entry.isAvailable ? (
+                  <AdminMoney
+                    value={entry.salePrice}
+                    currencyCode={entry.market?.currencyCode}
+                  />
+                ) : (
+                  "N/A"
+                )}
+              </Tag>
+            ))
+          ) : (
+            <Tag>Not configured</Tag>
+          )}
+        </Space>
+      ),
     },
     {
       title: "Inventory",
-      dataIndex: "inventory",
       key: "inventory",
-      render: (inventory: any) => inventory?.quantity || 0,
+      render: (_: any, record: any) => (
+        <Space wrap>
+          {(record.variantMarkets || []).length > 0 ? (
+            record.variantMarkets.map((entry: any) => (
+              <Tag key={entry.id}>
+                {entry.market?.code || entry.marketId}: {entry.inventoryQuantity ?? 0}
+              </Tag>
+            ))
+          ) : (
+            <Tag>{record.inventory?.quantity || 0}</Tag>
+          )}
+        </Space>
+      ),
     },
     { title: "SKU", dataIndex: "sku", key: "sku" },
     {
@@ -429,45 +513,161 @@ export default function VariantManager({
         onCancel={() => setIsEditVariantModalOpen(false)}
         footer={null}
         destroyOnClose
+        width={1200}
       >
         <Form form={variantForm} onFinish={handleEditVariant} layout="vertical">
-          <Form.Item
-            name="originalPrice"
-            label="Original Price"
-            rules={[{ required: true, message: "Original price is required" }]}
-          >
-            <InputNumber
-              prefix={<Currency value={0} currencyOnly />}
-              style={{ width: "100%" }}
-              min={0}
-              precision={2}
-            />
-          </Form.Item>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Form.Item
+              name="salePrice"
+              label="Base Sale Price"
+              rules={[{ required: true, message: "Sale price is required" }]}
+            >
+              <InputNumber
+                style={{ width: "100%" }}
+                min={0}
+                precision={2}
+              />
+            </Form.Item>
 
-          <Form.Item
-            name="salePrice"
-            label="Sale Price"
-            rules={[{ required: true, message: "Sale price is required" }]}
-          >
-            <InputNumber
-              prefix={<Currency value={0} currencyOnly />}
-              style={{ width: "100%" }}
-              min={0}
-              precision={2}
-            />
-          </Form.Item>
+            <Form.Item name="compareAtPrice" label="Base Compare At Price">
+              <InputNumber style={{ width: "100%" }} min={0} precision={2} />
+            </Form.Item>
 
-          <Form.Item
-            name="inventory"
-            label="Inventory Quantity"
-            rules={[{ required: true, message: "Inventory is required" }]}
-          >
-            <InputNumber style={{ width: "100%" }} min={0} />
-          </Form.Item>
+            <Form.Item name="costPrice" label="Base Cost Price">
+              <InputNumber style={{ width: "100%" }} min={0} precision={2} />
+            </Form.Item>
 
-          <Form.Item name="sku" label="SKU">
-            <Input placeholder="PROD-001" />
-          </Form.Item>
+            <Form.Item
+              name="inventory"
+              label="Inventory Quantity"
+              rules={[{ required: true, message: "Inventory is required" }]}
+            >
+              <InputNumber style={{ width: "100%" }} min={0} />
+            </Form.Item>
+
+            <Form.Item name="sku" label="SKU">
+              <Input placeholder="PROD-001" />
+            </Form.Item>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 p-4">
+            <div className="mb-3 flex items-end justify-between gap-4">
+              <div>
+              <Typography.Text strong>Market Prices</Typography.Text>
+              <div className="text-xs text-gray-500">
+                Each market controls availability and sell price independently.
+              </div>
+              </div>
+              <div className="text-xs text-gray-400">
+                Scroll horizontally for all market columns
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <div className="min-w-[1080px]">
+                <div className="grid grid-cols-[180px_110px_110px_130px_140px_140px_140px] gap-3 px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 border-b border-gray-200">
+                  <div>Market</div>
+                  <div>Visible</div>
+                  <div>Available</div>
+                  <div>Stock</div>
+                  <div>Sale</div>
+                  <div>Compare At</div>
+                  <div>Cost</div>
+                </div>
+
+                <div className="space-y-3 pt-3">
+              {markets.map((market, index) => (
+                <div
+                  key={market.id}
+                  className="grid grid-cols-[180px_110px_110px_130px_140px_140px_140px] gap-3 items-start rounded-lg border border-gray-100 p-3"
+                >
+                  <div>
+                    <div className="font-medium">{market.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {market.code} • {market.currencyCode}
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <Form.Item
+                      name={["marketPrices", index, "isPublished"]}
+                      valuePropName="checked"
+                      className="mb-0"
+                    >
+                        <Switch size="small" />
+                      </Form.Item>
+                  </div>
+
+                  <div className="pt-1">
+                    <Form.Item
+                      name={["marketPrices", index, "isAvailable"]}
+                      valuePropName="checked"
+                      className="mb-0"
+                    >
+                      <Switch size="small" />
+                    </Form.Item>
+                  </div>
+
+                  <Form.Item
+                    name={["marketPrices", index, "marketId"]}
+                    hidden
+                  >
+                    <Input />
+                  </Form.Item>
+
+                  <Form.Item
+                    name={["marketPrices", index, "inventoryQuantity"]}
+                    className="mb-0"
+                  >
+                    <InputNumber
+                      style={{ width: "100%" }}
+                      min={0}
+                      addonAfter={market.currencyCode}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name={["marketPrices", index, "salePrice"]}
+                    className="mb-0"
+                    rules={[{ required: true, message: "Required" }]}
+                  >
+                    <InputNumber
+                      style={{ width: "100%" }}
+                      min={0}
+                      precision={2}
+                      addonAfter={market.currencyCode}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name={["marketPrices", index, "compareAtPrice"]}
+                    className="mb-0"
+                  >
+                    <InputNumber
+                      style={{ width: "100%" }}
+                      min={0}
+                      precision={2}
+                      addonAfter={market.currencyCode}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name={["marketPrices", index, "costPrice"]}
+                    className="mb-0"
+                  >
+                    <InputNumber
+                      style={{ width: "100%" }}
+                      min={0}
+                      precision={2}
+                      addonAfter={market.currencyCode}
+                    />
+                  </Form.Item>
+                </div>
+              ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="mt-4 flex justify-end gap-2">
             <Button onClick={() => setIsEditVariantModalOpen(false)}>

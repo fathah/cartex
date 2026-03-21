@@ -9,4 +9,9 @@ export const COUNTRIES = {
     currency: "SAR",
     code: "SA",
   },
+  IN: {
+    name: "India",
+    currency: "INR",
+    code: "IN",
+  },
 };

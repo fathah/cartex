@@ -4,7 +4,7 @@ import React from "react";
 import { Card, Table, Tag, Button } from "antd";
 import { Eye } from "lucide-react";
 import Link from "next/link";
-import Currency from "@/components/common/Currency";
+import AdminMoney from "@/components/common/AdminMoney";
 import { formatDate } from "@/utils/date";
 
 interface RecentOrdersTableProps {
@@ -40,8 +40,12 @@ export const RecentOrdersTable = ({ orders }: RecentOrdersTableProps) => {
       title: "Amount",
       dataIndex: "totalPrice",
       key: "totalPrice",
-      render: (price: number) => (
-        <Currency value={price} className="font-semibold" />
+      render: (price: number, record: any) => (
+        <AdminMoney
+          value={price}
+          currencyCode={record.currency}
+          className="font-semibold"
+        />
       ),
     },
     {

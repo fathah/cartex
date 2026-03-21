@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { addAddress, updateAddress } from "@/actions/addresses";
 import { Button, Input, Form, message, Select } from "antd";
+import { getMarkets } from "@/actions/market";
 
 const AddressForm = ({
   onClose,
@@ -13,6 +14,40 @@ const AddressForm = ({
   initialValues?: any;
 }) => {
   const [loading, setLoading] = useState(false);
+  const [marketOptions, setMarketOptions] = React.useState<
+    { label: string; value: string }[]
+  >([]);
+
+  React.useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        const markets = await getMarkets();
+        setMarketOptions(
+          markets
+            .filter((market: any) => market.isActive)
+            .map((market: any) => ({
+              value: market.countryCode || market.code,
+              label: `${market.name} (${market.currencyCode})`,
+            })),
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchMarkets();
+  }, []);
+
+  const [form] = Form.useForm();
+
+  React.useEffect(() => {
+    if (!initialValues?.id && marketOptions.length > 0) {
+      const currentCountry = form.getFieldValue("country");
+      if (!currentCountry) {
+        form.setFieldValue("country", marketOptions[0].value);
+      }
+    }
+  }, [initialValues?.id, marketOptions, form]);
 
   const handleSubmit = async (values: any) => {
     setLoading(true);
@@ -40,6 +75,7 @@ const AddressForm = ({
   return (
     <div>
       <Form
+        form={form}
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={initialValues}
@@ -85,7 +121,11 @@ const AddressForm = ({
             label="Country"
             rules={[{ required: true }]}
           >
-            <Input placeholder="e.g. UAE" />
+            <Select
+              placeholder="Select country"
+              options={marketOptions}
+              loading={marketOptions.length === 0}
+            />
           </Form.Item>
         </div>
 

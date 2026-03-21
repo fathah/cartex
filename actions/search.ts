@@ -1,8 +1,11 @@
 "use server";
 
 import prisma from "@/db/prisma";
+import { resolveCurrentMarket } from "@/lib/market";
+import { applyMarketPricingToProduct } from "@/lib/product-market";
 
 export async function searchProducts(query: string, limit: number = 24) {
+  const market = await resolveCurrentMarket();
   const q = query?.trim();
   if (!q) {
     const products = await prisma.product.findMany({
@@ -14,8 +17,21 @@ export async function searchProducts(query: string, limit: number = 24) {
       orderBy: { createdAt: "desc" },
       include: {
         variants: {
-          take: 1,
-          include: { inventory: true },
+          orderBy: { createdAt: "asc" },
+          ...(market?.id ? {} : { take: 1 }),
+          include: {
+            inventory: true,
+            selectedOptions: true,
+            ...(market?.id
+              ? {
+                  variantMarkets: {
+                    where: { marketId: market.id },
+                    take: 1,
+                    include: { market: true },
+                  },
+                }
+              : {}),
+          },
         },
         mediaProducts: {
           take: 1,
@@ -26,7 +42,11 @@ export async function searchProducts(query: string, limit: number = 24) {
         },
       },
     });
-    return { products };
+    return {
+      products: products
+        .map((product) => applyMarketPricingToProduct(product))
+        .filter((product: any) => product && !product.unavailableInMarket),
+    };
   }
 
   const products = await prisma.product.findMany({
@@ -43,8 +63,21 @@ export async function searchProducts(query: string, limit: number = 24) {
     orderBy: { createdAt: "desc" },
     include: {
       variants: {
-        take: 1,
-        include: { inventory: true },
+        orderBy: { createdAt: "asc" },
+        ...(market?.id ? {} : { take: 1 }),
+        include: {
+          inventory: true,
+          selectedOptions: true,
+          ...(market?.id
+            ? {
+                variantMarkets: {
+                  where: { marketId: market.id },
+                  take: 1,
+                  include: { market: true },
+                },
+              }
+            : {}),
+        },
       },
       mediaProducts: {
         take: 1,
@@ -56,19 +89,11 @@ export async function searchProducts(query: string, limit: number = 24) {
     },
   });
 
-  const serialize = (plist: any[]) =>
-    plist.map((p) => ({
-      ...p,
-      variants: p.variants.map((v: any) => ({
-        ...v,
-        originalPrice: Number(v.originalPrice || 0),
-        salePrice: Number(v.salePrice || 0),
-        compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null,
-        costPrice: v.costPrice ? Number(v.costPrice) : null,
-      })),
-    }));
-
-  return { products: serialize(products) };
+  return {
+    products: products
+      .map((product) => applyMarketPricingToProduct(product))
+      .filter((product: any) => product && !product.unavailableInMarket),
+  };
 }
 
 export async function getSearchRecommendations(query?: string) {

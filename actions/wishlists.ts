@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "./user";
 import WishlistDB from "@/db/wishlist";
+import { applyMarketPricingToProduct } from "@/lib/product-market";
 
 export async function getWishlist() {
   const user = await getCurrentUser();
@@ -11,7 +12,20 @@ export async function getWishlist() {
     return [];
   }
 
-  return await WishlistDB.findByCustomer(user.id);
+  const items = await WishlistDB.findByCustomer(user.id);
+  return items
+    .map((item) => {
+      const product = applyMarketPricingToProduct(item.product);
+      if (!product || product.unavailableInMarket) {
+        return null;
+      }
+
+      return {
+        ...item,
+        product,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
 export async function addToWishlist(productId: string) {

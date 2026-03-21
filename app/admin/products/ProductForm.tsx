@@ -288,7 +288,7 @@ export default function ProductForm({
 
       {!isEdit && (
         <Form.Item
-          name="originalPrice"
+          name="salePrice"
           label="Base Price"
           rules={[
             {

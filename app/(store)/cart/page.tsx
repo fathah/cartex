@@ -6,15 +6,24 @@ import { Button } from "antd";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Currency from "@/components/common/Currency";
+import { useCurrency } from "@/components/providers/currency-provider";
 
 const CartPage = () => {
   const { items, getTotalItems } = useCartStore();
+  const clearForMarket = useCartStore((state) => state.clearForMarket);
   const [mounted, setMounted] = useState(false);
+  const { marketCode } = useCurrency();
 
   useEffect(() => {
     useCartStore.persist.rehydrate();
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      clearForMarket(marketCode);
+    }
+  }, [mounted, clearForMarket, marketCode]);
 
   if (!mounted) return null;
 

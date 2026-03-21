@@ -27,9 +27,9 @@ import {
   addShippingRate,
   deleteShippingRate,
 } from "@/actions/shipping";
+import { getMarkets } from "@/actions/market";
 import { ShippingRateType } from "@prisma/client";
-import { useCurrency } from "@/components/providers/currency-provider";
-import Currency from "@/components/common/Currency";
+import AdminMoney from "@/components/common/AdminMoney";
 
 export default function ShippingSettings() {
   const [zones, setZones] = useState<any[]>([]);
@@ -44,8 +44,9 @@ export default function ShippingSettings() {
   const [editingZone, setEditingZone] = useState<any>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
-
-  const { currency } = useCurrency();
+  const [marketOptions, setMarketOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   const [formZone] = Form.useForm();
   const [formMethod] = Form.useForm();
@@ -65,6 +66,26 @@ export default function ShippingSettings() {
 
   useEffect(() => {
     fetchZones();
+  }, []);
+
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        const markets = await getMarkets();
+        setMarketOptions(
+          markets
+            .filter((market: any) => market.isActive)
+            .map((market: any) => ({
+              value: market.countryCode || market.code,
+              label: `${market.name} (${market.currencyCode})`,
+            })),
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchMarkets();
   }, []);
 
   // --- Zone Handlers ---
@@ -201,12 +222,18 @@ export default function ShippingSettings() {
               {rate.type}
             </Tag>
             <span className="font-medium">
-              {Number(rate.price).toFixed(2)} {currency}
+              <AdminMoney value={Number(rate.price)} />
             </span>
             {rate.type === "CONDITIONAL" && (
               <span className="text-gray-500 text-xs">
-                (Orders {currency} {Number(rate.minOrderAmount)} - {currency}{" "}
-                {Number(rate.maxOrderAmount) || "∞"})
+                (Orders{" "}
+                <AdminMoney value={Number(rate.minOrderAmount || 0)} /> -{" "}
+                {rate.maxOrderAmount ? (
+                  <AdminMoney value={Number(rate.maxOrderAmount)} />
+                ) : (
+                  "∞"
+                )}
+                )
               </span>
             )}
             <Button
@@ -347,13 +374,10 @@ export default function ShippingSettings() {
             rules={[{ required: true }]}
           >
             <Select
-              mode="tags"
-              placeholder="Select countries (e.g. US, CA)"
-              tokenSeparators={[","]}
-              options={[
-                { value: "AE", label: "United Arab Emirates" },
-                // In a real app, load full country list
-              ]}
+              mode="multiple"
+              placeholder="Select available markets"
+              options={marketOptions}
+              loading={marketOptions.length === 0}
             />
           </Form.Item>
         </Form>
@@ -419,7 +443,7 @@ export default function ShippingSettings() {
                   rules={[{ required: true }]}
                 >
                   <Input
-                    prefix={<Currency value={""} currencyOnly />}
+                    addonBefore="Amount"
                     type="number"
                     step="0.01"
                   />
@@ -433,7 +457,7 @@ export default function ShippingSettings() {
                       className="flex-1"
                     >
                       <Input
-                        prefix={<Currency value={""} currencyOnly />}
+                        addonBefore="Amount"
                         type="number"
                       />
                     </Form.Item>
@@ -442,7 +466,7 @@ export default function ShippingSettings() {
                       label="Max Order Amount"
                       className="flex-1"
                     >
-                      <Input prefix="$" type="number" />
+                      <Input addonBefore="Amount" type="number" />
                     </Form.Item>
                   </div>
                 )}

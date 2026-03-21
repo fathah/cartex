@@ -9,6 +9,7 @@ import Currency from "../../../../components/common/Currency";
 import ProductReviews from "../../../../components/store/ProductReviews";
 import { getProductReviews } from "@/actions/reviews";
 import Link from "next/link";
+import { useCurrency } from "@/components/providers/currency-provider";
 
 interface ProductDetailProps {
   product: any;
@@ -22,22 +23,31 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [avgRating, setAvgRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
+  const { currency, marketCode } = useCurrency();
+  const defaultVariant = product.defaultVariant || product.variants[0] || null;
+  const isUnavailableInRegion = product.unavailableInMarket === true;
 
   // Initial selection
   useEffect(() => {
     if (product.options && product.options.length > 0) {
       const defaults: any = {};
+      const defaultSelectedOptions = defaultVariant?.selectedOptions || [];
       product.options.forEach((opt: any) => {
-        if (opt.values.length > 0) {
+        const matchedValue = defaultSelectedOptions.find(
+          (selectedOption: any) =>
+            opt.values.some((value: any) => value.id === selectedOption.id),
+        );
+        if (matchedValue) {
+          defaults[opt.name] = matchedValue.value;
+        } else if (opt.values.length > 0) {
           defaults[opt.name] = opt.values[0].value;
         }
       });
       setSelectedOptions(defaults);
-    } else if (product.variants.length > 0) {
-      // No options but variants (e.g. default variant)
-      setCurrentVariant(product.variants[0]);
+    } else if (defaultVariant) {
+      setCurrentVariant(defaultVariant);
     }
-  }, [product]);
+  }, [product, defaultVariant]);
 
   // Update variant based on selection
   useEffect(() => {
@@ -62,12 +72,17 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const addToCartStore = useCartStore((state) => state.addToCart);
 
   const addToCart = () => {
+    if (isUnavailableInRegion) {
+      message.error("This product is not available in your region.");
+      return;
+    }
+
     if (!currentVariant) {
       message.error("Please select options");
       return;
     }
 
-    const price = Number(currentVariant.salePrice);
+    const price = Number(currentVariant.effectiveSalePrice);
 
     addToCartStore({
       key: `${product.id}-${currentVariant.id}`,
@@ -79,27 +94,34 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       quantity: quantity,
       image: mainImage,
       slug: product.slug,
+      currencyCode: currency,
+      marketCode,
     });
 
     message.success(`Added ${quantity} x ${product.name} to cart`);
   };
 
   const price = currentVariant
-    ? currentVariant.salePrice
-    : product.variants[0]?.salePrice || "0.00";
-  const originalPrice = currentVariant
-    ? currentVariant.originalPrice
-    : product.variants[0]?.originalPrice || price;
+    ? currentVariant.effectiveSalePrice
+    : defaultVariant?.effectiveSalePrice || "0.00";
+  const compareAtPrice = currentVariant
+    ? currentVariant.effectiveCompareAtPrice
+    : defaultVariant?.effectiveCompareAtPrice || price;
 
-  const hasDiscount = Number(price) < Number(originalPrice);
+  const hasDiscount = Number(compareAtPrice) > Number(price);
   const discountPercentage = hasDiscount
     ? Math.round(
-        ((Number(originalPrice) - Number(price)) / Number(originalPrice)) * 100,
+        ((Number(compareAtPrice) - Number(price)) / Number(compareAtPrice)) *
+          100,
       )
     : 0;
 
-  const stockCount = currentVariant?.inventory?.quantity || 0;
-  const isOutOfStock = currentVariant ? stockCount <= 0 : true;
+  const stockCount = currentVariant?.effectiveInventoryQuantity || 0;
+  const isOutOfStock = isUnavailableInRegion
+    ? true
+    : currentVariant
+      ? stockCount <= 0
+      : true;
 
   const getFullImageUrl = (url: string) => {
     if (!url) return "/placeholder.png";
@@ -219,33 +241,47 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
         <div className="mb-8 pb-8 border-b border-gray-100">
           <div className="flex items-center gap-4 mb-1">
-            <div className="text-3xl font-bold font-sans text-gray-900">
-              <Currency value={Number(price)} />
-            </div>
-            {hasDiscount && (
+            {isUnavailableInRegion ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                This product is not available in your region.
+              </div>
+            ) : (
               <>
-                <div className="text-lg text-gray-400 line-through font-medium">
-                  <Currency value={Number(originalPrice)} />
+                <div className="text-3xl font-bold font-sans text-gray-900">
+                  <Currency value={Number(price)} />
                 </div>
-                <Tag
-                  color="success"
-                  className="font-bold px-2 py-1 text-xs border-0 rounded-md"
-                >
-                  {discountPercentage}% OFF
-                </Tag>
+                {hasDiscount && (
+                  <>
+                    <div className="text-lg text-gray-400 line-through font-medium">
+                      <Currency value={Number(compareAtPrice)} />
+                    </div>
+                    <Tag
+                      color="success"
+                      className="font-bold px-2 py-1 text-xs border-0 rounded-md"
+                    >
+                      {discountPercentage}% OFF
+                    </Tag>
+                  </>
+                )}
               </>
             )}
           </div>
-          {hasDiscount && (
+          {isUnavailableInRegion ? (
+            <div className="text-sm text-amber-700">
+              Switch to another market if available. Ordering is disabled for
+              your current region.
+            </div>
+          ) : hasDiscount ? (
             <div className="text-sm text-green-600 font-medium">
               You save{" "}
-              <Currency value={Number(originalPrice) - Number(price)} />!
+              <Currency value={Number(compareAtPrice) - Number(price)} />!
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Options */}
-        {product.options.map((opt: any) => (
+        {!isUnavailableInRegion &&
+          product.options.map((opt: any) => (
           <div key={opt.id} className="mb-6">
             <h3 className="text-base font-semibold mb-3">
               Choose a {opt.name}
@@ -306,7 +342,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           <div className="flex flex-col text-xs mt-2">
             {isOutOfStock ? (
               <span className="text-red-500 font-bold mb-1 text-sm bg-red-50 px-2 py-1 rounded inline-block w-fit">
-                Out of Stock
+                {isUnavailableInRegion ? "Unavailable in Your Region" : "Out of Stock"}
               </span>
             ) : stockCount > 0 && stockCount < 20 ? (
               <span className="text-orange-500 font-medium mb-1">
@@ -329,13 +365,15 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             size="large"
             shape="round"
             className="bg-[#003d29] hover:bg-[#002a1c] h-12 px-8 text-base font-medium flex-grow md:flex-grow-0 min-w-[160px] disabled:bg-gray-300 disabled:border-transparent disabled:text-white"
-            disabled={isOutOfStock || !currentVariant}
+            disabled={isOutOfStock || !currentVariant || isUnavailableInRegion}
             onClick={() => {
               addToCart();
-              message.success("Proceeding to checkout...");
+              if (!isUnavailableInRegion) {
+                message.success("Proceeding to checkout...");
+              }
             }}
           >
-            Buy Now
+            {isUnavailableInRegion ? "Unavailable" : "Buy Now"}
           </Button>
           <Button
             size="large"
@@ -345,10 +383,14 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 ? "border-gray-200 text-gray-400 bg-gray-50"
                 : "border-[#003d29] text-[#003d29] hover:bg-green-50"
             }`}
-            disabled={isOutOfStock || !currentVariant}
+            disabled={isOutOfStock || !currentVariant || isUnavailableInRegion}
             onClick={addToCart}
           >
-            {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+            {isUnavailableInRegion
+              ? "Unavailable in Region"
+              : isOutOfStock
+                ? "Out of Stock"
+                : "Add to Cart"}
           </Button>
         </div>
       </div>

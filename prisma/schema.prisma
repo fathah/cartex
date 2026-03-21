@@ -213,7 +213,6 @@ model ProductVariant {
   barcode String?
 
   // Pricing
-  originalPrice  Decimal  @default(0) @db.Decimal(10, 2)
   salePrice      Decimal  @default(0) @db.Decimal(10, 2)
   compareAtPrice Decimal? @db.Decimal(10, 2)
   costPrice      Decimal? @db.Decimal(10, 2)
@@ -246,13 +245,15 @@ model VariantMarket {
   variantId String
   marketId  String
 
-  originalPrice  Decimal? @db.Decimal(10, 2)
   salePrice      Decimal  @db.Decimal(10, 2)
   compareAtPrice Decimal? @db.Decimal(10, 2)
   costPrice      Decimal? @db.Decimal(10, 2)
 
   isPublished Boolean @default(true)
   isAvailable Boolean @default(true)
+
+  inventoryQuantity Int @default(0)
+  reservedQuantity  Int @default(0)
 
   minOrderQty Int  @default(1)
   maxOrderQty Int?

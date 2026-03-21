@@ -15,8 +15,11 @@ interface WishlistItem {
     id: string;
     name: string;
     slug: string;
+    defaultVariant?: {
+      effectiveSalePrice: number;
+    };
     variants: Array<{
-      salePrice: any; // Decimal type from Prisma
+      effectiveSalePrice: number;
     }>;
     collections: Array<{
       name: string;
@@ -104,8 +107,11 @@ export default function WishlistClient({ initialItems }: WishlistClientProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {items.map((item) => {
           const imageUrl = item.product.mediaProducts[0]?.media?.url;
-          const price = item.product.variants[0]?.salePrice
-            ? Number(item.product.variants[0].salePrice)
+          const price = item.product.variants[0]?.effectiveSalePrice
+            ? Number(
+                item.product.defaultVariant?.effectiveSalePrice ??
+                  item.product.variants[0].effectiveSalePrice,
+              )
             : 0;
           const category = item.product.collections[0];
 

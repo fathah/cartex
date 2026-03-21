@@ -1,4 +1,6 @@
 import prisma from "./prisma";
+import { resolveCurrentMarket } from "@/lib/market";
+import { applyMarketPricingToProduct } from "@/lib/product-market";
 
 export default class CollectionDB {
   static async create(
@@ -47,6 +49,7 @@ export default class CollectionDB {
   }
 
   static async findBySlugWithDetails(slug: string) {
+    const market = await resolveCurrentMarket();
     const collection = await prisma.collection.findUnique({
       where: { slug },
     });
@@ -71,11 +74,22 @@ export default class CollectionDB {
           take: 1,
         },
         variants: {
-          take: 1,
           orderBy: {
-            salePrice: "asc",
+            createdAt: "asc",
           },
-          include: { inventory: true },
+          include: {
+            inventory: true,
+            selectedOptions: true,
+            ...(market?.id
+              ? {
+                  variantMarkets: {
+                    where: { marketId: market.id },
+                    take: 1,
+                    include: { market: true },
+                  },
+                }
+              : {}),
+          },
         },
 
         collections: {
@@ -93,7 +107,9 @@ export default class CollectionDB {
 
     return {
       ...collection,
-      products,
+      products: products
+        .map((product) => applyMarketPricingToProduct(product))
+        .filter((product: any) => product && !product.unavailableInMarket),
     };
   }
   static async update(

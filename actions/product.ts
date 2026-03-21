@@ -3,26 +3,70 @@
 import ProductDB, { CreateProductData } from "@/db/product";
 import { Prisma, ProductStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireAdminAuth } from "@/services/zauth";
+import { resolveCurrentMarket } from "@/lib/market";
+import { applyMarketPricingToProduct } from "@/lib/product-market";
 
 export async function getProducts(
   page = 1,
   limit = 20,
   status?: ProductStatus,
 ) {
-  const result = await ProductDB.list(page, limit, status);
-  return JSON.parse(JSON.stringify(result));
+  const market = await resolveCurrentMarket();
+  const result = await ProductDB.list(page, limit, status, market?.id);
+  const products = result.products
+    .map((product: any) => applyMarketPricingToProduct(product))
+    .filter((product: any) => product && !product.unavailableInMarket);
+  return JSON.parse(
+    JSON.stringify({
+      ...result,
+      products,
+      total: products.length,
+      totalPages: Math.ceil(products.length / limit),
+    }),
+  );
 }
 
 export async function getDeals(page = 1, limit = 20, status?: ProductStatus) {
-  const result = await ProductDB.listDeals(page, limit, status);
-  return JSON.parse(JSON.stringify(result));
+  const market = await resolveCurrentMarket();
+  const result = await ProductDB.listDeals(page, limit, status, market?.id);
+  const products = result.products
+    .map((product: any) => applyMarketPricingToProduct(product))
+    .filter((product: any) => product && !product.unavailableInMarket)
+    .filter((product: any) => {
+      const variant = product.variants?.[0];
+      if (!variant) return false;
+      return (
+        Number(variant.effectiveSalePrice || 0) > 0 &&
+        Number(variant.effectiveSalePrice || 0) <
+          Number(variant.effectiveCompareAtPrice || 0)
+      );
+    })
+    .sort(
+      (a: any, b: any) =>
+        Number(a.defaultVariant?.effectiveSalePrice || 0) -
+        Number(b.defaultVariant?.effectiveSalePrice || 0),
+    );
+  return JSON.parse(
+    JSON.stringify({
+      ...result,
+      products,
+      total: products.length,
+      totalPages: Math.ceil(products.length / limit),
+    }),
+  );
 }
 
 export async function getFeaturedProducts(limit = 4) {
-  const result = await ProductDB.listFeatured(limit);
-  return JSON.parse(JSON.stringify(result));
+  const market = await resolveCurrentMarket();
+  const result = await ProductDB.listFeatured(limit, market?.id);
+  return JSON.parse(
+    JSON.stringify(
+      result
+        .map((product: any) => applyMarketPricingToProduct(product))
+        .filter((product: any) => product && !product.unavailableInMarket),
+    ),
+  );
 }
 
 export async function getBrandProducts(
@@ -31,8 +75,25 @@ export async function getBrandProducts(
   limit = 20,
   status?: ProductStatus,
 ) {
-  const result = await ProductDB.listByBrandId(brandId, page, limit, status);
-  return JSON.parse(JSON.stringify(result));
+  const market = await resolveCurrentMarket();
+  const result = await ProductDB.listByBrandId(
+    brandId,
+    page,
+    limit,
+    status,
+    market?.id,
+  );
+  const products = result.products
+    .map((product: any) => applyMarketPricingToProduct(product))
+    .filter((product: any) => product && !product.unavailableInMarket);
+  return JSON.parse(
+    JSON.stringify({
+      ...result,
+      products,
+      total: products.length,
+      totalPages: Math.ceil(products.length / limit),
+    }),
+  );
 }
 
 export async function getCollectionProducts(
@@ -46,13 +107,31 @@ export async function getCollectionProducts(
     page,
     limit,
     status,
+    (await resolveCurrentMarket())?.id,
   );
-  return JSON.parse(JSON.stringify(result));
+  const products = result.products
+    .map((product: any) => applyMarketPricingToProduct(product))
+    .filter((product: any) => product && !product.unavailableInMarket);
+  return JSON.parse(
+    JSON.stringify({
+      ...result,
+      products,
+      total: products.length,
+      totalPages: Math.ceil(products.length / limit),
+    }),
+  );
 }
 
 export async function getProductsByIds(ids: string[]) {
-  const result = await ProductDB.listByIds(ids);
-  return JSON.parse(JSON.stringify(result));
+  const market = await resolveCurrentMarket();
+  const result = await ProductDB.listByIds(ids, market?.id);
+  return JSON.parse(
+    JSON.stringify(
+      result
+        .map((product: any) => applyMarketPricingToProduct(product))
+        .filter((product: any) => product && !product.unavailableInMarket),
+    ),
+  );
 }
 
 export async function getProduct(id: string) {
@@ -61,8 +140,10 @@ export async function getProduct(id: string) {
 }
 
 export async function getProductBySlug(slug: string) {
-  const result = await ProductDB.findBySlug(slug);
-  return JSON.parse(JSON.stringify(result));
+  const market = await resolveCurrentMarket();
+  const result = await ProductDB.findBySlug(slug, market?.id);
+  const product = result ? applyMarketPricingToProduct(result) : null;
+  return JSON.parse(JSON.stringify(product));
 }
 
 export async function createProduct(data: CreateProductData) {
@@ -130,10 +211,20 @@ export async function generateVariants(productId: string) {
 export async function updateVariant(
   variantId: string,
   data: {
-    originalPrice: number;
     salePrice: number;
+    compareAtPrice?: number | null;
+    costPrice?: number | null;
     sku?: string;
     inventory: number;
+    marketPrices?: Array<{
+      marketId: string;
+      salePrice: number;
+      compareAtPrice?: number | null;
+      costPrice?: number | null;
+      inventoryQuantity?: number | null;
+      isAvailable?: boolean;
+      isPublished?: boolean;
+    }>;
   },
 ) {
   await requireAdminAuth();

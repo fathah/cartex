@@ -27,13 +27,17 @@ import { getSettings } from "../actions/settings";
 import { CurrencyProvider } from "@/components/providers/currency-provider";
 import WishlistSync from "@/components/WishlistSync";
 import { PublicEnvScript } from "next-runtime-env";
+import { resolveCurrentMarket } from "@/lib/market";
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await getSettings();
+  const [settings, market] = await Promise.all([
+    getSettings(),
+    resolveCurrentMarket(),
+  ]);
 
   return (
     <html lang="en">
@@ -63,7 +67,10 @@ export default async function RootLayout({
               },
             }}
           >
-            <CurrencyProvider initialCurrency={settings.currency}>
+            <CurrencyProvider
+              initialCurrency={market?.currencyCode || settings.currency}
+              initialMarketCode={market?.code || null}
+            >
               <WishlistSync />
               {children}
             </CurrencyProvider>

@@ -27,7 +27,7 @@ import Cookies from "js-cookie";
 import { AppKeys } from "@/constants/keys";
 import { Menu as MenuIcon } from "lucide-react";
 
-const { Header, Content, Footer, Sider } = Layout;
+const { Header, Content, Sider } = Layout;
 
 export default function AdminLayout({
   children,
@@ -73,7 +73,7 @@ export default function AdminLayout({
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <Layout style={{ height: "100vh", minWidth: 200, overflow: "hidden" }}>
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Sider
@@ -81,23 +81,34 @@ export default function AdminLayout({
           collapsed={collapsed}
           onCollapse={(value) => setCollapsed(value)}
           className="hidden lg:block"
+          style={{
+            height: "100vh",
+            position: "sticky",
+            top: 0,
+            left: 0,
+            overflow: "hidden",
+          }}
         >
-          <div className="text-white text-center text-xl font-bold p-4">
-            {collapsed ? (
-              <div className="flex items-center justify-center bg-white text-black rounded-xl w-10 h-10">
-                C
-              </div>
-            ) : (
-              "Cartex Panel"
-            )}
+          <div className="flex h-full flex-col">
+            <div className="shrink-0 text-white text-center text-xl font-bold p-4">
+              {collapsed ? (
+                <div className="flex items-center justify-center bg-white text-black rounded-xl w-10 h-10">
+                  C
+                </div>
+              ) : (
+                "Cartex Panel"
+              )}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+              <Menu
+                theme="dark"
+                selectedKeys={[pathname]}
+                mode="inline"
+                items={items}
+                onClick={({ key }) => router.push(key)}
+              />
+            </div>
           </div>
-          <Menu
-            theme="dark"
-            selectedKeys={[pathname]}
-            mode="inline"
-            items={items}
-            onClick={({ key }) => router.push(key)}
-          />
         </Sider>
       )}
 
@@ -127,7 +138,13 @@ export default function AdminLayout({
         </div>
       </Drawer>
 
-      <Layout>
+      <Layout
+        style={{
+          minWidth: 0,
+          height: "100vh",
+          overflow: "hidden",
+        }}
+      >
         <Header
           style={{
             padding: "0 24px",
@@ -135,6 +152,7 @@ export default function AdminLayout({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            flexShrink: 0,
           }}
         >
           <div className="flex items-center gap-4">
@@ -171,7 +189,14 @@ export default function AdminLayout({
             </Space>
           </Dropdown>
         </Header>
-        <Content style={{ margin: "16px" }}>
+        <Content
+          style={{
+            margin: "16px",
+            overflowY: "auto",
+            minHeight: 0,
+            height: "100%",
+          }}
+        >
           <div
             style={{
               padding: 24,
