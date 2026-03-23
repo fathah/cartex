@@ -5,7 +5,7 @@ CREATE TYPE "UserRole" AS ENUM ('SUPER_ADMIN', 'ADMIN', 'STAFF', 'CUSTOMER');
 CREATE TYPE "DiscountType" AS ENUM ('PERCENTAGE', 'FIXED_AMOUNT');
 
 -- CreateEnum
-CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'PAID', 'FULFILLED', 'CANCELLED', 'REFUNDED');
+CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'ORDERED', 'PROCESSING', 'SHIPPED', 'FULFILLED', 'CANCELLED', 'RETURNED');
 
 -- CreateEnum
 CREATE TYPE "ProductStatus" AS ENUM ('DRAFT', 'ACTIVE', 'ARCHIVED');
@@ -29,6 +29,17 @@ CREATE TYPE "GatewayEnvironment" AS ENUM ('TEST', 'LIVE');
 CREATE TYPE "PaymentIntentStatus" AS ENUM ('PENDING', 'PROCESSING', 'SUCCESS', 'FAILED', 'CANCELLED');
 
 -- CreateTable
+CREATE TABLE "config" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "config_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "settings" (
     "id" TEXT NOT NULL DEFAULT 'global',
     "storeName" TEXT NOT NULL DEFAULT 'My Store',
@@ -36,6 +47,8 @@ CREATE TABLE "settings" (
     "faviconUrl" TEXT,
     "themeConfig" JSONB DEFAULT '{}',
     "currency" TEXT NOT NULL DEFAULT 'USD',
+    "taxRate" DOUBLE PRECISION NOT NULL DEFAULT 5,
+    "taxMode" TEXT NOT NULL DEFAULT 'EXCLUSIVE',
     "seoTitle" TEXT,
     "seoDescription" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -60,20 +73,47 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
+CREATE TABLE "markets" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "countryCode" TEXT NOT NULL,
+    "currencyCode" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "markets_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "products" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "description" TEXT,
-    "descriptionHtml" TEXT,
+    "descriptionLong" TEXT,
     "status" "ProductStatus" NOT NULL DEFAULT 'DRAFT',
     "seoTitle" TEXT,
     "seoDesc" TEXT,
+    "isFeatured" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
+    "productBrandId" TEXT,
 
     CONSTRAINT "products_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "product_brands" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "logo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "product_brands_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -102,7 +142,6 @@ CREATE TABLE "product_variants" (
     "title" TEXT NOT NULL,
     "sku" TEXT,
     "barcode" TEXT,
-    "originalPrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "salePrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "compareAtPrice" DECIMAL(10,2),
     "costPrice" DECIMAL(10,2),
@@ -113,6 +152,26 @@ CREATE TABLE "product_variants" (
     "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "product_variants_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "variant_markets" (
+    "id" TEXT NOT NULL,
+    "variantId" TEXT NOT NULL,
+    "marketId" TEXT NOT NULL,
+    "salePrice" DECIMAL(10,2) NOT NULL,
+    "compareAtPrice" DECIMAL(10,2),
+    "costPrice" DECIMAL(10,2),
+    "isPublished" BOOLEAN NOT NULL DEFAULT true,
+    "isAvailable" BOOLEAN NOT NULL DEFAULT true,
+    "inventoryQuantity" INTEGER NOT NULL DEFAULT 0,
+    "reservedQuantity" INTEGER NOT NULL DEFAULT 0,
+    "minOrderQty" INTEGER NOT NULL DEFAULT 1,
+    "maxOrderQty" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "variant_markets_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -227,7 +286,7 @@ CREATE TABLE "orders" (
     "currency" TEXT NOT NULL DEFAULT 'USD',
     "shippingAddress" JSONB NOT NULL DEFAULT '{}',
     "billingAddress" JSONB NOT NULL DEFAULT '{}',
-    "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "OrderStatus" NOT NULL DEFAULT 'ORDERED',
     "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING',
     "fulfillmentStatus" TEXT NOT NULL DEFAULT 'UNFULFILLED',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -368,6 +427,20 @@ CREATE TABLE "newsletter_subscribers" (
 );
 
 -- CreateTable
+CREATE TABLE "product_reviews" (
+    "id" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "variantId" TEXT,
+    "customerId" TEXT NOT NULL,
+    "rating" INTEGER NOT NULL,
+    "comment" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "product_reviews_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "pages" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -424,13 +497,25 @@ CREATE TABLE "_MethodGateways" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "config_key_key" ON "config"("key");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_ziqxId_key" ON "users"("ziqxId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "markets_code_key" ON "markets"("code");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "products_slug_key" ON "products"("slug");
+
+-- CreateIndex
+CREATE INDEX "variant_markets_marketId_isPublished_isAvailable_idx" ON "variant_markets"("marketId", "isPublished", "isAvailable");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "variant_markets_variantId_marketId_key" ON "variant_markets"("variantId", "marketId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "inventories_variantId_key" ON "inventories"("variantId");
@@ -469,6 +554,9 @@ CREATE INDEX "_MethodZones_B_index" ON "_MethodZones"("B");
 CREATE INDEX "_MethodGateways_B_index" ON "_MethodGateways"("B");
 
 -- AddForeignKey
+ALTER TABLE "products" ADD CONSTRAINT "products_productBrandId_fkey" FOREIGN KEY ("productBrandId") REFERENCES "product_brands"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "options" ADD CONSTRAINT "options_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -479,6 +567,12 @@ ALTER TABLE "product_variants" ADD CONSTRAINT "product_variants_productId_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "product_variants" ADD CONSTRAINT "product_variants_imageId_fkey" FOREIGN KEY ("imageId") REFERENCES "media"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "variant_markets" ADD CONSTRAINT "variant_markets_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "variant_markets" ADD CONSTRAINT "variant_markets_marketId_fkey" FOREIGN KEY ("marketId") REFERENCES "markets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "inventories" ADD CONSTRAINT "inventories_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -530,6 +624,15 @@ ALTER TABLE "payment_intents" ADD CONSTRAINT "payment_intents_paymentMethodId_fk
 
 -- AddForeignKey
 ALTER TABLE "payment_intents" ADD CONSTRAINT "payment_intents_gatewayId_fkey" FOREIGN KEY ("gatewayId") REFERENCES "payment_gateways"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "product_reviews" ADD CONSTRAINT "product_reviews_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "product_reviews" ADD CONSTRAINT "product_reviews_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "product_reviews" ADD CONSTRAINT "product_reviews_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "page_blocks" ADD CONSTRAINT "page_blocks_pageId_fkey" FOREIGN KEY ("pageId") REFERENCES "pages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
