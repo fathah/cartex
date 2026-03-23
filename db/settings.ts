@@ -1,10 +1,11 @@
 import prisma from "./prisma";
+import { Prisma } from "@prisma/client";
 
 export interface UpdateSettingsData {
   storeName?: string;
   logoUrl?: string;
   faviconUrl?: string;
-  themeConfig?: any;
+  themeConfig?: Prisma.InputJsonValue;
   currency?: string;
   taxRate?: number;
   taxMode?: string;
@@ -34,10 +35,13 @@ export default class SettingsDB {
           themeConfig: {},
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If creation fails due to unique constraint (parallel build race condition),
       // fetch the record that was created by another process
-      if (error.code === "P2002") {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
         const settings = await prisma.settings.findUnique({
           where: { id: GLOBAL_ID },
         });

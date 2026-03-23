@@ -1,7 +1,8 @@
-"use client";
-
 import React from "react";
-import { Form, Input, ColorPicker } from "antd";
+import { Form, ColorPicker } from "antd";
+import dynamic from "next/dynamic";
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
 const TextFields = () => {
   return (
@@ -17,11 +18,25 @@ const TextFields = () => {
         name="content"
         label="Content"
         rules={[{ required: true }]}
-        help="Markdown or HTML supported"
+        help="Full Markdown Editor support"
       >
-        <Input.TextArea rows={10} />
+        <EditorWrapper />
       </Form.Item>
     </>
+  );
+};
+
+const EditorWrapper = ({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange?: (val?: string) => void;
+}) => {
+  return (
+    <div data-color-mode="light">
+      <MDEditor value={value} onChange={onChange} height={500} />
+    </div>
   );
 };
 

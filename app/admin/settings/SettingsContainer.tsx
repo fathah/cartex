@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { Settings } from "@prisma/client";
 import { Tabs } from "antd";
 import {
   Store,
@@ -10,6 +11,7 @@ import {
   WalletCards,
   Percent,
   FileDown,
+  Bot,
 } from "lucide-react";
 import SiteSettings from "./SiteSettings/SiteSettings";
 import ShippingSettings from "./Shipping/ShippingSettings";
@@ -18,13 +20,19 @@ import UserAccess from "./UserAccess/UserAccess";
 import PaymentGateways from "./Payment/PaymentGateways";
 import TaxCurrencySettings from "./TaxCurrency/TaxCurrencySettings";
 import DataExport from "./DataExport/page";
+import AIAutomationSettings from "./AIAutomation/AIAutomationSettings";
 
 interface SettingsContainerProps {
-  initialSettings: any;
+  initialSettings: Settings;
+  aiAutomationSettings: {
+    openrouterApiKey: string | null;
+    openrouterModel: string | null;
+  };
 }
 
 export default function SettingsContainer({
   initialSettings,
+  aiAutomationSettings,
 }: SettingsContainerProps) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -94,6 +102,18 @@ export default function SettingsContainer({
         </span>
       ),
       children: <UserAccess />,
+    },
+    {
+      key: "ai-automation",
+      label: (
+        <span className="flex items-center gap-2">
+          <Bot size={16} />
+          AI & Automation
+        </span>
+      ),
+      children: (
+        <AIAutomationSettings initialSettings={aiAutomationSettings} />
+      ),
     },
     {
       key: "data-export",

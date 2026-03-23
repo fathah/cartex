@@ -88,7 +88,7 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
       open={open}
       onCancel={onCancel}
       onOk={form.submit}
-      width={700}
+      width={blockType === "TEXT" ? "80%" : 700}
       destroyOnHidden
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>
