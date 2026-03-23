@@ -9,7 +9,7 @@ import {
   Button,
 } from "antd";
 import { FileText, CreditCard, Truck } from "lucide-react";
-import Currency from "@/components/common/Currency";
+import AdminMoney from "@/components/common/AdminMoney";
 import { getMediaUrl } from "@/utils/media_url";
 
 interface OrderDetailsDrawerProps {
@@ -161,7 +161,9 @@ export const OrderDetailsDrawer = ({
                   title: "Price",
                   dataIndex: "price",
                   key: "price",
-                  render: (val: number) => <Currency value={val} />,
+                  render: (val: number) => (
+                    <AdminMoney value={val} currencyCode={order.currency} />
+                  ),
                 },
               ]}
             />
@@ -172,20 +174,23 @@ export const OrderDetailsDrawer = ({
           <div className="bg-gray-50 p-4 rounded-lg space-y-2 border border-gray-100">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Subtotal</span>
-              <Currency value={order.subtotal} />
+              <AdminMoney value={order.subtotal} currencyCode={order.currency} />
             </div>
             <div className="flex justify-between text-sm text-gray-600">
               <span>Shipping</span>
-              <Currency value={order.shippingTotal} />
+              <AdminMoney
+                value={order.shippingTotal}
+                currencyCode={order.currency}
+              />
             </div>
             <div className="flex justify-between text-sm text-gray-600">
               <span>Tax</span>
-              <Currency value={order.taxTotal} />
+              <AdminMoney value={order.taxTotal} currencyCode={order.currency} />
             </div>
             <Divider className="my-2" />
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
-              <Currency value={order.totalPrice} />
+              <AdminMoney value={order.totalPrice} currencyCode={order.currency} />
             </div>
           </div>
         </div>

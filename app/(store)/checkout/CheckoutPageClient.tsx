@@ -13,6 +13,7 @@ import { useCartStore } from "@/lib/store/cart";
 import { createOrder } from "@/actions/orders";
 import { initiateGatewayPayment } from "@/actions/gateway";
 import { getSmartShippingMethods } from "@/actions/shipping";
+import { useCurrency } from "@/components/providers/currency-provider";
 import {
   MapPin,
   Truck,
@@ -46,12 +47,20 @@ export default function CheckoutPageClient({
   const router = useRouter();
   const [form] = Form.useForm();
   const { items } = useCartStore();
+  const clearForMarket = useCartStore((state) => state.clearForMarket);
   const [mounted, setMounted] = useState(false);
+  const { marketCode } = useCurrency();
 
   useEffect(() => {
     useCartStore.persist.rehydrate();
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      clearForMarket(marketCode);
+    }
+  }, [mounted, clearForMarket, marketCode]);
 
   // Step state
   const [step, setStep] = useState(1);

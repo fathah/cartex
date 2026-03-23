@@ -11,6 +11,7 @@ import {
   WalletCards,
   Percent,
   FileDown,
+  Globe,
   Bot,
 } from "lucide-react";
 import SiteSettings from "./SiteSettings/SiteSettings";
@@ -20,6 +21,7 @@ import UserAccess from "./UserAccess/UserAccess";
 import PaymentGateways from "./Payment/PaymentGateways";
 import TaxCurrencySettings from "./TaxCurrency/TaxCurrencySettings";
 import DataExport from "./DataExport/page";
+import ShopMarket from "./Market/Market";
 import AIAutomationSettings from "./AIAutomation/AIAutomationSettings";
 
 interface SettingsContainerProps {
@@ -104,6 +106,16 @@ export default function SettingsContainer({
       children: <UserAccess />,
     },
     {
+      key: "market-country",
+      label: (
+        <span className="flex items-center gap-2">
+          <Globe size={16} />
+          Market Country
+        </span>
+      ),
+      children: <ShopMarket />,
+    },
+    {
       key: "ai-automation",
       label: (
         <span className="flex items-center gap-2">
@@ -111,9 +123,7 @@ export default function SettingsContainer({
           AI & Automation
         </span>
       ),
-      children: (
-        <AIAutomationSettings initialSettings={aiAutomationSettings} />
-      ),
+      children: <AIAutomationSettings initialSettings={aiAutomationSettings} />,
     },
     {
       key: "data-export",

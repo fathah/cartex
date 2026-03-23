@@ -1,8 +1,9 @@
 "use client";
 
 import { Modal, Form, Input, Select, Button, message } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { addAddress, updateAddress } from "@/actions/addresses";
+import { getMarkets } from "@/actions/market";
 
 interface AddressModalProps {
   open: boolean;
@@ -19,6 +20,38 @@ export default function AddressModal({
 }: AddressModalProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [marketOptions, setMarketOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        const markets = await getMarkets();
+        setMarketOptions(
+          markets
+            .filter((market: any) => market.isActive)
+            .map((market: any) => ({
+              value: market.countryCode || market.code,
+              label: `${market.name} (${market.currencyCode})`,
+            })),
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchMarkets();
+  }, []);
+
+  useEffect(() => {
+    if (open && !initialValues?.id && marketOptions.length > 0) {
+      const currentCountry = form.getFieldValue("country");
+      if (!currentCountry) {
+        form.setFieldValue("country", marketOptions[0].value);
+      }
+    }
+  }, [open, initialValues?.id, marketOptions, form]);
 
   const handleFinish = async (values: any) => {
     setLoading(true);
@@ -66,7 +99,7 @@ export default function AddressModal({
         form={form}
         layout="vertical"
         onFinish={handleFinish}
-        initialValues={initialValues || { country: "AE" }}
+        initialValues={initialValues}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
           <Form.Item
@@ -119,9 +152,11 @@ export default function AddressModal({
             label="Country"
             rules={[{ required: true, message: "Please select country" }]}
           >
-            <Select placeholder="Select country">
-              <Select.Option value="AE">United Arab Emirates</Select.Option>
-            </Select>
+            <Select
+              placeholder="Select country"
+              options={marketOptions}
+              loading={marketOptions.length === 0}
+            />
           </Form.Item>
         </div>
 

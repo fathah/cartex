@@ -16,7 +16,7 @@ import { Search, User, Package, Plus, Trash2 } from "lucide-react";
 import { getCustomers } from "@/actions/customers";
 import { searchProducts } from "@/actions/search";
 import { createAdminOrder } from "@/actions/admin-orders";
-import Currency from "@/components/common/Currency";
+import AdminMoney from "@/components/common/AdminMoney";
 import { getMediaUrl } from "@/utils/media_url";
 
 interface CreateOrderModalProps {
@@ -78,7 +78,7 @@ export const CreateOrderModal = ({
   };
 
   const addItem = (product: any) => {
-    const variant = product.variants?.[0]; // Default to first variant for now
+    const variant = product.defaultVariant || product.variants?.[0];
     if (!variant) {
       message.error("No variant found for this product");
       return;
@@ -96,7 +96,7 @@ export const CreateOrderModal = ({
         ),
       );
     } else {
-      setSelectedItems([
+          setSelectedItems([
         ...selectedItems,
         {
           variantId: variant.id,
@@ -104,7 +104,13 @@ export const CreateOrderModal = ({
           title: product.name,
           variantTitle: variant.title,
           image: product.mediaProducts?.[0]?.media?.url,
-          price: Number(variant.salePrice || variant.originalPrice),
+          price: Number(
+            variant.effectiveSalePrice || 0,
+          ),
+          currencyCode:
+            variant.marketVariant?.market?.currencyCode ||
+            variant.variantMarkets?.[0]?.market?.currencyCode ||
+            null,
           quantity: 1,
         },
       ]);
@@ -240,10 +246,16 @@ export const CreateOrderModal = ({
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <Currency
+                        <AdminMoney
                           value={
-                            p.variants?.[0]?.salePrice ||
-                            p.variants?.[0]?.originalPrice
+                            p.defaultVariant?.effectiveSalePrice ||
+                            p.variants?.[0]?.effectiveSalePrice ||
+                            0
+                          }
+                          currencyCode={
+                            p.defaultVariant?.marketVariant?.market?.currencyCode ||
+                            p.variants?.[0]?.marketVariant?.market?.currencyCode ||
+                            null
                           }
                           className="text-sm font-bold"
                         />
@@ -296,7 +308,12 @@ export const CreateOrderModal = ({
                   {
                     title: "Price",
                     dataIndex: "price",
-                    render: (price) => <Currency value={price} />,
+                    render: (price, item) => (
+                      <AdminMoney
+                        value={price}
+                        currencyCode={item.currencyCode || null}
+                      />
+                    ),
                   },
                   {
                     title: "Qty",
@@ -321,7 +338,10 @@ export const CreateOrderModal = ({
                   {
                     title: "Total",
                     render: (_, item) => (
-                      <Currency value={item.price * item.quantity} />
+                      <AdminMoney
+                        value={item.price * item.quantity}
+                        currencyCode={item.currencyCode || null}
+                      />
                     ),
                   },
                   {
@@ -345,7 +365,10 @@ export const CreateOrderModal = ({
                 <div className="flex items-center gap-4">
                   <span className="text-gray-500">Order Subtotal:</span>
                   <span className="text-xl font-bold">
-                    <Currency value={subtotal} />
+                    <AdminMoney
+                      value={subtotal}
+                      currencyCode={selectedItems[0]?.currencyCode || null}
+                    />
                   </span>
                 </div>
               </div>

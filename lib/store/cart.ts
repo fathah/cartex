@@ -11,6 +11,8 @@ export interface CartItem {
     quantity: number;
     image?: string;
     slug: string;
+    currencyCode?: string;
+    marketCode?: string | null;
 }
 
 interface CartState {
@@ -23,6 +25,7 @@ interface CartState {
     isOpen: boolean;
     openCart: () => void;
     closeCart: () => void;
+    clearForMarket: (marketCode?: string | null) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -59,6 +62,13 @@ export const useCartStore = create<CartState>()(
                 };
             }),
             clearCart: () => set({ items: [] }),
+            clearForMarket: (marketCode) => set((state) => {
+                if (!marketCode) {
+                    return state;
+                }
+                const hasMismatch = state.items.some((item) => item.marketCode && item.marketCode !== marketCode);
+                return hasMismatch ? { items: [] } : state;
+            }),
             getTotalItems: () => {
                 const state = get();
                 return state.items.reduce((acc, item) => acc + item.quantity, 0);

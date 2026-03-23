@@ -109,7 +109,6 @@ export async function importProductBatch(rows: any[]) {
           data: {
             productId: p.id,
             title: "Default Variant",
-            originalPrice: row.originalPrice || 0,
             salePrice: row.salePrice || 0,
             sku: "",
             inventory: {

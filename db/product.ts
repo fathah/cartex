@@ -8,15 +8,54 @@ export type CreateProductData = {
   slug: string;
   seoTitle?: string;
   seoDesc?: string;
-  originalPrice?: number; // Optional initial price
   salePrice?: number; // Optional initial price
+  compareAtPrice?: number;
+  costPrice?: number;
   productBrandId?: string;
   isFeatured?: boolean;
 };
 
 export default class ProductDB {
+  static buildVariantInclude(marketId?: string, includeAllMarkets = false) {
+    if (includeAllMarkets) {
+      return {
+        selectedOptions: true,
+        inventory: true,
+        variantMarkets: {
+          include: {
+            market: true,
+          },
+          orderBy: {
+            createdAt: "asc" as const,
+          },
+        },
+      };
+    }
+
+    return {
+      selectedOptions: true,
+      inventory: true,
+      _count: {
+        select: {
+          variantMarkets: true,
+        },
+      },
+      ...(marketId
+        ? {
+            variantMarkets: {
+              where: { marketId },
+              take: 1,
+              include: {
+                market: true,
+              },
+            },
+          }
+        : {}),
+    };
+  }
+
   static async create(data: CreateProductData) {
-    const { originalPrice, salePrice, ...productData } = data;
+    const { salePrice, compareAtPrice, costPrice, ...productData } = data;
 
     return await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -24,15 +63,34 @@ export default class ProductDB {
       });
 
       // Create default variant
-      await tx.productVariant.create({
+      const variant = await tx.productVariant.create({
         data: {
           productId: product.id,
           title: "Default Variant",
-          originalPrice: originalPrice || 0,
-          salePrice: salePrice || originalPrice || 0,
+          salePrice: salePrice || 0,
+          compareAtPrice: compareAtPrice ?? null,
+          costPrice: costPrice ?? null,
           sku: "", // Generate or empty
         },
       });
+
+      const activeMarkets = await tx.market.findMany({
+        where: { isActive: true },
+      });
+      if (activeMarkets.length > 0) {
+        await tx.variantMarket.createMany({
+          data: activeMarkets.map((market) => ({
+            variantId: variant.id,
+            marketId: market.id,
+            salePrice: salePrice || 0,
+            compareAtPrice: compareAtPrice ?? null,
+            costPrice: costPrice ?? null,
+            inventoryQuantity: 0,
+            isAvailable: true,
+            isPublished: true,
+          })),
+        });
+      }
 
       return product;
     });
@@ -48,10 +106,8 @@ export default class ProductDB {
         },
         variants: {
           where: { deletedAt: null },
-          include: {
-            selectedOptions: true,
-            inventory: true,
-          },
+          orderBy: { createdAt: "asc" },
+          include: ProductDB.buildVariantInclude(undefined, true),
         },
         collections: true,
         mediaProducts: {
@@ -62,7 +118,7 @@ export default class ProductDB {
     });
   }
 
-  static async findBySlug(slug: string) {
+  static async findBySlug(slug: string, marketId?: string) {
     return await prisma.product.findUnique({
       where: { slug },
       include: {
@@ -72,10 +128,8 @@ export default class ProductDB {
         },
         variants: {
           where: { deletedAt: null },
-          include: {
-            selectedOptions: true,
-            inventory: true,
-          },
+          orderBy: { createdAt: "asc" },
+          include: ProductDB.buildVariantInclude(marketId),
         },
         collections: true,
         mediaProducts: {
@@ -86,7 +140,12 @@ export default class ProductDB {
     });
   }
 
-  static async list(page = 1, limit = 20, status?: ProductStatus) {
+  static async list(
+    page = 1,
+    limit = 20,
+    status?: ProductStatus,
+    marketId?: string,
+  ) {
     const skip = (Number(page) - 1) * Number(limit);
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
@@ -101,9 +160,10 @@ export default class ProductDB {
         orderBy: { createdAt: "desc" },
         include: {
           variants: {
-            take: 1,
             where: { deletedAt: null },
-            include: { inventory: true },
+            orderBy: { createdAt: "asc" },
+            ...(marketId ? {} : { take: 1 }),
+            include: ProductDB.buildVariantInclude(marketId),
           },
           mediaProducts: {
             take: 1,
@@ -121,11 +181,16 @@ export default class ProductDB {
     return { products, total, totalPages: Math.ceil(total / limit) };
   }
 
-  static async listDeals(page = 1, limit = 20, status?: ProductStatus) {
+  static async listDeals(
+    page = 1,
+    limit = 20,
+    status?: ProductStatus,
+    marketId?: string,
+  ) {
     const skip = (page - 1) * limit;
 
     // Prisma doesn't natively support comparing two columns inside the same relational table easily via 'where'.
-    // We fetch all active products, then filter them by JS math where salePrice > 0 and salePrice < originalPrice
+    // We fetch all active products, then filter them by JS math where salePrice < compareAtPrice.
 
     // First retrieve the matching base products
     const rawProducts = await prisma.product.findMany({
@@ -136,7 +201,8 @@ export default class ProductDB {
       include: {
         variants: {
           where: { deletedAt: null },
-          include: { inventory: true },
+          orderBy: { createdAt: "asc" },
+          include: ProductDB.buildVariantInclude(marketId),
         },
         mediaProducts: {
           take: 1,
@@ -155,8 +221,8 @@ export default class ProductDB {
       if (!p.variants || p.variants.length === 0) return false;
       const v = p.variants[0];
       const sale = Number(v.salePrice) || 0;
-      const orig = Number(v.originalPrice) || 0;
-      return sale > 0 && sale < orig;
+      const compareAt = Number(v.compareAtPrice) || 0;
+      return sale > 0 && compareAt > 0 && sale < compareAt;
     });
 
     // Sort by salePrice ascending
@@ -179,6 +245,7 @@ export default class ProductDB {
     page = 1,
     limit = 20,
     status?: ProductStatus,
+    marketId?: string,
   ) {
     const skip = (Number(page) - 1) * Number(limit);
     const where: Prisma.ProductWhereInput = {
@@ -199,9 +266,10 @@ export default class ProductDB {
         orderBy: { createdAt: "desc" },
         include: {
           variants: {
-            take: 1,
             where: { deletedAt: null },
-            include: { inventory: true },
+            orderBy: { createdAt: "asc" },
+            ...(marketId ? {} : { take: 1 }),
+            include: ProductDB.buildVariantInclude(marketId),
           },
           mediaProducts: {
             take: 1,
@@ -224,6 +292,7 @@ export default class ProductDB {
     page = 1,
     limit = 20,
     status?: ProductStatus,
+    marketId?: string,
   ) {
     const skip = (Number(page) - 1) * Number(limit);
     const where: Prisma.ProductWhereInput = {
@@ -240,9 +309,10 @@ export default class ProductDB {
         orderBy: { createdAt: "desc" },
         include: {
           variants: {
-            take: 1,
             where: { deletedAt: null },
-            include: { inventory: true },
+            orderBy: { createdAt: "asc" },
+            ...(marketId ? {} : { take: 1 }),
+            include: ProductDB.buildVariantInclude(marketId),
           },
           mediaProducts: {
             take: 1,
@@ -260,7 +330,7 @@ export default class ProductDB {
     return { products, total, totalPages: Math.ceil(total / limit) };
   }
 
-  static async listByIds(ids: string[]) {
+  static async listByIds(ids: string[], marketId?: string) {
     return await prisma.product.findMany({
       where: {
         id: { in: ids },
@@ -268,9 +338,10 @@ export default class ProductDB {
       },
       include: {
         variants: {
-          take: 1,
           where: { deletedAt: null },
-          include: { inventory: true },
+          orderBy: { createdAt: "asc" },
+          ...(marketId ? {} : { take: 1 }),
+          include: ProductDB.buildVariantInclude(marketId),
         },
         mediaProducts: {
           take: 1,
@@ -284,7 +355,7 @@ export default class ProductDB {
     });
   }
 
-  static async listFeatured(limit = 4) {
+  static async listFeatured(limit = 4, marketId?: string) {
     return await prisma.product.findMany({
       where: {
         deletedAt: null,
@@ -295,9 +366,10 @@ export default class ProductDB {
       orderBy: { createdAt: "desc" },
       include: {
         variants: {
-          take: 1,
           where: { deletedAt: null },
-          include: { inventory: true },
+          orderBy: { createdAt: "asc" },
+          ...(marketId ? {} : { take: 1 }),
+          include: ProductDB.buildVariantInclude(marketId),
         },
         mediaProducts: {
           take: 1,
@@ -425,7 +497,10 @@ export default class ProductDB {
             orderBy: { position: "asc" },
           },
           variants: {
-            include: { selectedOptions: true, inventory: true },
+            orderBy: { createdAt: "asc" },
+            include: {
+              ...ProductDB.buildVariantInclude(undefined, true),
+            },
           },
         },
       });
@@ -440,14 +515,35 @@ export default class ProductDB {
       );
       const baseVariant =
         activeVariants.find(
-          (v) => Number(v.originalPrice) > 0 || Number(v.salePrice) > 0,
+          (v) =>
+            Number(v.salePrice) > 0 ||
+            Number(v.compareAtPrice) > 0 ||
+            Number(v.costPrice) > 0,
         ) || activeVariants[0];
 
       const baseInventory = baseVariant?.inventory?.quantity ?? 0;
-      const baseOriginalPrice = Number(baseVariant?.originalPrice || 0);
-      const baseSalePrice = Number(
-        baseVariant?.salePrice || baseVariant?.originalPrice || 0,
-      );
+      const baseSalePrice = Number(baseVariant?.salePrice || 0);
+      const baseCompareAtPrice =
+        baseVariant?.compareAtPrice !== null &&
+        baseVariant?.compareAtPrice !== undefined
+          ? Number(baseVariant.compareAtPrice)
+          : null;
+      const baseCostPrice =
+        baseVariant?.costPrice !== null && baseVariant?.costPrice !== undefined
+          ? Number(baseVariant.costPrice)
+          : null;
+      const baseMarketPrices = (baseVariant?.variantMarkets || []).map((entry) => ({
+        marketId: entry.marketId,
+        salePrice: entry.salePrice,
+        compareAtPrice: entry.compareAtPrice,
+        costPrice: entry.costPrice,
+        inventoryQuantity: entry.inventoryQuantity,
+        reservedQuantity: entry.reservedQuantity,
+        isAvailable: entry.isAvailable,
+        isPublished: entry.isPublished,
+        minOrderQty: entry.minOrderQty,
+        maxOrderQty: entry.maxOrderQty,
+      }));
 
       const options = product.options.filter((opt) => opt.values.length > 0);
 
@@ -475,10 +571,20 @@ export default class ProductDB {
             data: {
               productId,
               title: "Default Variant",
-              originalPrice: baseOriginalPrice,
               salePrice: baseSalePrice,
+              compareAtPrice: baseCompareAtPrice,
+              costPrice: baseCostPrice,
             },
           });
+
+          if (baseMarketPrices.length > 0) {
+            await tx.variantMarket.createMany({
+              data: baseMarketPrices.map((entry) => ({
+                ...entry,
+                variantId: created.id,
+              })),
+            });
+          }
 
           if (baseInventory > 0) {
             await tx.inventory.create({
@@ -601,13 +707,23 @@ export default class ProductDB {
           data: {
             productId,
             title,
-            originalPrice: baseOriginalPrice,
             salePrice: baseSalePrice,
+            compareAtPrice: baseCompareAtPrice,
+            costPrice: baseCostPrice,
             selectedOptions: {
               connect: combo.map((value) => ({ id: value.id })),
             },
           },
         });
+
+        if (baseMarketPrices.length > 0) {
+          await tx.variantMarket.createMany({
+            data: baseMarketPrices.map((entry) => ({
+              ...entry,
+              variantId: created.id,
+            })),
+          });
+        }
 
         if (baseInventory > 0) {
           await tx.inventory.create({
@@ -637,10 +753,20 @@ export default class ProductDB {
   static async updateVariant(
     variantId: string,
     data: {
-      originalPrice: number;
       salePrice: number;
+      compareAtPrice?: number | null;
+      costPrice?: number | null;
       sku?: string;
       inventory: number;
+      marketPrices?: Array<{
+        marketId: string;
+        salePrice: number;
+        compareAtPrice?: number | null;
+        costPrice?: number | null;
+        inventoryQuantity?: number | null;
+        isAvailable?: boolean;
+        isPublished?: boolean;
+      }>;
     },
   ) {
     return await prisma.$transaction(async (tx) => {
@@ -648,8 +774,9 @@ export default class ProductDB {
       const variant = await tx.productVariant.update({
         where: { id: variantId },
         data: {
-          originalPrice: data.originalPrice,
           salePrice: data.salePrice,
+          compareAtPrice: data.compareAtPrice ?? null,
+          costPrice: data.costPrice ?? null,
           sku: data.sku,
         },
       });
@@ -660,6 +787,37 @@ export default class ProductDB {
         create: { variantId, quantity: data.inventory },
         update: { quantity: data.inventory },
       });
+
+      if (data.marketPrices) {
+        for (const marketPrice of data.marketPrices) {
+          await tx.variantMarket.upsert({
+            where: {
+              variantId_marketId: {
+                variantId,
+                marketId: marketPrice.marketId,
+              },
+            },
+            create: {
+              variantId,
+              marketId: marketPrice.marketId,
+              salePrice: marketPrice.salePrice,
+              compareAtPrice: marketPrice.compareAtPrice ?? null,
+              costPrice: marketPrice.costPrice ?? null,
+              inventoryQuantity: marketPrice.inventoryQuantity ?? 0,
+              isAvailable: marketPrice.isAvailable ?? true,
+              isPublished: marketPrice.isPublished ?? true,
+            },
+            update: {
+              salePrice: marketPrice.salePrice,
+              compareAtPrice: marketPrice.compareAtPrice ?? null,
+              costPrice: marketPrice.costPrice ?? null,
+              inventoryQuantity: marketPrice.inventoryQuantity ?? 0,
+              isAvailable: marketPrice.isAvailable ?? true,
+              isPublished: marketPrice.isPublished ?? true,
+            },
+          });
+        }
+      }
 
       return variant;
     });

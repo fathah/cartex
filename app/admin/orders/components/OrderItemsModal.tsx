@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal, Table, Divider, Button } from "antd";
-import Currency from "@/components/common/Currency";
+import AdminMoney from "@/components/common/AdminMoney";
 import { getMediaUrl } from "@/utils/media_url";
 
 interface OrderItemsModalProps {
@@ -73,14 +73,19 @@ export const OrderItemsModal = ({
               title: "Price",
               dataIndex: "price",
               key: "price",
-              render: (val: number) => <Currency value={val} />,
+              render: (val: number) => (
+                <AdminMoney value={val} currencyCode={order.currency} />
+              ),
               align: "right",
             },
             {
               title: "Total",
               key: "total",
               render: (_: any, record: any) => (
-                <Currency value={record.price * record.quantity} />
+                <AdminMoney
+                  value={record.price * record.quantity}
+                  currencyCode={order.currency}
+                />
               ),
               align: "right",
             },
@@ -95,7 +100,7 @@ export const OrderItemsModal = ({
           <div className="text-gray-500">
             Order Total:{" "}
             <span className="text-black font-bold">
-              <Currency value={order.totalPrice} />
+              <AdminMoney value={order.totalPrice} currencyCode={order.currency} />
             </span>
           </div>
         </div>
