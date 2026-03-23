@@ -131,11 +131,13 @@ export default function ProductDetail({ product }: ProductDetailProps) {
     return `${AppConstants.DRIVE_ROOT_URL}/${url}`;
   };
 
+  const PLACEHOLDER = "https://placehold.co/1200x1200?text=No+Image";
+
   // Media handling
   const images =
     product.mediaProducts?.length > 0
       ? product.mediaProducts.map((mp: any) => getFullImageUrl(mp.media.url))
-      : ["/placeholder.png"]; // Fallback
+      : [PLACEHOLDER]; // Fallback
   const [mainImage, setMainImage] = useState(images[0]);
 
   // Update main image when product changes
@@ -284,45 +286,45 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         {/* Options */}
         {!isUnavailableInRegion &&
           product.options.map((opt: any) => (
-          <div key={opt.id} className="mb-6">
-            <h3 className="text-base font-semibold mb-3">
-              Choose a {opt.name}
-            </h3>
-            <div className="flex gap-3">
-              {opt.values.map((val: any) => {
-                const isSelected = selectedOptions[opt.name] === val.value;
-                // Basic Color Logic (Needs real color codes later)
-                const isColor = opt.name.toLowerCase() === "color";
-                const colorMap: any = {
-                  Green: "#a3bfaa",
-                  Black: "#333",
-                  Blue: "#6b8cae",
-                  Silver: "#e0e0e0",
-                  Pink: "#e8b8b8",
-                };
-                const bg = isColor ? colorMap[val.value] || "#ddd" : "white";
+            <div key={opt.id} className="mb-6">
+              <h3 className="text-base font-semibold mb-3">
+                Choose a {opt.name}
+              </h3>
+              <div className="flex gap-3">
+                {opt.values.map((val: any) => {
+                  const isSelected = selectedOptions[opt.name] === val.value;
+                  // Basic Color Logic (Needs real color codes later)
+                  const isColor = opt.name.toLowerCase() === "color";
+                  const colorMap: any = {
+                    Green: "#a3bfaa",
+                    Black: "#333",
+                    Blue: "#6b8cae",
+                    Silver: "#e0e0e0",
+                    Pink: "#e8b8b8",
+                  };
+                  const bg = isColor ? colorMap[val.value] || "#ddd" : "white";
 
-                return (
-                  <button
-                    key={val.id}
-                    onClick={() => handleOptionChange(opt.name, val.value)}
-                    className={`
+                  return (
+                    <button
+                      key={val.id}
+                      onClick={() => handleOptionChange(opt.name, val.value)}
+                      className={`
                                         ${
                                           isColor
                                             ? `w-12 h-12 rounded-full flex items-center justify-center transition-all ${isSelected ? "ring-2 ring-offset-2 ring-[#003d29]" : ""}`
                                             : `px-6 py-2 rounded-full text-sm font-medium transition-colors border ${isSelected ? "bg-[#003d29] text-white border-[#003d29]" : "bg-gray-100 text-gray-900 border-transparent hover:bg-gray-200"}`
                                         }
                                     `}
-                    title={val.value}
-                    style={isColor ? { backgroundColor: bg } : {}}
-                  >
-                    {!isColor && val.value}
-                  </button>
-                );
-              })}
+                      title={val.value}
+                      style={isColor ? { backgroundColor: bg } : {}}
+                    >
+                      {!isColor && val.value}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
         <div className="flex items-start gap-6 mb-8">
           <div className="bg-[#f4f4fa] rounded-full flex items-center px-4 py-3 gap-4 font-semibold">
@@ -344,7 +346,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           <div className="flex flex-col text-xs mt-2">
             {isOutOfStock ? (
               <span className="text-red-500 font-bold mb-1 text-sm bg-red-50 px-2 py-1 rounded inline-block w-fit">
-                {isUnavailableInRegion ? "Unavailable in Your Region" : "Out of Stock"}
+                {isUnavailableInRegion
+                  ? "Unavailable in Your Region"
+                  : "Out of Stock"}
               </span>
             ) : stockCount > 0 && stockCount < 20 ? (
               <span className="text-orange-500 font-medium mb-1">
