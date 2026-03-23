@@ -13,13 +13,11 @@ import {
   Divider,
   Switch,
   Tabs,
-  Typography,
 } from "antd";
 import { Edit } from "lucide-react";
 import {
   createProduct,
   updateProduct,
-  addMedia,
   linkMedia,
   removeMedia,
   checkSlugAvailability,
@@ -30,10 +28,28 @@ import { getBrands, createBrand } from "@/actions/brands";
 import { useRouter } from "next/navigation";
 import { ProductStatus } from "@prisma/client";
 import VariantManager from "./VariantManager";
+import AIDescriptionGenerator from "./AIDescriptionGenerator";
 import { Upload } from "antd";
 import { AppConstants } from "@/constants/constants";
 import { useCurrency } from "@/components/providers/currency-provider";
 import MediaPicker from "@/app/admin/media/media_picker";
+import dynamic from "next/dynamic";
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
+
+const EditorWrapper = ({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange?: (val?: string) => void;
+}) => {
+  return (
+    <div data-color-mode="light">
+      <MDEditor value={value} onChange={onChange} height={400} />
+    </div>
+  );
+};
 
 interface ProductFormProps {
   initialData?: any;
@@ -351,9 +367,22 @@ export default function ProductForm({
           </div>
         )}
       </Form.Item>
+    </Card>
+  );
 
-      <Form.Item name="description" label="Description">
-        <Input.TextArea rows={4} />
+  const descriptionSection = (
+    <Card title="Product Description" className="mb-6">
+      <AIDescriptionGenerator
+        form={form}
+        brands={brands}
+        collections={collections}
+      />
+      <Form.Item
+        name="description"
+        label="Description"
+        help="Full Markdown Editor support"
+      >
+        <EditorWrapper />
       </Form.Item>
     </Card>
   );
@@ -522,9 +551,12 @@ export default function ProductForm({
               key: "basic",
               label: "Basic Info",
               children: (
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <div className="flex-1">{basicInfo}</div>
-                  <div className="w-full xl:w-80">{organizationSection}</div>
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="flex-1">{basicInfo}</div>
+                    <div className="w-full xl:w-80">{organizationSection}</div>
+                  </div>
+                  <div className="w-full">{descriptionSection}</div>
                 </div>
               ),
             },
@@ -541,9 +573,12 @@ export default function ProductForm({
           ]}
         />
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1">{basicInfo}</div>
-          <div className="w-full xl:w-80">{organizationSection}</div>
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-1">{basicInfo}</div>
+            <div className="w-full xl:w-80">{organizationSection}</div>
+          </div>
+          <div className="w-full">{descriptionSection}</div>
         </div>
       )}
 

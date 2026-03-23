@@ -116,7 +116,7 @@ model Product {
   name            String
   slug            String  @unique
   description     String?
-  descriptionHtml String?
+  descriptionLong String?
 
   status ProductStatus @default(DRAFT)
 

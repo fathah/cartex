@@ -1,10 +1,27 @@
 "use server";
 
 import ProductDB, { CreateProductData } from "@/db/product";
+import ConfigDB from "@/db/config";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { generateText } from "ai";
 import { Prisma, ProductStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireAdminAuth } from "@/services/zauth";
+
+type ProductDescriptionTone = "balanced" | "luxury" | "technical" | "playful";
+type ProductDescriptionLength = "short" | "medium" | "long";
+type ProductDescriptionFormat = "story" | "benefits" | "paragraph";
+
+interface GenerateProductDescriptionInput {
+  name: string;
+  brandName?: string | null;
+  collectionNames?: string[];
+  existingDescription?: string | null;
+  customPrompt?: string | null;
+  tone?: ProductDescriptionTone;
+  length?: ProductDescriptionLength;
+  format?: ProductDescriptionFormat;
+}
 
 export async function getProducts(
   page = 1,
@@ -181,4 +198,99 @@ export async function checkSlugAvailability(slug: string, excludeId?: string) {
     return true; // Still available if it's the same product
   }
   return !product;
+}
+
+export async function generateProductDescription(
+  input: GenerateProductDescriptionInput,
+) {
+  await requireAdminAuth();
+
+  const name = input.name?.trim();
+  if (!name) {
+    throw new Error("Add a product title before generating a description.");
+  }
+
+  const { openrouterApiKey, openrouterModel } =
+    await ConfigDB.getAIAutomationSettings();
+
+  if (!openrouterApiKey || !openrouterModel) {
+    throw new Error(
+      "OpenRouter is not configured. Add your API key and model in Admin Settings -> AI & Automation.",
+    );
+  }
+
+  const openrouter = createOpenRouter({ apiKey: openrouterApiKey });
+  const { text } = await generateText({
+    model: openrouter(openrouterModel),
+    system: [
+      "You are an expert ecommerce copywriter for a premium storefront.",
+      "Write persuasive, credible product descriptions that feel polished and human.",
+      "Use only the details provided. Never invent materials, measurements, certifications, warranties, discounts, or technical claims.",
+      "Return as  markdown",
+    ].join(" "),
+    prompt: buildProductDescriptionPrompt({
+      ...input,
+      name,
+      tone: input.tone ?? "balanced",
+      length: input.length ?? "medium",
+      format: input.format ?? "story",
+    }),
+  });
+
+  const description = text.trim();
+  if (!description) {
+    throw new Error(
+      "The model returned an empty description. Please try again.",
+    );
+  }
+
+  return { description };
+}
+
+function buildProductDescriptionPrompt(
+  input: Required<
+    Pick<GenerateProductDescriptionInput, "name" | "tone" | "length" | "format">
+  > &
+    Omit<
+      GenerateProductDescriptionInput,
+      "name" | "tone" | "length" | "format"
+    >,
+) {
+  const toneGuide: Record<ProductDescriptionTone, string> = {
+    balanced: "Keep the voice polished, modern, and broadly appealing.",
+    luxury:
+      "Make it feel refined, elevated, and aspirational without sounding exaggerated.",
+    technical: "Lead with function, clarity, and product usefulness.",
+    playful: "Keep it lively, warm, and stylish while still sounding credible.",
+  };
+
+  const lengthGuide: Record<ProductDescriptionLength, string> = {
+    short: "Keep it concise: around 70 to 110 words.",
+    medium: "Aim for a balanced description: around 120 to 180 words.",
+    long: "Create a fuller description: around 180 to 260 words.",
+  };
+
+  const formatGuide: Record<ProductDescriptionFormat, string> = {
+    story: "Use a short opening paragraph followed by compact benefit bullets.",
+    benefits: "Write a benefit-led description with crisp bullet points.",
+    paragraph: "Write in clean paragraphs without bullets.",
+  };
+
+  return [
+    `Product title: ${input.name}`,
+    `Brand: ${input.brandName?.trim() || "Not provided"}`,
+    `Collections: ${
+      input.collectionNames && input.collectionNames.length > 0
+        ? input.collectionNames.join(", ")
+        : "Not provided"
+    }`,
+    `Existing description: ${input.existingDescription?.trim() || "None"}`,
+    `Custom instructions: ${input.customPrompt?.trim() || "None"}`,
+    `Tone direction: ${toneGuide[input.tone]}`,
+    `Length direction: ${lengthGuide[input.length]}`,
+    `Structure direction: ${formatGuide[input.format]}`,
+    "Write copy that feels ready to paste into a product description field.",
+    "Focus on value, desirability, and shopper clarity.",
+    "If details are missing, keep the wording specific in feel but conservative in factual claims.",
+  ].join("\n");
 }

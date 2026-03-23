@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { Button, Tag, Divider, InputNumber, message } from "antd";
 import { ShoppingCart } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 import { AppConstants } from "@/constants/constants";
 import { useCartStore } from "@/lib/store/cart";
 import Currency from "../../../../components/common/Currency";
@@ -194,9 +196,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         <h1 className="text-4xl font-bold mb-2 tracking-tight">
           {product.name}
         </h1>
-        <p className="text-gray-500 mb-4 text-sm leading-relaxed max-w-md">
-          {product.description || "No Description"}
-        </p>
+        <div className="prose prose-sm max-w-none text-gray-500 mb-6 leading-relaxed">
+          <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+            {product.description || "No Description"}
+          </ReactMarkdown>
+        </div>
 
         {/* Rating */}
         <div className="flex items-center gap-1 mb-6 text-sm">
