@@ -196,11 +196,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         <h1 className="text-4xl font-bold mb-2 tracking-tight">
           {product.name}
         </h1>
-        <div className="prose prose-sm max-w-none text-gray-500 mb-6 leading-relaxed">
-          <ReactMarkdown rehypePlugins={[rehypeRaw]}>
-            {product.description || "No Description"}
-          </ReactMarkdown>
-        </div>
+        <p className="text-gray-500 mb-6 text-sm leading-relaxed max-w-md">
+          {product.description || ""}
+        </p>
 
         {/* Rating */}
         <div className="flex items-center gap-1 mb-6 text-sm">
@@ -359,6 +357,16 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
       {/* Product Reviews Section */}
       <div className="md:col-span-2 mt-8 pt-12 border-t border-gray-100">
+        {product.descriptionLong && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">Product Story</h2>
+            <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed">
+              <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                {product.descriptionLong}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
         <ProductReviews productId={product.id} variantId={currentVariant?.id} />
       </div>
     </div>

@@ -224,9 +224,11 @@ export async function generateProductDescription(
     model: openrouter(openrouterModel),
     system: [
       "You are an expert ecommerce copywriter for a premium storefront.",
-      "Write persuasive, credible product descriptions that feel polished and human.",
-      "Use only the details provided. Never invent materials, measurements, certifications, warranties, discounts, or technical claims.",
-      "Return as  markdown",
+      "Return a JSON object with two fields:",
+      "1. 'short': A punchy, one-sentence plain text summary for product cards/headers. No Markdown.",
+      "2. 'long': A detailed, persuasive Markdown description for the product page. Use headings, lists, and bold text for engagement.",
+      "Use only the details provided. Never invent factual claims.",
+      "Response MUST be valid JSON.",
     ].join(" "),
     prompt: buildProductDescriptionPrompt({
       ...input,
@@ -237,14 +239,30 @@ export async function generateProductDescription(
     }),
   });
 
-  const description = text.trim();
-  if (!description) {
+  try {
+    const cleanText = text.trim();
+    // Try to find JSON in the response if the model added conversational filler
+    const jsonStart = cleanText.indexOf("{");
+    const jsonEnd = cleanText.lastIndexOf("}");
+    if (jsonStart === -1 || jsonEnd === -1) {
+      throw new Error("Invalid AI response: JSON not found.");
+    }
+    const result = JSON.parse(cleanText.substring(jsonStart, jsonEnd + 1));
+
+    if (!result.short || !result.long) {
+      throw new Error("Invalid AI response: Missing required fields.");
+    }
+
+    return {
+      description: result.short,
+      descriptionLong: result.long,
+    };
+  } catch (err) {
+    console.error("AI Parse Error:", text, err);
     throw new Error(
-      "The model returned an empty description. Please try again.",
+      "The AI returned an invalid format. Please try again or provide more details.",
     );
   }
-
-  return { description };
 }
 
 function buildProductDescriptionPrompt(

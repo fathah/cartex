@@ -9,6 +9,7 @@ import { generateProductDescription } from "@/actions/product";
 type ProductFormSnapshot = {
   name?: string;
   description?: string;
+  descriptionLong?: string;
   productBrandId?: string;
   collectionIds?: string[];
 };
@@ -58,7 +59,10 @@ export default function AIDescriptionGenerator({
         existingDescription: currentDescription,
         customPrompt,
       });
-      form.setFieldsValue({ description: result.description });
+      form.setFieldsValue({
+        description: result.description,
+        descriptionLong: result.descriptionLong,
+      });
       message.success("Description generated");
     } catch (error) {
       const errorMessage =

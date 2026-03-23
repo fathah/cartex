@@ -367,20 +367,30 @@ export default function ProductForm({
           </div>
         )}
       </Form.Item>
+      <Form.Item
+        name="description"
+        label="Short Description"
+        help="A brief summary for product cards and search results (plain text)."
+      >
+        <Input.TextArea
+          rows={3}
+          placeholder="e.g. A premium cotton t-shirt with a modern fit."
+        />
+      </Form.Item>
     </Card>
   );
 
   const descriptionSection = (
-    <Card title="Product Description" className="mb-6">
+    <Card title="Product Detailed Description" className="mb-6">
       <AIDescriptionGenerator
         form={form}
         brands={brands}
         collections={collections}
       />
       <Form.Item
-        name="description"
-        label="Description"
-        help="Full Markdown Editor support"
+        name="descriptionLong"
+        label="Detailed Description (Markdown)"
+        help="Write your full product story here with rich formatting."
       >
         <EditorWrapper />
       </Form.Item>
@@ -536,10 +546,10 @@ export default function ProductForm({
       form={form}
       layout="vertical"
       initialValues={{
-        ...initialData,
         status: initialData?.status || "DRAFT",
         isFeatured: initialData?.isFeatured || false,
         collectionIds: initialData?.collections?.map((c: any) => c.id) || [],
+        descriptionLong: initialData?.descriptionLong || "",
       }}
       onFinish={onFinish}
     >
