@@ -546,6 +546,7 @@ export default function ProductForm({
       form={form}
       layout="vertical"
       initialValues={{
+        ...initialData,
         status: initialData?.status || "DRAFT",
         isFeatured: initialData?.isFeatured || false,
         collectionIds: initialData?.collections?.map((c: any) => c.id) || [],

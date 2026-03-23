@@ -10,7 +10,7 @@ export default async function StoreFooter() {
 
   const footerContent = () => {
     if (!footerConfig) {
-      return <DefaultFooter />;
+      return <div></div>;
     }
 
     const { id, configs } = footerConfig;
@@ -25,7 +25,7 @@ export default async function StoreFooter() {
       case "classic-bordered":
         return <ClassicFooter configs={configs} />;
       default:
-        return <DefaultFooter />;
+        return <div></div>;
     }
   };
 
@@ -37,21 +37,9 @@ export default async function StoreFooter() {
   );
 }
 
-function DefaultFooter() {
-  return (
-    <footer className="border-t py-12 bg-gray-50 mt-auto">
-      <div className="container mx-auto px-4 text-center text-gray-500">
-        <p>
-          &copy; {new Date().getFullYear()} Cartex Pro. All rights reserved.
-        </p>
-      </div>
-    </footer>
-  );
-}
-
 function MultiMarketFooter() {
   return (
-    <footer className="border-t py-12 bg-gray-50 mt-auto">
+    <footer className="border-t border-gray-300 py-5 bg-black text-white mt-auto">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl">
           <MarketPicker />

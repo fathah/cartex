@@ -306,9 +306,7 @@ export async function generateProductDescription(
     await ConfigDB.getAIAutomationSettings();
 
   if (!openrouterApiKey || !openrouterModel) {
-    throw new Error(
-      "OpenRouter is not configured. Add your API key and model in Admin Settings -> AI & Automation.",
-    );
+    throw new Error("OpenRouter is not configured in the AI Settings");
   }
 
   const openrouter = createOpenRouter({ apiKey: openrouterApiKey });
