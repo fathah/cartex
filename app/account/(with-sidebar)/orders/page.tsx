@@ -2,6 +2,7 @@ import { Search, ChevronDown, Package } from "lucide-react";
 import { getOrders } from "@/actions/orders";
 import { getMediaUrl } from "@/utils/media_url";
 import Currency from "@/components/common/Currency";
+import Link from "next/link";
 
 const OrdersPage = async () => {
   const orders = await getOrders();
@@ -61,14 +62,14 @@ const OrdersPage = async () => {
                     </span>
                   </div>
                 </div>
-                {/* <div className="flex items-center gap-2">
-                  <button className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-1.5 rounded text-sm font-medium transition-colors">
-                    Rate Your Experience
-                  </button>
-                  <button className="p-1 hover:bg-gray-100 rounded">
-                    <MoreVertical size={20} className="text-gray-400" />
-                  </button>
-                </div> */}
+                <div className="flex items-center gap-2 shrink-0 ml-4">
+                  <Link
+                    href={`/account/orders/${order.id}`}
+                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all"
+                  >
+                    View Details
+                  </Link>
+                </div>
               </div>
 
               {/* Order Items */}
@@ -76,17 +77,19 @@ const OrdersPage = async () => {
                 {order.items.map((item) => (
                   <div key={item.id} className="flex gap-4 mb-4 last:mb-0">
                     <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden shrink-0">
-                      {item.image ? (
-                        <img
-                          src={getMediaUrl(item.image)}
-                          alt={item.title}
-                          className="w-full h-full object-cover mix-blend-multiply"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                          No Img
-                        </div>
-                      )}
+                      <Link href={`/account/orders/${order.id}`}>
+                        {item.image ? (
+                          <img
+                            src={getMediaUrl(item.image)}
+                            alt={item.title}
+                            className="w-full h-full object-cover mix-blend-multiply hover:opacity-80 transition-opacity"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                            No Img
+                          </div>
+                        )}
+                      </Link>
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-start">

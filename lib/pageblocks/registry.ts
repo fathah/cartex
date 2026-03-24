@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 export type BlockCategory =
   | "Hero"
   | "Products"
+  | "Collections"
   | "Content"
   | "Social"
   | "Media"
@@ -14,6 +15,9 @@ export type BlockType =
   | "TEXT"
   | "PRODUCTS_GRID"
   | "PRODUCTS_SLIDER"
+  | "COLLECTIONS_GRID"
+  | "COLLECTIONS_SPOTLIGHT"
+  | "COLLECTIONS_RAIL"
   | "TESTIMONIALS"
   | "CAROUSEL_1_3"
   | "CAROUSEL_1_2"
@@ -23,7 +27,7 @@ export interface BlockDefinition {
   type: BlockType;
   label: string;
   category: BlockCategory;
-  component: React.ComponentType<any>;
+  component: React.ComponentType<Record<string, unknown>>;
   description?: string;
 }
 
@@ -66,6 +70,36 @@ export const BLOCK_REGISTRY: Record<BlockType, BlockDefinition> = {
       () => import("@/components/pageblocks/ProductsSlider/ProductsSlider"),
     ),
     description: "A sliding carousel of products.",
+  },
+  COLLECTIONS_GRID: {
+    type: "COLLECTIONS_GRID",
+    label: "Collections Grid",
+    category: "Collections",
+    component: dynamic(
+      () => import("@/components/pageblocks/CollectionsGrid/CollectionsGrid"),
+    ),
+    description: "A polished grid of collections with image-led cards.",
+  },
+  COLLECTIONS_SPOTLIGHT: {
+    type: "COLLECTIONS_SPOTLIGHT",
+    label: "Collections Spotlight",
+    category: "Collections",
+    component: dynamic(
+      () =>
+        import(
+          "@/components/pageblocks/CollectionsSpotlight/CollectionsSpotlight"
+        ),
+    ),
+    description: "A featured collection layout with supporting collection cards.",
+  },
+  COLLECTIONS_RAIL: {
+    type: "COLLECTIONS_RAIL",
+    label: "Collections Rail",
+    category: "Collections",
+    component: dynamic(
+      () => import("@/components/pageblocks/CollectionsRail/CollectionsRail"),
+    ),
+    description: "A horizontal collection rail for quick discovery.",
   },
   TESTIMONIALS: {
     type: "TESTIMONIALS",
@@ -117,6 +151,7 @@ export const getGroupedBlockTypes = () => {
   const groups: Record<BlockCategory, BlockDefinition[]> = {
     Hero: [],
     Products: [],
+    Collections: [],
     Content: [],
     Social: [],
     Media: [],
@@ -128,7 +163,7 @@ export const getGroupedBlockTypes = () => {
   });
 
   return Object.entries(groups)
-    .filter(([_, blocks]) => blocks.length > 0)
+    .filter(([, blocks]) => blocks.length > 0)
     .map(([category, blocks]) => ({
       category,
       blocks,

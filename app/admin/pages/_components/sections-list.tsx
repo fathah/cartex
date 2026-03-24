@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   List,
   Button,
@@ -14,29 +14,21 @@ import {
 } from "antd";
 import { Settings, Layout, Edit, CheckCircle2 } from "lucide-react";
 import { SECTIONS, SectionMetadata } from "@/constants/sections";
-import { getSectionConfig, updateSectionConfig } from "@/actions/sections";
+import { updateSectionConfig } from "@/actions/sections";
 
 const { Text } = Typography;
 
-const SectionsList: React.FC = () => {
-  const [configs, setConfigs] = useState<Record<string, any>>({});
+interface SectionsListProps {
+  initialConfigs?: Record<string, any>;
+}
+
+const SectionsList: React.FC<SectionsListProps> = ({ initialConfigs = {} }) => {
+  const [configs, setConfigs] = useState<Record<string, any>>(initialConfigs);
   const [editingSection, setEditingSection] = useState<SectionMetadata | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
-
-  useEffect(() => {
-    const fetchConfigs = async () => {
-      const data: Record<string, any> = {};
-      for (const section of SECTIONS) {
-        const config = await getSectionConfig(section.key);
-        if (config) data[section.key] = config;
-      }
-      setConfigs(data);
-    };
-    fetchConfigs();
-  }, []);
 
   const handleEdit = (section: SectionMetadata) => {
     setEditingSection(section);
@@ -78,7 +70,6 @@ const SectionsList: React.FC = () => {
                           2,
                         ),
                       });
-                      // Force re-render of modal content if needed, but Ant Form usually handles it
                     }}
                   >
                     <Card.Meta title={design.name} />

@@ -19,6 +19,23 @@ export async function getSectionConfig(key: string) {
   }
 }
 
+export async function getSectionConfigs(keys: string[]) {
+  const configs = await prisma.config.findMany({
+    where: { key: { in: keys } },
+  });
+
+  const configMap: Record<string, any> = {};
+  configs.forEach((c) => {
+    try {
+      configMap[c.key] = JSON.parse(c.value);
+    } catch (e) {
+      console.error(`Failed to parse config for ${c.key}:`, e);
+    }
+  });
+
+  return configMap;
+}
+
 export async function updateSectionConfig(key: string, data: any) {
   await requireAdminAuth();
   try {

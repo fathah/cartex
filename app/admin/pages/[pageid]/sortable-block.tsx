@@ -5,13 +5,22 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, Button, Space, Popconfirm } from "antd";
 import { Trash2, Edit, GripVertical } from "lucide-react";
+import { getBlockDefinition } from "@/lib/pageblocks/registry";
+import { PageBlock } from "@prisma/client";
 
 interface SortableBlockProps {
   id: string;
-  block: any;
-  onEdit: (block: any) => void;
+  block: PageBlock;
+  onEdit: (block: PageBlock) => void;
   onDelete: (id: string) => void;
 }
+
+type SortableBlockConfig = {
+  title?: string;
+  subtitle?: string;
+  content?: string;
+  sourceType?: string;
+};
 
 const SortableBlock: React.FC<SortableBlockProps> = ({
   id,
@@ -35,6 +44,15 @@ const SortableBlock: React.FC<SortableBlockProps> = ({
     marginBottom: "16px",
   };
 
+  const definition = getBlockDefinition(block.blockType);
+  const config = block.config as SortableBlockConfig;
+  const summary =
+    config.title ||
+    config.subtitle ||
+    config.content ||
+    (config.sourceType ? `Source: ${config.sourceType}` : null) ||
+    "Block configuration";
+
   return (
     <div ref={setNodeRef} style={style}>
       <Card
@@ -48,7 +66,9 @@ const SortableBlock: React.FC<SortableBlockProps> = ({
             >
               <GripVertical size={16} />
             </div>
-            <span className="font-medium text-gray-700">{block.blockType}</span>
+            <span className="font-medium text-gray-700">
+              {definition?.label || block.blockType}
+            </span>
           </div>
         }
         extra={
@@ -70,9 +90,7 @@ const SortableBlock: React.FC<SortableBlockProps> = ({
         className="shadow-sm border-gray-200"
       >
         <div className="text-sm text-gray-600 truncate">
-          {block.blockType === "TEXT" && (block.config as any).content}
-          {block.blockType === "HERO" && (block.config as any).title}
-          {block.blockType === "IMAGE_GRID" && "Image Grid Component"}
+          {typeof summary === "string" ? summary : "Block configuration"}
         </div>
       </Card>
     </div>

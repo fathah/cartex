@@ -9,6 +9,7 @@ import {
   Layout,
   Type,
   ShoppingBag,
+  Layers3,
   MessageSquare,
   Image as ImageIcon,
   MousePointer2,
@@ -20,6 +21,15 @@ interface PagePreviewProps {
   blocks: PageBlock[];
 }
 
+type BlockPreviewConfig = {
+  title?: string;
+  name?: string;
+  content?: string;
+  sourceType?: string;
+  backgroundColor?: string;
+  limit?: number;
+};
+
 const StaticBlock = ({ block }: { block: PageBlock }) => {
   const definition = getBlockDefinition(block.blockType);
 
@@ -29,6 +39,8 @@ const StaticBlock = ({ block }: { block: PageBlock }) => {
         return <Layout size={20} className="text-blue-500" />;
       case "Products":
         return <ShoppingBag size={20} className="text-emerald-500" />;
+      case "Collections":
+        return <Layers3 size={20} className="text-orange-500" />;
       case "Content":
         return <Type size={20} className="text-amber-500" />;
       case "Social":
@@ -40,10 +52,11 @@ const StaticBlock = ({ block }: { block: PageBlock }) => {
     }
   };
 
-  const config = block.config as any;
+  const config = block.config as BlockPreviewConfig;
   const summary = [
     config.title || config.name || config.content?.substring(0, 30),
     config.sourceType ? `Source: ${config.sourceType}` : null,
+    config.limit ? `Items: ${config.limit}` : null,
     config.backgroundColor ? `BG: ${config.backgroundColor}` : null,
   ]
     .filter(Boolean)
@@ -82,7 +95,9 @@ const PagePreview: React.FC<PagePreviewProps> = ({ blocks }) => {
 
         <Segmented
           value={mode}
-          onChange={(v) => setMode(v as any)}
+          onChange={(value) =>
+            setMode(value === "live" ? "live" : "static")
+          }
           options={[
             {
               label: (
