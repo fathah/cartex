@@ -33,8 +33,19 @@ export async function addReview(
       customerId: user.id,
       rating,
       comment,
-      variantId,
+      variantId: undefined,
     };
+
+    if (variantId) {
+      const purchasedVariant = await ProductReviewDB.hasCustomerPurchasedVariant(
+        productId,
+        variantId,
+        user.id,
+      );
+      if (purchasedVariant) {
+        data.variantId = variantId;
+      }
+    }
 
     const review = await ProductReviewDB.create(data);
     return { success: true, review };

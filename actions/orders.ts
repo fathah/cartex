@@ -9,6 +9,7 @@ import SettingsDB from "@/db/settings";
 import { ShippingDB } from "@/db/shipping";
 import { calculatePaymentFee, calculateShippingFromRates, calculateTaxBreakdown } from "@/lib/pricing";
 import { PAYMENT_STATUS } from "@/constants/commerce";
+import { resolveCurrentMarket } from "@/lib/market";
 
 const createOrderSchema = z.object({
   checkoutRequestId: z.string().trim().min(8),
@@ -25,26 +26,17 @@ const createOrderSchema = z.object({
   shippingMethodCode: z.string().trim().min(1),
 });
 
-function toNumber(value: Prisma.Decimal | number | string | null | undefined) {
+function toNumber(
+  value: Prisma.Decimal | number | string | null | undefined,
+) {
   return Number(value || 0);
 }
 
-function resolveVariantUnitPrice(
-  variant: Pick<
-    Prisma.ProductVariantGetPayload<{
-      include: { product: true };
-    }>,
-    "originalPrice" | "salePrice"
-  >,
-) {
-  const salePrice = toNumber(variant.salePrice);
-  const originalPrice = toNumber(variant.originalPrice);
-
-  if (salePrice > 0 || originalPrice === 0) {
-    return salePrice;
-  }
-
-  return originalPrice;
+function resolveLineItemPrice(variant: {
+  salePrice: Prisma.Decimal;
+  variantMarkets?: Array<{ salePrice: Prisma.Decimal }>;
+}) {
+  return toNumber(variant.variantMarkets?.[0]?.salePrice ?? variant.salePrice);
 }
 
 export async function createOrder(input: {
@@ -88,6 +80,22 @@ export async function createOrder(input: {
     throw new Error("Shipping address not found");
   }
 
+  const resolvedMarket =
+    (address.country &&
+      (await prisma.market.findFirst({
+        where: {
+          isActive: true,
+          OR: [
+            { code: address.country.toUpperCase() },
+            { countryCode: address.country.toUpperCase() },
+          ],
+        },
+      }))) ||
+    (await resolveCurrentMarket());
+  if (!resolvedMarket) {
+    throw new Error("No active market configured");
+  }
+
   const settings = await SettingsDB.get();
   const zone = await ShippingDB.findZoneForAddress(
     address.country || "",
@@ -100,9 +108,7 @@ export async function createOrder(input: {
   }
 
   const shippingMethod = zone.methods.find(
-    (method: any) =>
-      method.code === data.shippingMethodCode &&
-      method.isActive,
+    (method: any) => method.code === data.shippingMethodCode && method.isActive,
   );
   if (!shippingMethod) {
     throw new Error("Invalid shipping method");
@@ -124,8 +130,7 @@ export async function createOrder(input: {
     throw new Error("Invalid payment method");
   }
 
-  const currency = settings.currency || "USD";
-  const marketCountryCode = (address.country || "").trim().toUpperCase() || null;
+  const currency = resolvedMarket.currencyCode || settings.currency || "USD";
 
   const order = await prisma.$transaction(async (tx) => {
     const retryOrder = await tx.order.findFirst({
@@ -152,9 +157,11 @@ export async function createOrder(input: {
         inventory: true,
         product: true,
         selectedOptions: {
-          include: {
-            option: true,
-          },
+          include: { option: true },
+        },
+        variantMarkets: {
+          where: { marketId: resolvedMarket.id },
+          take: 1,
         },
       },
     });
@@ -170,16 +177,39 @@ export async function createOrder(input: {
         throw new Error("Invalid cart item");
       }
 
-      const unitPrice = resolveVariantUnitPrice(variant);
-      const options = variant.selectedOptions.map((selectedOption) => ({
-        name: selectedOption.option?.name || "",
-        value: selectedOption.value,
-      }));
+      const marketVariant = variant.variantMarkets[0] || null;
+      if (marketVariant) {
+        if (!marketVariant.isPublished || !marketVariant.isAvailable) {
+          throw new Error("Some items are not available in your market");
+        }
+        if (item.quantity < marketVariant.minOrderQty) {
+          throw new Error(`Minimum quantity not met for ${variant.product.name}`);
+        }
+        if (
+          marketVariant.maxOrderQty !== null &&
+          item.quantity > marketVariant.maxOrderQty
+        ) {
+          throw new Error(`Maximum quantity exceeded for ${variant.product.name}`);
+        }
+      }
+
+      if (variant.inventoryPolicy === InventoryPolicy.DENY) {
+        const availableInventory = marketVariant
+          ? marketVariant.inventoryQuantity
+          : variant.inventory?.quantity ?? 0;
+        if (availableInventory < item.quantity) {
+          throw new Error(`Insufficient inventory for ${variant.product.name}`);
+        }
+      }
 
       return {
-        options,
+        marketVariant,
+        options: variant.selectedOptions.map((selectedOption) => ({
+          name: selectedOption.option?.name || "",
+          value: selectedOption.value,
+        })),
         quantity: item.quantity,
-        unitPrice,
+        unitPrice: resolveLineItemPrice(variant),
         variant,
       };
     });
@@ -206,31 +236,59 @@ export async function createOrder(input: {
       paymentFee;
 
     for (const item of lineItems) {
-      if (item.variant.inventoryPolicy !== InventoryPolicy.DENY) {
+      if (item.marketVariant) {
+        if (item.variant.inventoryPolicy === InventoryPolicy.DENY) {
+          const updatedMarketInventory = await tx.variantMarket.updateMany({
+            where: {
+              id: item.marketVariant.id,
+              inventoryQuantity: {
+                gte: item.quantity,
+              },
+              isAvailable: true,
+              isPublished: true,
+            },
+            data: {
+              inventoryQuantity: {
+                decrement: item.quantity,
+              },
+            },
+          });
+
+          if (updatedMarketInventory.count === 0) {
+            throw new Error(`Insufficient inventory for ${item.variant.product.name}`);
+          }
+        } else {
+          await tx.variantMarket.update({
+            where: { id: item.marketVariant.id },
+            data: {
+              inventoryQuantity: {
+                decrement: item.quantity,
+              },
+            },
+          });
+        }
+
         continue;
       }
 
-      const updatedInventory = await tx.inventory.updateMany({
-        where: {
-          variantId: item.variant.id,
-          quantity: {
-            gte: item.quantity,
+      if (item.variant.inventoryPolicy === InventoryPolicy.DENY) {
+        const updatedInventory = await tx.inventory.updateMany({
+          where: {
+            variantId: item.variant.id,
+            quantity: {
+              gte: item.quantity,
+            },
           },
-        },
-        data: {
-          quantity: {
-            decrement: item.quantity,
+          data: {
+            quantity: {
+              decrement: item.quantity,
+            },
           },
-        },
-      });
+        });
 
-      if (updatedInventory.count === 0) {
-        throw new Error(`Insufficient inventory for ${item.variant.product.name}`);
-      }
-    }
-
-    for (const item of lineItems) {
-      if (item.variant.inventoryPolicy !== InventoryPolicy.CONTINUE) {
+        if (updatedInventory.count === 0) {
+          throw new Error(`Insufficient inventory for ${item.variant.product.name}`);
+        }
         continue;
       }
 
@@ -279,8 +337,9 @@ export async function createOrder(input: {
             variantId: item.variant.id,
           })),
         },
-        marketCode: marketCountryCode,
-        marketCountryCode,
+        marketCode: resolvedMarket.code,
+        marketCountryCode: resolvedMarket.countryCode,
+        marketId: resolvedMarket.id,
         paymentStatus: PAYMENT_STATUS.PENDING,
         shippingAddress: {
           address1: address.address1,

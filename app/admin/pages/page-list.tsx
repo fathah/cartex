@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { Table, Button, Space, Tag, Popconfirm, message } from "antd";
-import { Edit, Trash2, Plus, ExternalLink } from "lucide-react";
+import { Edit, Trash2, Plus, ExternalLink, Library } from "lucide-react";
 import { Page } from "@prisma/client";
 import { deletePage } from "@/actions/app_pages";
 import PageFormModal from "./page-form";
+import PresetSidebar from "./_components/preset-sidebar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -16,6 +17,7 @@ interface PageListProps {
 const PageList: React.FC<PageListProps> = ({ data }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<Page | null>(null);
+  const [isPresetSidebarOpen, setIsPresetSidebarOpen] = useState(false);
   const router = useRouter();
 
   const handleDelete = async (id: string) => {
@@ -112,9 +114,21 @@ const PageList: React.FC<PageListProps> = ({ data }) => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Pages</h1>
-        <Button type="primary" icon={<Plus size={16} />} onClick={handleCreate}>
-          Create Page
-        </Button>
+        <Space>
+          <Button
+            icon={<Library size={16} />}
+            onClick={() => setIsPresetSidebarOpen(true)}
+          >
+            Presets
+          </Button>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={handleCreate}
+          >
+            Create Page
+          </Button>
+        </Space>
       </div>
 
       <Table
@@ -129,6 +143,11 @@ const PageList: React.FC<PageListProps> = ({ data }) => {
         onCancel={() => setIsModalOpen(false)}
         onSuccess={handleSuccess}
         initialData={editingPage}
+      />
+
+      <PresetSidebar
+        open={isPresetSidebarOpen}
+        onClose={() => setIsPresetSidebarOpen(false)}
       />
     </div>
   );

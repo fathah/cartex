@@ -9,15 +9,27 @@ import HeroFields from "./block-fields/HeroFields";
 import HeroModernFields from "./block-fields/HeroModernFields";
 import TextFields from "./block-fields/TextFields";
 import ProductFields from "./block-fields/ProductFields";
+import CollectionFields from "./block-fields/CollectionFields";
 import TestimonialFields from "./block-fields/TestimonialFields";
 import CarouselFields from "./block-fields/CarouselFields";
+import { getBlockDefinition } from "@/lib/pageblocks/registry";
 
 interface BlockFormModalProps {
   open: boolean;
   onCancel: () => void;
-  onSuccess: (config: any) => void;
-  initialConfig?: any;
+  onSuccess: (config: Record<string, unknown>) => void;
+  initialConfig?: Record<string, unknown>;
   blockType: string;
+}
+
+interface CollectionOption {
+  id: string;
+  name: string;
+}
+
+interface ProductOption {
+  id: string;
+  name: string;
 }
 
 const BlockFormModal: React.FC<BlockFormModalProps> = ({
@@ -28,8 +40,8 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
   blockType,
 }) => {
   const [form] = Form.useForm();
-  const [collections, setCollections] = useState<any[]>([]);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [collections, setCollections] = useState<CollectionOption[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductOption[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,7 +66,7 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
     }
   }, [open, initialConfig, form]);
 
-  const onFinish = (values: any) => {
+  const onFinish = (values: Record<string, unknown>) => {
     onSuccess(values);
   };
 
@@ -71,6 +83,12 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
         return (
           <ProductFields collections={collections} allProducts={allProducts} />
         );
+      case "COLLECTIONS_GRID":
+      case "COLLECTIONS_SPOTLIGHT":
+      case "COLLECTIONS_RAIL":
+        return (
+          <CollectionFields collections={collections} blockType={blockType} />
+        );
       case "TESTIMONIALS":
         return <TestimonialFields form={form} />;
       case "CAROUSEL_1_3":
@@ -82,13 +100,24 @@ const BlockFormModal: React.FC<BlockFormModalProps> = ({
     }
   };
 
+  const definition = getBlockDefinition(blockType);
+  const modalTitle = `${initialConfig ? "Edit" : "Configure"} ${
+    definition?.label || blockType
+  }`;
+
   return (
     <Modal
-      title={`Edit ${blockType} Block`}
+      title={modalTitle}
       open={open}
       onCancel={onCancel}
       onOk={form.submit}
-      width={700}
+      width={
+        blockType === "TEXT"
+          ? "80%"
+          : blockType.startsWith("COLLECTIONS_")
+            ? 860
+            : 700
+      }
       destroyOnHidden
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>

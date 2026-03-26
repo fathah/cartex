@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   --background: #ffffff;
@@ -18,7 +19,6 @@
     --foreground: #ededed;
   }
 }
-
 
 .fullcenter {
   @apply flex flex-col justify-center items-center;

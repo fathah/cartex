@@ -11,7 +11,6 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import { getDashboardStats, type DashboardStats } from "@/actions/dashboard";
-import Currency from "@/components/common/Currency";
 import { DashboardCharts } from "./components/DashboardCharts";
 import { RecentOrdersTable } from "./components/RecentOrdersTable";
 import Link from "next/link";

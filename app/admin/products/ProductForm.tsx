@@ -13,13 +13,11 @@ import {
   Divider,
   Switch,
   Tabs,
-  Typography,
 } from "antd";
 import { Edit } from "lucide-react";
 import {
   createProduct,
   updateProduct,
-  addMedia,
   linkMedia,
   removeMedia,
   checkSlugAvailability,
@@ -30,10 +28,28 @@ import { getBrands, createBrand } from "@/actions/brands";
 import { useRouter } from "next/navigation";
 import { ProductStatus } from "@prisma/client";
 import VariantManager from "./VariantManager";
+import AIDescriptionGenerator from "./AIDescriptionGenerator";
 import { Upload } from "antd";
 import { AppConstants } from "@/constants/constants";
 import { useCurrency } from "@/components/providers/currency-provider";
 import MediaPicker from "@/app/admin/media/media_picker";
+import dynamic from "next/dynamic";
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
+
+const EditorWrapper = ({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange?: (val?: string) => void;
+}) => {
+  return (
+    <div data-color-mode="light">
+      <MDEditor value={value} onChange={onChange} height={400} />
+    </div>
+  );
+};
 
 interface ProductFormProps {
   initialData?: any;
@@ -288,7 +304,7 @@ export default function ProductForm({
 
       {!isEdit && (
         <Form.Item
-          name="originalPrice"
+          name="salePrice"
           label="Base Price"
           rules={[
             {
@@ -351,9 +367,32 @@ export default function ProductForm({
           </div>
         )}
       </Form.Item>
+      <Form.Item
+        name="description"
+        label="Short Description"
+        help="A brief summary for product cards and search results (plain text)."
+      >
+        <Input.TextArea
+          rows={3}
+          placeholder="e.g. A premium cotton t-shirt with a modern fit."
+        />
+      </Form.Item>
+    </Card>
+  );
 
-      <Form.Item name="description" label="Description">
-        <Input.TextArea rows={4} />
+  const descriptionSection = (
+    <Card title="Product Detailed Description" className="mb-6">
+      <AIDescriptionGenerator
+        form={form}
+        brands={brands}
+        collections={collections}
+      />
+      <Form.Item
+        name="descriptionLong"
+        label="Detailed Description (Markdown)"
+        help="Write your full product story here with rich formatting."
+      >
+        <EditorWrapper />
       </Form.Item>
     </Card>
   );
@@ -511,6 +550,7 @@ export default function ProductForm({
         status: initialData?.status || "DRAFT",
         isFeatured: initialData?.isFeatured || false,
         collectionIds: initialData?.collections?.map((c: any) => c.id) || [],
+        descriptionLong: initialData?.descriptionLong || "",
       }}
       onFinish={onFinish}
     >
@@ -522,9 +562,12 @@ export default function ProductForm({
               key: "basic",
               label: "Basic Info",
               children: (
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <div className="flex-1">{basicInfo}</div>
-                  <div className="w-full xl:w-80">{organizationSection}</div>
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="flex-1">{basicInfo}</div>
+                    <div className="w-full xl:w-80">{organizationSection}</div>
+                  </div>
+                  <div className="w-full">{descriptionSection}</div>
                 </div>
               ),
             },
@@ -541,9 +584,12 @@ export default function ProductForm({
           ]}
         />
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1">{basicInfo}</div>
-          <div className="w-full xl:w-80">{organizationSection}</div>
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-1">{basicInfo}</div>
+            <div className="w-full xl:w-80">{organizationSection}</div>
+          </div>
+          <div className="w-full">{descriptionSection}</div>
         </div>
       )}
 

@@ -9,13 +9,15 @@ import { useCartStore } from "@/lib/store/cart";
 import { useWishlistStore } from "@/lib/store/wishlist";
 import { message } from "antd";
 import { addToWishlist, removeFromWishlist } from "@/actions/wishlists";
+import { useCurrency } from "@/components/providers/currency-provider";
 
 export default function ProductCard({ product }: { product: any }) {
-  const currentVariant = product.variants?.[0];
-  const salePrice = currentVariant?.salePrice || 0;
-  const originalPrice = currentVariant?.originalPrice || 0;
-  const stockCount = currentVariant?.inventory?.quantity || 0;
-  const isOutOfStock = currentVariant ? stockCount <= 0 : true;
+  const displayVariant = product.defaultVariant || product.variants?.[0];
+  const salePrice = displayVariant?.effectiveSalePrice || 0;
+  const compareAtPrice = displayVariant?.effectiveCompareAtPrice || 0;
+  const stockCount = displayVariant?.effectiveInventoryQuantity || 0;
+  const isOutOfStock = displayVariant ? stockCount <= 0 : true;
+  const { currency, marketCode } = useCurrency();
 
   const addToCart = useCartStore((state) => state.addToCart);
   const cartItems = useCartStore((state) => state.items);
@@ -43,7 +45,7 @@ export default function ProductCard({ product }: { product: any }) {
     e.preventDefault();
     e.stopPropagation();
 
-    const variantId = product.variants?.[0]?.id;
+    const variantId = displayVariant?.id;
     addToCart({
       key: `${product.id}${variantId ? `-${variantId}` : ""}`,
       productId: product.id,
@@ -53,6 +55,8 @@ export default function ProductCard({ product }: { product: any }) {
       image: product.mediaProducts?.[0]?.media?.url,
       variantId: variantId,
       slug: product.slug,
+      currencyCode: currency,
+      marketCode,
     });
     // Removed the message.success("Added to cart") since the UI now shows it immediately
   };
@@ -183,8 +187,8 @@ export default function ProductCard({ product }: { product: any }) {
               className="font-bold text-green-600 shrink-0"
             />
             <span className="text-xs text-gray-400">
-              {salePrice !== originalPrice && (
-                <Currency value={originalPrice} className="line-through" />
+              {compareAtPrice > salePrice && (
+                <Currency value={compareAtPrice} className="line-through" />
               )}
             </span>
           </div>

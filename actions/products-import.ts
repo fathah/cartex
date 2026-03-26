@@ -9,7 +9,8 @@ const importRowSchema = z.object({
   brand: z.string().trim().optional(),
   category: z.string().trim().optional(),
   name: z.string().trim().min(1),
-  originalPrice: z.coerce.number().min(0).default(0),
+  compareAtPrice: z.coerce.number().min(0).optional(),
+  costPrice: z.coerce.number().min(0).optional(),
   salePrice: z.coerce.number().min(0).default(0),
   stock: z.coerce.number().int().default(0),
 });
@@ -106,25 +107,49 @@ export async function importProductBatch(rows: unknown[]) {
           },
         });
 
-        await tx.productVariant.create({
+        const variant = await tx.productVariant.create({
           data: {
+            compareAtPrice: row.compareAtPrice ?? null,
+            costPrice: row.costPrice ?? null,
             inventory: {
               create: {
                 quantity: row.stock,
               },
             },
-            originalPrice: row.originalPrice,
             productId: product.id,
-            salePrice: row.salePrice || row.originalPrice,
+            salePrice: row.salePrice,
             sku: "",
             title: "Default Variant",
           },
         });
+
+        const activeMarkets = await tx.market.findMany({
+          where: { isActive: true },
+          select: { id: true },
+        });
+
+        if (activeMarkets.length > 0) {
+          await tx.variantMarket.createMany({
+            data: activeMarkets.map((market) => ({
+              compareAtPrice: row.compareAtPrice ?? null,
+              costPrice: row.costPrice ?? null,
+              inventoryQuantity: row.stock,
+              isAvailable: true,
+              isPublished: true,
+              marketId: market.id,
+              salePrice: row.salePrice,
+              variantId: variant.id,
+            })),
+          });
+        }
       });
 
       results.push({ success: true, name: row.name });
     } catch (error: any) {
-      console.error(`Failed to import row ${(rawRow as any)?.name || "unknown"}:`, error);
+      console.error(
+        `Failed to import row ${(rawRow as any)?.name || "unknown"}:`,
+        error,
+      );
       results.push({
         error: error.message,
         name: (rawRow as any)?.name || "unknown",

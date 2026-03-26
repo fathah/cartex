@@ -1,50 +1,39 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Button, Card, Empty, Form, Input, Modal, Select, Tag, message } from "antd";
+import { Edit2, Globe, Plus, Trash2, Truck } from "lucide-react";
 import {
-  Button,
-  Card,
-  Empty,
-  Modal,
-  Form,
-  Input,
-  Select,
-  message,
-  Tag,
-} from "antd";
-import { Plus, Trash2, Edit2, Globe, Truck } from "lucide-react";
-import {
-  getShippingZones,
-  createShippingZone,
-  updateShippingZone,
-  deleteShippingZone,
-  createShippingMethod,
-  deleteShippingMethod,
   addShippingRate,
+  createShippingMethod,
+  createShippingZone,
+  deleteShippingMethod,
   deleteShippingRate,
+  deleteShippingZone,
+  getShippingZones,
+  updateShippingZone,
 } from "@/actions/shipping";
+import { getMarkets } from "@/actions/market";
 import { ShippingRateType } from "@prisma/client";
-import { useCurrency } from "@/components/providers/currency-provider";
-import Currency from "@/components/common/Currency";
+import AdminMoney from "@/components/common/AdminMoney";
 
 export default function ShippingSettings() {
   const [zones, setZones] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [marketOptions, setMarketOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
 
-  // Modals
   const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
   const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
   const [isRateModalOpen, setIsRateModalOpen] = useState(false);
 
-  // Editing State
   const [editingZone, setEditingZone] = useState<any>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
   const [selectedRateZoneId, setSelectedRateZoneId] = useState<string | null>(
     null,
   );
-
-  const { currency } = useCurrency();
 
   const [formZone] = Form.useForm();
   const [formMethod] = Form.useForm();
@@ -55,7 +44,7 @@ export default function ShippingSettings() {
     try {
       const data = await getShippingZones();
       setZones(data);
-    } catch (error) {
+    } catch {
       message.error("Failed to load shipping zones");
     } finally {
       setLoading(false);
@@ -66,7 +55,25 @@ export default function ShippingSettings() {
     fetchZones();
   }, []);
 
-  // --- Zone Handlers ---
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        const markets = await getMarkets();
+        setMarketOptions(
+          markets
+            .filter((market: any) => market.isActive)
+            .map((market: any) => ({
+              label: `${market.name} (${market.currencyCode})`,
+              value: market.countryCode || market.code,
+            })),
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchMarkets();
+  }, []);
 
   const handleAddZone = () => {
     setEditingZone(null);
@@ -77,31 +84,30 @@ export default function ShippingSettings() {
   const handleEditZone = (zone: any) => {
     setEditingZone(zone);
     formZone.setFieldsValue({
+      countries: zone.areas.map((area: any) => area.country),
       name: zone.name,
-      countries: zone.areas.map((a: any) => a.country), // Simplified for demo: multiple select of countries
     });
     setIsZoneModalOpen(true);
   };
 
   const handleZoneSubmit = async (values: any) => {
     try {
-      // Transform simplistic country list to areas
-      // For this UI, assume we just pick "Country" and State is "*" (All)
-      const areas = values.countries.map((c: string) => ({
-        country: c,
+      const areas = values.countries.map((country: string) => ({
+        country,
         state: "*",
       }));
 
       if (editingZone) {
-        await updateShippingZone(editingZone.id, { name: values.name, areas });
+        await updateShippingZone(editingZone.id, { areas, name: values.name });
         message.success("Zone updated");
       } else {
         await createShippingZone(values.name, areas);
         message.success("Zone created");
       }
+
       setIsZoneModalOpen(false);
       fetchZones();
-    } catch (err) {
+    } catch {
       message.error("Operation failed");
     }
   };
@@ -111,12 +117,10 @@ export default function ShippingSettings() {
       await deleteShippingZone(id);
       message.success("Zone deleted");
       fetchZones();
-    } catch (err) {
-      message.error("Values failed");
+    } catch {
+      message.error("Failed to delete zone");
     }
   };
-
-  // --- Method Handlers ---
 
   const handleAddMethod = (zoneId: string) => {
     setSelectedZoneId(zoneId);
@@ -125,14 +129,16 @@ export default function ShippingSettings() {
   };
 
   const handleMethodSubmit = async (values: any) => {
-    if (!selectedZoneId) return;
+    if (!selectedZoneId) {
+      return;
+    }
+
     try {
-      // Generate a simpler code if user manual input not needed, but form has code
       await createShippingMethod(selectedZoneId, values);
       message.success("Method added");
       setIsMethodModalOpen(false);
       fetchZones();
-    } catch (err) {
+    } catch {
       message.error("Failed to add method. Code might be duplicate.");
     }
   };
@@ -142,35 +148,36 @@ export default function ShippingSettings() {
       await deleteShippingMethod(id);
       message.success("Method deleted");
       fetchZones();
-    } catch (err) {
+    } catch {
       message.error("Failed to delete method");
     }
   };
-
-  // --- Rate Handlers ---
 
   const handleAddRate = (methodId: string, zoneId: string) => {
     setSelectedMethodId(methodId);
     setSelectedRateZoneId(zoneId);
     formRate.resetFields();
-    formRate.setFieldValue("type", "FLAT");
+    formRate.setFieldValue("type", ShippingRateType.FLAT);
     setIsRateModalOpen(true);
   };
 
   const handleRateSubmit = async (values: any) => {
-    if (!selectedMethodId || !selectedRateZoneId) return;
+    if (!selectedMethodId || !selectedRateZoneId) {
+      return;
+    }
+
     try {
       await addShippingRate(selectedMethodId, {
-        type: values.type,
-        price: Number(values.price),
-        min: values.min ? Number(values.min) : undefined,
         max: values.max ? Number(values.max) : undefined,
+        min: values.min ? Number(values.min) : undefined,
+        price: Number(values.price),
+        type: values.type,
         zoneId: selectedRateZoneId,
       });
       message.success("Rate added");
       setIsRateModalOpen(false);
       fetchZones();
-    } catch (err) {
+    } catch {
       message.error("Failed to add rate");
     }
   };
@@ -180,38 +187,42 @@ export default function ShippingSettings() {
       await deleteShippingRate(id);
       message.success("Rate deleted");
       fetchZones();
-    } catch (err) {
+    } catch {
       message.error("Failed to delete rate");
     }
   };
-
-  // --- Renderers ---
 
   const renderRates = (rates: any[], zoneId: string) => {
     const zoneRates = (rates || []).filter(
       (rate) => !rate.shippingZoneId || rate.shippingZoneId === zoneId,
     );
 
-    if (zoneRates.length === 0)
+    if (zoneRates.length === 0) {
       return <span className="text-gray-400 text-xs">No rates configured</span>;
+    }
 
     return (
       <div className="space-y-1">
         {zoneRates.map((rate) => (
           <div
             key={rate.id}
-            className="flex items-center gap-2 text-sm bg-gray-50 px-2 py-1 rounded border border-gray-100"
+            className="flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2 py-1 text-sm"
           >
-            <Tag color="blue" className="mr-0 scale-75 origin-left">
+            <Tag color="blue" className="mr-0 origin-left scale-75">
               {rate.type}
             </Tag>
             <span className="font-medium">
-              {Number(rate.price).toFixed(2)} {currency}
+              <AdminMoney value={Number(rate.price)} />
             </span>
             {rate.type === "CONDITIONAL" && (
-              <span className="text-gray-500 text-xs">
-                (Orders {currency} {Number(rate.minOrderAmount)} - {currency}{" "}
-                {Number(rate.maxOrderAmount) || "∞"})
+              <span className="text-xs text-gray-500">
+                (Orders <AdminMoney value={Number(rate.minOrderAmount || 0)} /> -{" "}
+                {rate.maxOrderAmount ? (
+                  <AdminMoney value={Number(rate.maxOrderAmount)} />
+                ) : (
+                  "∞"
+                )}
+                )
               </span>
             )}
             <Button
@@ -230,18 +241,14 @@ export default function ShippingSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Shipping Zones</h2>
-          <p className="text-gray-500 text-sm">
+          <p className="text-sm text-gray-500">
             Manage where you ship and how much it costs.
           </p>
         </div>
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={handleAddZone}
-        >
+        <Button type="primary" icon={<Plus size={16} />} onClick={handleAddZone}>
           Add Zone
         </Button>
       </div>
@@ -253,16 +260,16 @@ export default function ShippingSettings() {
       ) : (
         <div className="grid gap-6">
           {zones.map((zone) => (
-            <Card key={zone.id} className="shadow-sm border-gray-200">
-              <div className="flex justify-between items-start mb-4 border-b border-gray-200 pb-4">
+            <Card key={zone.id} className="border-gray-200 shadow-sm">
+              <div className="mb-4 flex items-start justify-between border-b border-gray-200 pb-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <Globe size={18} className="text-gray-400" />
-                    <h3 className="font-bold text-base">{zone.name}</h3>
+                    <h3 className="text-base font-bold">{zone.name}</h3>
                   </div>
-                  <div className="text-gray-500 text-sm mt-1">
+                  <div className="mt-1 text-sm text-gray-500">
                     {zone.areas.length > 0
-                      ? zone.areas.map((a: any) => a.country).join(", ")
+                      ? zone.areas.map((area: any) => area.country).join(", ")
                       : "No regions defined"}
                   </div>
                 </div>
@@ -285,15 +292,12 @@ export default function ShippingSettings() {
 
               <div className="space-y-3">
                 {zone.methods.map((method: any) => (
-                  <div
-                    key={method.id}
-                    className="border border-gray-200 rounded-md p-3"
-                  >
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={method.id} className="rounded-md border border-gray-200 p-3">
+                    <div className="mb-2 flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <Truck size={16} className="text-blue-500" />
                         <span className="font-medium">{method.name}</span>
-                        <span className="text-xs text-gray-400  px-1 bg-gray-100 rounded">
+                        <span className="rounded bg-gray-100 px-1 text-xs text-gray-400">
                           {method.code}
                         </span>
                       </div>
@@ -333,9 +337,6 @@ export default function ShippingSettings() {
         </div>
       )}
 
-      {/* --- Modals --- */}
-
-      {/* Zone Modal */}
       <Modal
         title={editingZone ? "Edit Zone" : "Create Shipping Zone"}
         open={isZoneModalOpen}
@@ -352,19 +353,15 @@ export default function ShippingSettings() {
             rules={[{ required: true }]}
           >
             <Select
-              mode="tags"
-              placeholder="Select countries (e.g. US, CA)"
-              tokenSeparators={[","]}
-              options={[
-                { value: "AE", label: "United Arab Emirates" },
-                // In a real app, load full country list
-              ]}
+              mode="multiple"
+              placeholder="Select available markets"
+              options={marketOptions}
+              loading={marketOptions.length === 0}
             />
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* Method Modal */}
       <Modal
         title="Add Shipping Method"
         open={isMethodModalOpen}
@@ -372,18 +369,10 @@ export default function ShippingSettings() {
         onOk={formMethod.submit}
       >
         <Form form={formMethod} layout="vertical" onFinish={handleMethodSubmit}>
-          <Form.Item
-            name="name"
-            label="Method Name"
-            rules={[{ required: true }]}
-          >
+          <Form.Item name="name" label="Method Name" rules={[{ required: true }]}>
             <Input placeholder="e.g. Standard Shipping" />
           </Form.Item>
-          <Form.Item
-            name="code"
-            label="Code (Unique)"
-            rules={[{ required: true }]}
-          >
+          <Form.Item name="code" label="Code (Unique)" rules={[{ required: true }]}>
             <Input placeholder="e.g. standard_us" />
           </Form.Item>
           <Form.Item name="description" label="Description">
@@ -392,7 +381,6 @@ export default function ShippingSettings() {
         </Form>
       </Modal>
 
-      {/* Rate Modal */}
       <Modal
         title={<span className="text-2xl">Add Shipping Rate</span>}
         open={isRateModalOpen}
@@ -408,26 +396,14 @@ export default function ShippingSettings() {
               <Select.Option value={ShippingRateType.CONDITIONAL}>
                 Conditional (Free over amount)
               </Select.Option>
-              {/* <Select.Option value={ShippingRateType.WEIGHT}>Based on Weight</Select.Option> */}
             </Select>
           </Form.Item>
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, current) => prev.type !== current.type}
-          >
+          <Form.Item noStyle shouldUpdate={(prev, current) => prev.type !== current.type}>
             {({ getFieldValue }) => (
               <>
-                <Form.Item
-                  name="price"
-                  label="Cost"
-                  rules={[{ required: true }]}
-                >
-                  <Input
-                    prefix={<Currency value={""} currencyOnly />}
-                    type="number"
-                    step="0.01"
-                  />
+                <Form.Item name="price" label="Cost" rules={[{ required: true }]}>
+                  <Input addonBefore="Amount" type="number" step="0.01" />
                 </Form.Item>
 
                 {getFieldValue("type") === ShippingRateType.CONDITIONAL && (
@@ -437,17 +413,14 @@ export default function ShippingSettings() {
                       label="Min Order Amount"
                       className="flex-1"
                     >
-                      <Input
-                        prefix={<Currency value={""} currencyOnly />}
-                        type="number"
-                      />
+                      <Input addonBefore="Amount" type="number" />
                     </Form.Item>
                     <Form.Item
                       name="max"
                       label="Max Order Amount"
                       className="flex-1"
                     >
-                      <Input prefix="$" type="number" />
+                      <Input addonBefore="Amount" type="number" />
                     </Form.Item>
                   </div>
                 )}

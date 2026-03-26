@@ -61,9 +61,6 @@ export default function HeaderClient({
               />
             ) : (
               <div className="flex items-center gap-2">
-                <div className="bg-emerald-800 p-1.5 rounded-lg">
-                  <ShoppingCart className="w-6 h-6 text-white" />
-                </div>
                 <span className="text-2xl font-bold text-emerald-950 tracking-tight">
                   {settings.storeName || AppConstants.SHOP_NAME}
                 </span>

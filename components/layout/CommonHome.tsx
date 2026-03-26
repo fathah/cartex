@@ -15,7 +15,6 @@ import Link from "next/link";
 import { Button } from "antd";
 import ProductCard from "@/components/store/ProductCard";
 import { AppConstants } from "@/constants/constants";
-import Footer from "./Footer";
 
 interface CommonHomeProps {
   products?: any[];
@@ -244,7 +243,7 @@ const CommonHome: React.FC<CommonHomeProps> = ({
           </div>
         </div>
       </section>
-      <Footer />
+      {/* Footer is now global in layout.tsx */}
 
       {/* Modern Style Tag */}
       <style jsx global>{`

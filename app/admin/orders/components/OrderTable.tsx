@@ -1,6 +1,6 @@
 import { Table, Tag, Space } from "antd";
 import { Eye, FileText } from "lucide-react";
-import Currency from "@/components/common/Currency";
+import AdminMoney from "@/components/common/AdminMoney";
 import { formatDate } from "@/utils/date";
 
 interface OrderTableProps {
@@ -95,8 +95,12 @@ export const OrderTable = ({
       title: "Total",
       dataIndex: "totalPrice",
       key: "totalPrice",
-      render: (price: number) => (
-        <Currency value={price} className="font-medium" />
+      render: (price: number, record: any) => (
+        <AdminMoney
+          value={price}
+          currencyCode={record.currency}
+          className="font-medium"
+        />
       ),
     },
     {

@@ -49,14 +49,16 @@ export async function getProductsForExport() {
     if (product.variants && product.variants.length > 0) {
       const defaultVariant = product.variants[0];
       row["Default Variant SKU"] = defaultVariant.sku || "";
-      row["Original Price"] = Number(defaultVariant.originalPrice) || 0;
       row["Sale Price"] = Number(defaultVariant.salePrice) || 0;
+      row["Compare At Price"] = Number(defaultVariant.compareAtPrice) || 0;
+      row["Cost Price"] = Number(defaultVariant.costPrice) || 0;
       row["Inventory Quantity"] = defaultVariant.inventory?.quantity || 0;
       row["Total Variants"] = product.variants.length;
     } else {
       row["Default Variant SKU"] = "";
-      row["Original Price"] = 0;
       row["Sale Price"] = 0;
+      row["Compare At Price"] = 0;
+      row["Cost Price"] = 0;
       row["Inventory Quantity"] = 0;
       row["Total Variants"] = 0;
     }

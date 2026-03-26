@@ -10,9 +10,9 @@ import {
 } from "@/services/admin-session";
 import { normalizeEmail } from "@/services/security";
 import { ZAuthTokenService } from "@ziqx/auth";
-import { UserRole } from "@prisma/client";
 import { decodeJwt } from "jose";
 import prisma from "@/db/prisma";
+import { UserRole } from "@prisma/client";
 
 function getAdminAuthRedirectUri() {
   if (process.env.NODE_ENV === "development") {

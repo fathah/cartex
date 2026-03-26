@@ -139,18 +139,12 @@ export default function ImportProducts({
           throw new Error(`Row ${i + 2}: Missing or invalid 'SalePrice'`);
         }
 
-        const originalPrice =
-          normalizedRow.originalprice !== undefined
-            ? parseFloat(normalizedRow.originalprice)
-            : salePrice;
-
         rowsToProcess.push({
           name:
             typeof normalizedRow.name === "string"
               ? normalizedRow.name.trim()
               : String(normalizedRow.name),
           salePrice: salePrice,
-          originalPrice: originalPrice,
           stock: parseInt(normalizedRow.stock) || 0,
           category:
             typeof normalizedRow.category === "string"

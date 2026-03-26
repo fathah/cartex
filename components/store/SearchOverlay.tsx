@@ -267,7 +267,9 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
                                   <p className="text-sm text-gray-500 mt-1">
                                     <Currency
                                       value={Number(
-                                        product.variants[0]?.salePrice || 0,
+                                        product.defaultVariant?.effectiveSalePrice ||
+                                          product.variants[0]?.effectiveSalePrice ||
+                                          0,
                                       )}
                                     />
                                   </p>

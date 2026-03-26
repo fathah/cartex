@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { OrderStatus } from "@prisma/client";
 
 export type CreateProductReviewData = {
   productId: string;
@@ -9,6 +10,62 @@ export type CreateProductReviewData = {
 };
 
 export default class ProductReviewDB {
+  static async hasCustomerPurchasedProduct(
+    productId: string,
+    customerId: string,
+  ) {
+    const qualifyingOrder = await prisma.order.findFirst({
+      where: {
+        customerId,
+        status: {
+          in: [
+            OrderStatus.ORDERED,
+            OrderStatus.PROCESSING,
+            OrderStatus.SHIPPED,
+            OrderStatus.FULFILLED,
+          ],
+        },
+        items: {
+          some: {
+            productId,
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    return !!qualifyingOrder;
+  }
+
+  static async hasCustomerPurchasedVariant(
+    productId: string,
+    variantId: string,
+    customerId: string,
+  ) {
+    const qualifyingOrder = await prisma.order.findFirst({
+      where: {
+        customerId,
+        status: {
+          in: [
+            OrderStatus.ORDERED,
+            OrderStatus.PROCESSING,
+            OrderStatus.SHIPPED,
+            OrderStatus.FULFILLED,
+          ],
+        },
+        items: {
+          some: {
+            productId,
+            variantId,
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    return !!qualifyingOrder;
+  }
+
   static async create(data: CreateProductReviewData) {
     return await prisma.productReview.create({
       data,
@@ -68,20 +125,9 @@ export default class ProductReviewDB {
 
     if (existingReview) return false;
 
-    // Has the customer purchased this product?
-    const completedOrder = await prisma.order.findFirst({
-      where: {
-        customerId,
-        paymentStatus: "PAID",
-        items: {
-          some: {
-            productId,
-          },
-        },
-      },
-      select: { id: true },
-    });
-
-    return !!completedOrder;
+    return await ProductReviewDB.hasCustomerPurchasedProduct(
+      productId,
+      customerId,
+    );
   }
 }
