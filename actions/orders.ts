@@ -7,9 +7,12 @@ import prisma from "@/db/prisma";
 import { getCurrentUser } from "./user";
 import SettingsDB from "@/db/settings";
 import { ShippingDB } from "@/db/shipping";
-import { calculatePaymentFee, calculateShippingFromRates, calculateTaxBreakdown } from "@/lib/pricing";
+import { PaymentDB } from "@/db/payment";
+import { calculatePaymentFee, calculateTaxBreakdown } from "@/lib/pricing";
 import { PAYMENT_STATUS } from "@/constants/commerce";
 import { resolveCurrentMarket } from "@/lib/market";
+import { isPaymentMethodEligibleForCheckout } from "@/lib/payment-methods";
+import { buildShippingQuoteContext, resolveShippingQuote } from "@/lib/shipping";
 
 const createOrderSchema = z.object({
   checkoutRequestId: z.string().trim().min(8),
@@ -114,20 +117,14 @@ export async function createOrder(input: {
     throw new Error("Invalid shipping method");
   }
 
-  const paymentMethod = await prisma.paymentMethod.findFirst({
-    where: {
-      code: data.paymentMethodCode,
-      isActive: true,
-    },
-    include: {
-      gateways: {
-        where: { isActive: true },
-        select: { code: true, id: true },
-      },
-    },
-  });
+  const paymentMethod = await PaymentDB.getCheckoutMethodByCode(
+    data.paymentMethodCode,
+  );
   if (!paymentMethod) {
     throw new Error("Invalid payment method");
+  }
+  if (!paymentMethod.isActive) {
+    throw new Error("Selected payment method is not available");
   }
 
   const currency = resolvedMarket.currencyCode || settings.currency || "USD";
@@ -155,7 +152,11 @@ export async function createOrder(input: {
       },
       include: {
         inventory: true,
-        product: true,
+        product: {
+          include: {
+            shippingProfile: true,
+          },
+        },
         selectedOptions: {
           include: { option: true },
         },
@@ -218,16 +219,64 @@ export async function createOrder(input: {
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,
     );
+    const shippingProfiles = Array.from(
+      new Map(
+        lineItems
+          .filter((item) => item.variant.requiresShipping)
+          .map((item) => item.variant.product.shippingProfile)
+          .filter(Boolean)
+          .map((profile: any) => [
+            profile.id,
+            {
+              code: profile.code,
+              handlingFee: Number(profile.handlingFee || 0),
+              id: profile.id,
+              name: profile.name,
+            },
+          ]),
+      ).values(),
+    );
+    const totalWeightGrams = lineItems.reduce((sum, item) => {
+      if (!item.variant.requiresShipping) {
+        return sum;
+      }
+
+      return sum + Number(item.variant.weightGrams || 0) * item.quantity;
+    }, 0);
+    const shippableItemCount = lineItems.reduce(
+      (sum, item) => sum + (item.variant.requiresShipping ? item.quantity : 0),
+      0,
+    );
     const taxBreakdown = calculateTaxBreakdown({
       cartSum,
       taxMode: settings.taxMode || "EXCLUSIVE",
       taxRate: settings.taxRate || 0,
     });
-    const shippingPricing = calculateShippingFromRates(
-      shippingMethod.rates || [],
-      taxBreakdown.subtotal,
+    const shippingContext = buildShippingQuoteContext({
+      profiles: shippingProfiles,
+      shippableItemCount,
+      subtotal: taxBreakdown.subtotal,
+      totalWeightGrams,
+    });
+    const shippingPricing = resolveShippingQuote(
+      shippingMethod,
+      shippingContext,
       zone.id,
     );
+    if (!shippingPricing) {
+      throw new Error("Selected shipping method is not available for this order");
+    }
+
+    if (
+      !isPaymentMethodEligibleForCheckout(
+        paymentMethod,
+        address.country || resolvedMarket.countryCode,
+        taxBreakdown.subtotal,
+      )
+    ) {
+      throw new Error("Selected payment method is not available for this order");
+    }
+
     const paymentFee = calculatePaymentFee(paymentMethod, taxBreakdown.subtotal);
     const totalPrice =
       taxBreakdown.subtotal +

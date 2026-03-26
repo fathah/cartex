@@ -8,11 +8,31 @@ import { revalidatePath } from "next/cache";
 const importRowSchema = z.object({
   brand: z.string().trim().optional(),
   category: z.string().trim().optional(),
+  heightCm: z.coerce.number().min(0).optional(),
   name: z.string().trim().min(1),
+  lengthCm: z.coerce.number().min(0).optional(),
   compareAtPrice: z.coerce.number().min(0).optional(),
   costPrice: z.coerce.number().min(0).optional(),
+  requiresShipping: z
+    .union([z.boolean(), z.string(), z.number()])
+    .transform((value) => {
+      if (typeof value === "boolean") {
+        return value;
+      }
+
+      if (typeof value === "number") {
+        return value !== 0;
+      }
+
+      const normalized = value.trim().toLowerCase();
+      return !["0", "false", "no", "n"].includes(normalized);
+    })
+    .optional(),
   salePrice: z.coerce.number().min(0).default(0),
+  shippingProfileCode: z.string().trim().optional(),
   stock: z.coerce.number().int().default(0),
+  weightGrams: z.coerce.number().int().min(0).optional(),
+  widthCm: z.coerce.number().min(0).optional(),
 });
 
 function slugify(value: string) {
@@ -93,6 +113,27 @@ export async function importProductBatch(rows: unknown[]) {
       }
 
       await prisma.$transaction(async (tx) => {
+        const shippingProfile = row.shippingProfileCode
+          ? await tx.shippingProfile.findFirst({
+              where: {
+                code: {
+                  equals: row.shippingProfileCode,
+                  mode: "insensitive",
+                },
+              },
+              select: { id: true },
+            })
+          : await tx.shippingProfile.findFirst({
+              where: { isDefault: true },
+              select: { id: true },
+            });
+
+        if (row.shippingProfileCode && !shippingProfile) {
+          throw new Error(
+            `Shipping profile '${row.shippingProfileCode}' was not found`,
+          );
+        }
+
         const product = await tx.product.create({
           data: {
             collections: categoryId
@@ -102,6 +143,7 @@ export async function importProductBatch(rows: unknown[]) {
               : undefined,
             name: row.name,
             productBrandId: brandId,
+            shippingProfileId: shippingProfile?.id || null,
             slug: productSlug,
             status: "ACTIVE",
           },
@@ -116,10 +158,15 @@ export async function importProductBatch(rows: unknown[]) {
                 quantity: row.stock,
               },
             },
+            heightCm: row.heightCm ?? null,
+            lengthCm: row.lengthCm ?? null,
             productId: product.id,
+            requiresShipping: row.requiresShipping ?? true,
             salePrice: row.salePrice,
             sku: "",
             title: "Default Variant",
+            weightGrams: row.weightGrams ?? 0,
+            widthCm: row.widthCm ?? null,
           },
         });
 

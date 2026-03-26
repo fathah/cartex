@@ -234,6 +234,11 @@ export async function updateVariant(
     costPrice?: number | null;
     sku?: string;
     inventory: number;
+    requiresShipping?: boolean;
+    weightGrams?: number;
+    lengthCm?: number | null;
+    widthCm?: number | null;
+    heightCm?: number | null;
     marketPrices?: Array<{
       marketId: string;
       salePrice: number;
@@ -242,6 +247,8 @@ export async function updateVariant(
       inventoryQuantity?: number | null;
       isAvailable?: boolean;
       isPublished?: boolean;
+      minOrderQty?: number | null;
+      maxOrderQty?: number | null;
     }>;
   },
 ) {

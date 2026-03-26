@@ -1,0 +1,41 @@
+export const SHIPPING_METHOD_SOURCE = {
+  CARRIER: "CARRIER",
+  MANUAL: "MANUAL",
+} as const;
+
+export const SHIPPING_METHOD_SOURCE_VALUES = [
+  SHIPPING_METHOD_SOURCE.MANUAL,
+  SHIPPING_METHOD_SOURCE.CARRIER,
+] as const;
+
+export type ShippingMethodSourceValue =
+  (typeof SHIPPING_METHOD_SOURCE_VALUES)[number];
+
+export const SHIPPING_RATE_APPLICATION = {
+  BASE: "BASE",
+  SURCHARGE: "SURCHARGE",
+} as const;
+
+export const SHIPPING_RATE_APPLICATION_VALUES = [
+  SHIPPING_RATE_APPLICATION.BASE,
+  SHIPPING_RATE_APPLICATION.SURCHARGE,
+] as const;
+
+export type ShippingRateApplicationValue =
+  (typeof SHIPPING_RATE_APPLICATION_VALUES)[number];
+
+export const SHIPPING_RATE_TYPE = {
+  CONDITIONAL: "CONDITIONAL",
+  FLAT: "FLAT",
+  PRICE: "PRICE",
+  WEIGHT: "WEIGHT",
+} as const;
+
+export const SHIPPING_RATE_TYPE_VALUES = [
+  SHIPPING_RATE_TYPE.FLAT,
+  SHIPPING_RATE_TYPE.CONDITIONAL,
+  SHIPPING_RATE_TYPE.WEIGHT,
+  SHIPPING_RATE_TYPE.PRICE,
+] as const;
+
+export type ShippingRateTypeValue = (typeof SHIPPING_RATE_TYPE_VALUES)[number];

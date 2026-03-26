@@ -62,7 +62,12 @@ export default function LoginClient({ logo }: { logo?: string }) {
   const handleEmailSubmit = async (values: { email: string }) => {
     setLoading(true);
     try {
-      const { exists } = await checkEmail(values.email);
+      const { exists, error } = await checkEmail(values.email);
+      if (error) {
+        message.error(error);
+        return;
+      }
+
       setEmail(values.email);
       if (exists) {
         setStep("LOGIN");

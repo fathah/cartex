@@ -2,19 +2,22 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { GatewayEnvironment, PaymentMethodType } from "@prisma/client";
+import {
+  GatewayEnvironment,
+  PaymentMethodType,
+  UserRole,
+} from "@prisma/client";
 import { PaymentDB } from "@/db/payment";
 import { calculatePaymentFee } from "@/lib/pricing";
+import { isPaymentMethodEligibleForCheckout } from "@/lib/payment-methods";
 import {
   buildGatewayAdminDto,
   GATEWAY_SECRET_KEYS,
   mergeGatewayConfigForSave,
 } from "@/services/gateway-config";
-import { requireAdminAuth } from "@/services/zauth";
+import { requireAdminAuth, requireAdminRole } from "@/services/zauth";
 
 const REVALIDATE_PATH = "/admin/settings";
-const COD_ALLOWED_COUNTRIES = ["AE", "SA", "IN", "KW", "BH", "OM", "QA"];
-const COD_MIN_ORDER = 0;
 
 const paymentMethodSchema = z.object({
   code: z.string().trim().min(1),
@@ -49,13 +52,18 @@ export async function getPaymentMethodsForCheckout(
   return allMethods
     .filter((method) => method.isActive)
     .map((method) => {
-      const isCOD = method.type === PaymentMethodType.COD;
-      if (isCOD) {
-        const codAllowed = COD_ALLOWED_COUNTRIES.includes(country.toUpperCase());
-        const meetsMinimum = subtotal >= COD_MIN_ORDER;
-        if (!codAllowed || !meetsMinimum) {
-          return null;
-        }
+      if (!isPaymentMethodEligibleForCheckout(method, country, subtotal)) {
+        return null;
+      }
+
+      const activeGatewayCodes = method.gateways
+        .filter((gateway) => gateway.isActive)
+        .map((gateway) => gateway.code);
+      if (
+        method.code === "ONLINE" &&
+        activeGatewayCodes.length === 0
+      ) {
+        return null;
       }
 
       const paymentFee = calculatePaymentFee(method, subtotal);
@@ -69,9 +77,7 @@ export async function getPaymentMethodsForCheckout(
 
       return {
         code: method.code,
-        gatewayCodes: method.gateways
-          .filter((gateway) => gateway.isActive)
-          .map((gateway) => gateway.code),
+        gatewayCodes: activeGatewayCodes,
         id: method.id,
         name: method.name,
         paymentFee,
@@ -155,7 +161,7 @@ export async function createPaymentGateway(data: {
   config: Record<string, string>;
   isActive?: boolean;
 }) {
-  await requireAdminAuth();
+  await requireAdminRole(UserRole.SUPER_ADMIN);
   const parsed = paymentGatewaySchema.parse(data);
   const secretKeys = GATEWAY_SECRET_KEYS[parsed.code] || [];
   const missingSecret = secretKeys.find((key) => !parsed.config[key]);
@@ -195,7 +201,7 @@ export async function updatePaymentGateway(
     isActive?: boolean;
   },
 ) {
-  await requireAdminAuth();
+  await requireAdminRole(UserRole.SUPER_ADMIN);
   const existing = await PaymentDB.listGateways().then((gateways) =>
     gateways.find((gateway) => gateway.id === id),
   );
@@ -222,7 +228,7 @@ export async function updatePaymentGateway(
 }
 
 export async function deletePaymentGateway(id: string) {
-  await requireAdminAuth();
+  await requireAdminRole(UserRole.SUPER_ADMIN);
   await PaymentDB.deleteGateway(id);
   revalidatePath(REVALIDATE_PATH);
 }

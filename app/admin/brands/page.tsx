@@ -21,7 +21,6 @@ import {
   updateBrand,
   deleteBrand,
 } from "@/actions/brands";
-import AdminLayout from "@/components/layout/AdminLayout";
 import MediaPicker from "@/app/admin/media/media_picker";
 import { AppConstants } from "@/constants/constants";
 
@@ -174,7 +173,6 @@ export default function BrandsIndex() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Brands</h1>
           <p className="text-gray-500 text-sm mt-1">
             Manage product brands and logos
           </p>

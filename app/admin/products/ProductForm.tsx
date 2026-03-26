@@ -25,6 +25,7 @@ import {
 import { getCollections } from "@/actions/collection";
 import { createCategory } from "@/actions/categories";
 import { getBrands, createBrand } from "@/actions/brands";
+import { getShippingProfiles } from "@/actions/shipping";
 import { useRouter } from "next/navigation";
 import { ProductStatus } from "@prisma/client";
 import VariantManager from "./VariantManager";
@@ -82,6 +83,9 @@ export default function ProductForm({
 
   const [brands, setBrands] = React.useState<any[]>([]);
   const [loadingBrands, setLoadingBrands] = React.useState(true);
+  const [shippingProfiles, setShippingProfiles] = React.useState<any[]>([]);
+  const [loadingShippingProfiles, setLoadingShippingProfiles] =
+    React.useState(true);
   const [newBrandName, setNewBrandName] = React.useState("");
   const inputRef = React.useRef<any>(null);
   const categoryInputRef = React.useRef<any>(null);
@@ -92,18 +96,27 @@ export default function ProductForm({
   React.useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const [collData, brandData] = await Promise.all([
+        const [collData, brandData, profileData] = await Promise.all([
           getCollections(),
           getBrands(),
+          getShippingProfiles(),
         ]);
         setCollections(collData);
         setBrands(brandData);
+        setShippingProfiles(profileData);
+        if (!initialData?.shippingProfileId) {
+          const defaultProfile = profileData.find((profile: any) => profile.isDefault);
+          if (defaultProfile) {
+            form.setFieldValue("shippingProfileId", defaultProfile.id);
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch form data:", error);
         message.error("Failed to load initial data");
       } finally {
         setLoadingCollections(false);
         setLoadingBrands(false);
+        setLoadingShippingProfiles(false);
       }
     };
     fetchCollections();
@@ -516,6 +529,23 @@ export default function ProductForm({
                 </Space>
               </>
             )}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="shippingProfileId"
+          label="Shipping Profile"
+          extra="Use profiles to keep shipping rules simple across GCC and India catalogs."
+        >
+          <Select
+            placeholder="Select a shipping profile"
+            loading={loadingShippingProfiles}
+            disabled={loadingShippingProfiles}
+            allowClear
+            options={shippingProfiles.map((profile) => ({
+              label: `${profile.name}${profile.isDefault ? " (Default)" : ""}`,
+              value: profile.id,
+            }))}
           />
         </Form.Item>
 

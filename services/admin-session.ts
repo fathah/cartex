@@ -1,5 +1,3 @@
-"use server";
-
 import prisma from "@/db/prisma";
 import { AppKeys } from "@/constants/keys";
 import { hashToken, generateSecureToken } from "@/services/security";

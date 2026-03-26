@@ -27,7 +27,7 @@ export interface BlockDefinition {
   type: BlockType;
   label: string;
   category: BlockCategory;
-  component: React.ComponentType<Record<string, unknown>>;
+  component: React.ComponentType<any>;
   description?: string;
 }
 

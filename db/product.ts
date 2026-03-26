@@ -13,6 +13,7 @@ export type CreateProductData = {
   costPrice?: number;
   productBrandId?: string;
   isFeatured?: boolean;
+  shippingProfileId?: string;
 };
 
 export default class ProductDB {
@@ -29,12 +30,14 @@ export default class ProductDB {
             createdAt: "asc" as const,
           },
         },
+        image: true,
       };
     }
 
     return {
       selectedOptions: true,
       inventory: true,
+      image: true,
       _count: {
         select: {
           variantMarkets: true,
@@ -58,8 +61,19 @@ export default class ProductDB {
     const { salePrice, compareAtPrice, costPrice, ...productData } = data;
 
     return await prisma.$transaction(async (tx) => {
+      const defaultShippingProfile = productData.shippingProfileId
+        ? null
+        : await tx.shippingProfile.findFirst({
+            where: { isDefault: true },
+            select: { id: true },
+          });
+
       const product = await tx.product.create({
-        data: productData,
+        data: {
+          ...productData,
+          shippingProfileId:
+            productData.shippingProfileId || defaultShippingProfile?.id || null,
+        },
       });
 
       // Create default variant
@@ -110,6 +124,7 @@ export default class ProductDB {
           include: ProductDB.buildVariantInclude(undefined, true),
         },
         collections: true,
+        shippingProfile: true,
         mediaProducts: {
           include: { media: true },
         },
@@ -132,6 +147,7 @@ export default class ProductDB {
           include: ProductDB.buildVariantInclude(marketId),
         },
         collections: true,
+        shippingProfile: true,
         mediaProducts: {
           include: { media: true },
         },
@@ -172,6 +188,7 @@ export default class ProductDB {
           collections: {
             take: 1,
           },
+          shippingProfile: true,
           brand: true,
         },
       }),
@@ -278,6 +295,7 @@ export default class ProductDB {
           collections: {
             take: 1,
           },
+          shippingProfile: true,
           brand: true,
         },
       }),
@@ -321,6 +339,7 @@ export default class ProductDB {
           collections: {
             take: 1,
           },
+          shippingProfile: true,
           brand: true,
         },
       }),
@@ -350,6 +369,7 @@ export default class ProductDB {
         collections: {
           take: 1,
         },
+        shippingProfile: true,
         brand: true,
       },
     });
@@ -378,6 +398,7 @@ export default class ProductDB {
         collections: {
           take: 1,
         },
+        shippingProfile: true,
         brand: true,
       },
     });
@@ -758,6 +779,11 @@ export default class ProductDB {
       costPrice?: number | null;
       sku?: string;
       inventory: number;
+      requiresShipping?: boolean;
+      weightGrams?: number;
+      lengthCm?: number | null;
+      widthCm?: number | null;
+      heightCm?: number | null;
       marketPrices?: Array<{
         marketId: string;
         salePrice: number;
@@ -766,6 +792,8 @@ export default class ProductDB {
         inventoryQuantity?: number | null;
         isAvailable?: boolean;
         isPublished?: boolean;
+        minOrderQty?: number | null;
+        maxOrderQty?: number | null;
       }>;
     },
   ) {
@@ -778,6 +806,11 @@ export default class ProductDB {
           compareAtPrice: data.compareAtPrice ?? null,
           costPrice: data.costPrice ?? null,
           sku: data.sku,
+          requiresShipping: data.requiresShipping ?? true,
+          weightGrams: data.weightGrams ?? 0,
+          lengthCm: data.lengthCm ?? null,
+          widthCm: data.widthCm ?? null,
+          heightCm: data.heightCm ?? null,
         },
       });
 
@@ -806,6 +839,8 @@ export default class ProductDB {
               inventoryQuantity: marketPrice.inventoryQuantity ?? 0,
               isAvailable: marketPrice.isAvailable ?? true,
               isPublished: marketPrice.isPublished ?? true,
+              minOrderQty: marketPrice.minOrderQty ?? 1,
+              maxOrderQty: marketPrice.maxOrderQty ?? null,
             },
             update: {
               salePrice: marketPrice.salePrice,
@@ -814,6 +849,8 @@ export default class ProductDB {
               inventoryQuantity: marketPrice.inventoryQuantity ?? 0,
               isAvailable: marketPrice.isAvailable ?? true,
               isPublished: marketPrice.isPublished ?? true,
+              minOrderQty: marketPrice.minOrderQty ?? 1,
+              maxOrderQty: marketPrice.maxOrderQty ?? null,
             },
           });
         }

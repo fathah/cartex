@@ -16,7 +16,17 @@ export default function ProductCard({ product }: { product: any }) {
   const salePrice = displayVariant?.effectiveSalePrice || 0;
   const compareAtPrice = displayVariant?.effectiveCompareAtPrice || 0;
   const stockCount = displayVariant?.effectiveInventoryQuantity || 0;
-  const isOutOfStock = displayVariant ? stockCount <= 0 : true;
+  const minQuantity = Math.max(
+    1,
+    Number(displayVariant?.effectiveMinOrderQty || 1),
+  );
+  const maxQuantity =
+    displayVariant?.effectiveMaxOrderQty === null ||
+    displayVariant?.effectiveMaxOrderQty === undefined
+      ? null
+      : Math.max(minQuantity, Number(displayVariant.effectiveMaxOrderQty));
+  const isUnavailableInRegion = product.unavailableInMarket === true;
+  const isOutOfStock = displayVariant ? stockCount < minQuantity : true;
   const { currency, marketCode } = useCurrency();
 
   const addToCart = useCartStore((state) => state.addToCart);
@@ -45,15 +55,22 @@ export default function ProductCard({ product }: { product: any }) {
     e.preventDefault();
     e.stopPropagation();
 
+    if (isUnavailableInRegion || isOutOfStock || !displayVariant) {
+      return;
+    }
+
     const variantId = displayVariant?.id;
     addToCart({
       key: `${product.id}${variantId ? `-${variantId}` : ""}`,
       productId: product.id,
       name: product.name,
       price: Number(salePrice),
-      quantity: 1,
+      quantity: minQuantity,
+      minQuantity,
+      maxQuantity,
       image: product.mediaProducts?.[0]?.media?.url,
       variantId: variantId,
+      variantTitle: displayVariant?.title,
       slug: product.slug,
       currencyCode: currency,
       marketCode,
@@ -200,16 +217,18 @@ export default function ProductCard({ product }: { product: any }) {
 
         <button
           onClick={handleAddToCart}
-          disabled={isOutOfStock || isAddedToCart}
+          disabled={isUnavailableInRegion || isOutOfStock || isAddedToCart}
           className={`w-full mt-auto py-2.5 rounded-full border font-medium text-sm transition-all active:scale-95 ${
-            isOutOfStock
+            isUnavailableInRegion || isOutOfStock
               ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
               : isAddedToCart
                 ? "bg-emerald-50 border-emerald-200 text-emerald-600 flex items-center justify-center gap-2 cursor-default"
                 : "border-gray-900 hover:bg-gray-900 hover:text-white"
           }`}
         >
-          {isOutOfStock ? (
+          {isUnavailableInRegion ? (
+            "Unavailable"
+          ) : isOutOfStock ? (
             "Out of Stock"
           ) : isAddedToCart ? (
             <>

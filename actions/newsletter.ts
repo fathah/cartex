@@ -1,10 +1,16 @@
 "use server";
 
 import prisma from "@/db/prisma";
+import {
+  consumeRateLimit,
+  RateLimitError,
+  getRequestIp,
+} from "@/services/rate-limit";
+import { normalizeEmail } from "@/services/security";
 import { z } from "zod";
 
 const subscribeSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().trim().email("Please enter a valid email address"),
 });
 
 export async function subscribeToNewsletter(
@@ -12,9 +18,8 @@ export async function subscribeToNewsletter(
   formData: FormData,
 ) {
   try {
-    const email = formData.get("email") as string;
+    const email = formData.get("email");
 
-    // Validate email
     const validatedData = subscribeSchema.safeParse({ email });
     if (!validatedData.success) {
       return {
@@ -23,22 +28,42 @@ export async function subscribeToNewsletter(
       };
     }
 
-    // Check if user already exists
+    const normalizedEmail = normalizeEmail(validatedData.data.email);
+    const identifier = await getRequestIp();
+
+    try {
+      await consumeRateLimit({
+        action: "newsletter_subscribe",
+        blockMs: 30 * 60 * 1000,
+        identifier,
+        limit: 5,
+        windowMs: 10 * 60 * 1000,
+      });
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        return {
+          error: `Too many attempts. Try again in ${error.retryAfterSeconds} seconds.`,
+          success: false,
+        };
+      }
+
+      throw error;
+    }
+
     const existingSubscriber = await prisma.newsLetterSubscriber.findUnique({
-      where: { email: validatedData.data.email },
+      where: { email: normalizedEmail },
     });
 
     if (existingSubscriber) {
       return {
-        error: "This email is already subscribed to our newsletter.",
-        success: false,
+        message: "Successfully subscribed to the newsletter!",
+        success: true,
       };
     }
 
-    // Process subscription
     await prisma.newsLetterSubscriber.create({
       data: {
-        email: validatedData.data.email,
+        email: normalizedEmail,
       },
     });
 

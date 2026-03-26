@@ -1,5 +1,3 @@
-"use server";
-
 import prisma from "@/db/prisma";
 import { headers } from "next/headers";
 

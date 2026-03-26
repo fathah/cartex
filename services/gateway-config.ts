@@ -1,5 +1,3 @@
-"use server";
-
 import prisma from "@/db/prisma";
 import { ENV } from "@/constants/envs";
 import { maskSecret } from "@/services/security";

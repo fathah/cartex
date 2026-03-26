@@ -200,7 +200,11 @@ const BlockList: React.FC<BlockListProps> = ({
         open={isFormOpen}
         onCancel={() => setIsFormOpen(false)}
         onSuccess={handleFormSuccess}
-        initialConfig={editingBlock?.config}
+        initialConfig={
+          editingBlock?.config && typeof editingBlock.config === "object"
+            ? (editingBlock.config as Record<string, unknown>)
+            : undefined
+        }
         blockType={selectedType}
       />
     </div>

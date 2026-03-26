@@ -43,8 +43,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
+      <div className="flex justify-end items-center mb-8">
         <Space>
           <Link href="/admin/orders">
             <Button icon={<ShoppingCart size={16} />}>Manage Orders</Button>

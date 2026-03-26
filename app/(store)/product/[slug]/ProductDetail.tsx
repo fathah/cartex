@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Button, Tag, Divider, InputNumber, message } from "antd";
 import { ShoppingCart } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
 import { AppConstants } from "@/constants/constants";
 import { useCartStore } from "@/lib/store/cart";
 import Currency from "../../../../components/common/Currency";
@@ -72,6 +71,27 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   };
 
   const addToCartStore = useCartStore((state) => state.addToCart);
+  const minOrderQty = Math.max(
+    1,
+    Number(
+      currentVariant?.effectiveMinOrderQty ||
+        defaultVariant?.effectiveMinOrderQty ||
+        1,
+    ),
+  );
+  const maxOrderQty =
+    currentVariant?.effectiveMaxOrderQty ??
+    defaultVariant?.effectiveMaxOrderQty ??
+    null;
+
+  useEffect(() => {
+    setQuantity((prev) => {
+      const normalized = Math.max(minOrderQty, prev);
+      return maxOrderQty === null || maxOrderQty === undefined
+        ? normalized
+        : Math.min(normalized, maxOrderQty);
+    });
+  }, [minOrderQty, maxOrderQty, currentVariant?.id]);
 
   const addToCart = () => {
     if (isUnavailableInRegion) {
@@ -94,6 +114,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       variantTitle: currentVariant.title,
       price: price,
       quantity: quantity,
+      minQuantity: minOrderQty,
+      maxQuantity: maxOrderQty,
       image: mainImage,
       slug: product.slug,
       currencyCode: currency,
@@ -122,7 +144,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const isOutOfStock = isUnavailableInRegion
     ? true
     : currentVariant
-      ? stockCount <= 0
+      ? stockCount < minOrderQty
       : true;
 
   const getFullImageUrl = (url: string) => {
@@ -329,14 +351,20 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         <div className="flex items-start gap-6 mb-8">
           <div className="bg-[#f4f4fa] rounded-full flex items-center px-4 py-3 gap-4 font-semibold">
             <button
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              onClick={() => setQuantity(Math.max(minOrderQty, quantity - 1))}
               className="text-xl px-2 hover:text-[#003d29]"
             >
               −
             </button>
             <span>{quantity}</span>
             <button
-              onClick={() => setQuantity(Math.min(99, quantity + 1))}
+              onClick={() =>
+                setQuantity(
+                  maxOrderQty === null || maxOrderQty === undefined
+                    ? quantity + 1
+                    : Math.min(maxOrderQty, quantity + 1),
+                )
+              }
               className="text-xl px-2 hover:text-[#003d29]"
             >
               +
@@ -360,7 +388,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               </span>
             ) : null}
             {!isOutOfStock && (
-              <span className="text-gray-500">Don't miss it</span>
+              <span className="text-gray-500">
+                {maxOrderQty ? `Max ${maxOrderQty} per order` : "Don't miss it"}
+              </span>
             )}
           </div>
         </div>
@@ -407,9 +437,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6">Product Story</h2>
             <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed">
-              <ReactMarkdown rehypePlugins={[rehypeRaw]}>
-                {product.descriptionLong}
-              </ReactMarkdown>
+              <ReactMarkdown>{product.descriptionLong}</ReactMarkdown>
             </div>
           </div>
         )}

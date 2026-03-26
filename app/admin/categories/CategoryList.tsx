@@ -157,8 +157,7 @@ export default function CategoryList({ initialCategories }: CategoryListProps) {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Categories</h1>
+      <div className="flex justify-end items-center mb-6">
         <Button
           type="primary"
           icon={<Plus size={16} />}

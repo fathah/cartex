@@ -3,20 +3,22 @@
 import { Form, Radio, Skeleton } from "antd";
 import type { FormInstance } from "antd";
 import {
-  CreditCard,
-  Wallet,
   Banknote,
-  ShieldCheck,
-  Info,
   CheckCircle2,
+  CreditCard,
+  Info,
+  ShieldCheck,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  getPaymentMethodsForCheckout,
   getActiveGatewaysForCheckout,
+  getPaymentMethodsForCheckout,
 } from "@/actions/payment";
+import {
+  CHECKOUT_PAYMENT_METHODS,
+  getCheckoutPaymentMethodLabel,
+} from "@/lib/payment-methods";
 
-// Gateway code → logo path mapping
 const GATEWAY_LOGOS: Record<string, string> = {
   stripe: "/images/brands/stripe.png",
   network_international: "/images/brands/network.png",
@@ -45,9 +47,35 @@ export default function PaymentMethods({
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [activeGateways, setActiveGateways] = useState<any[]>([]);
   const [loadingPayment, setLoadingPayment] = useState(true);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<string>("");
-  const [selectedGatewayCode, setSelectedGatewayCode] = useState<string>("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  const [selectedGatewayCode, setSelectedGatewayCode] = useState("");
+
+  const selectedMethod = paymentMethods.find(
+    (method) => method.code === selectedPaymentMethod,
+  );
+
+  const sortedPaymentMethods = useMemo(() => {
+    const order = [
+      CHECKOUT_PAYMENT_METHODS.ONLINE.code,
+      CHECKOUT_PAYMENT_METHODS.COD.code,
+    ];
+
+    return [...paymentMethods].sort(
+      (left, right) => order.indexOf(left.code) - order.indexOf(right.code),
+    );
+  }, [paymentMethods]);
+
+  const availableLogoGateways = useMemo(() => {
+    if (!selectedMethod) {
+      return [];
+    }
+
+    return activeGateways.filter(
+      (gateway) =>
+        GATEWAY_LOGOS[gateway.code] &&
+        selectedMethod.gatewayCodes?.includes(gateway.code),
+    );
+  }, [activeGateways, selectedMethod]);
 
   useEffect(() => {
     const load = async () => {
@@ -60,82 +88,64 @@ export default function PaymentMethods({
         setPaymentMethods(methods);
         setActiveGateways(gateways);
 
-        // Auto-select silently when only 1 gateway
         const currentCode = selectedPaymentMethod;
-        const stillValid = methods.find((m: any) => m.code === currentCode);
+        const resolvedMethod =
+          methods.find((method: any) => method.code === currentCode) ||
+          methods.find(
+            (method: any) =>
+              method.code === CHECKOUT_PAYMENT_METHODS.ONLINE.code,
+          ) ||
+          methods[0] ||
+          null;
 
-        if (!stillValid && methods.length > 0) {
-          const defaultMethod = methods[0];
-          if (!defaultMethod) {
-            return;
-          }
-          const allowedGateways = gateways.filter(
-            (gateway: any) =>
-              GATEWAY_LOGOS[gateway.code] &&
-              defaultMethod.gatewayCodes?.includes(gateway.code),
-          );
-          const autoGw = allowedGateways.length === 1 ? allowedGateways[0].code : "";
-          setSelectedGatewayCode(autoGw);
-          form.setFieldValue("paymentMethod", defaultMethod.code);
-          setSelectedPaymentMethod(defaultMethod.code);
-          onPaymentMethodChange(
-            defaultMethod.code,
-            defaultMethod.paymentFee || 0,
-            defaultMethod.paymentFeeLabel || "",
-            autoGw,
-          );
-        } else if (stillValid) {
-          const allowedGateways = gateways.filter(
-            (gateway: any) =>
-              GATEWAY_LOGOS[gateway.code] &&
-              stillValid.gatewayCodes?.includes(gateway.code),
-          );
-          const autoGw =
-            allowedGateways.length === 1 ? allowedGateways[0].code : selectedGatewayCode;
-          if (autoGw !== selectedGatewayCode) {
-            setSelectedGatewayCode(autoGw);
-          }
-          onPaymentMethodChange(
-            stillValid.code,
-            stillValid.paymentFee || 0,
-            stillValid.paymentFeeLabel || "",
-            autoGw,
-          );
+        if (!resolvedMethod) {
+          setSelectedPaymentMethod("");
+          setSelectedGatewayCode("");
+          return;
         }
+
+        const gatewayOptions = gateways.filter(
+          (gateway: any) =>
+            GATEWAY_LOGOS[gateway.code] &&
+            resolvedMethod.gatewayCodes?.includes(gateway.code),
+        );
+        const nextGatewayCode =
+          resolvedMethod.code === CHECKOUT_PAYMENT_METHODS.ONLINE.code
+            ? gatewayOptions.find((gateway: any) => gateway.code === selectedGatewayCode)
+                ?.code || gatewayOptions[0]?.code || ""
+            : "";
+
+        form.setFieldValue("paymentMethod", resolvedMethod.code);
+        setSelectedPaymentMethod(resolvedMethod.code);
+        setSelectedGatewayCode(nextGatewayCode);
+        onPaymentMethodChange(
+          resolvedMethod.code,
+          resolvedMethod.paymentFee || 0,
+          resolvedMethod.paymentFeeLabel || "",
+          nextGatewayCode,
+        );
       } catch (err) {
         console.error("Failed to load payment methods", err);
       } finally {
         setLoadingPayment(false);
       }
     };
+
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [country, subtotal, form]);
 
-  const getPaymentIcon = (type: string) => {
-    switch (type) {
-      case "CARD":
-        return <CreditCard size={20} className="text-blue-500" />;
-      case "COD":
-        return <Banknote size={20} className="text-green-600" />;
-      case "WALLET":
-        return <Wallet size={20} className="text-purple-600" />;
-      default:
-        return <CreditCard size={20} className="text-gray-500" />;
-    }
-  };
-
   const handleSelect = (method: any) => {
-    const allowedGateways = activeGateways.filter(
+    const gatewayOptions = activeGateways.filter(
       (gateway) =>
         GATEWAY_LOGOS[gateway.code] && method.gatewayCodes?.includes(gateway.code),
     );
     const nextGatewayCode =
-      allowedGateways.length === 1
-        ? allowedGateways[0].code
-        : allowedGateways.some((gateway) => gateway.code === selectedGatewayCode)
-          ? selectedGatewayCode
-          : "";
+      method.code === CHECKOUT_PAYMENT_METHODS.ONLINE.code
+        ? gatewayOptions.find((gateway) => gateway.code === selectedGatewayCode)?.code ||
+          gatewayOptions[0]?.code ||
+          ""
+        : "";
 
     form.setFieldValue("paymentMethod", method.code);
     setSelectedPaymentMethod(method.code);
@@ -148,19 +158,19 @@ export default function PaymentMethods({
     );
   };
 
-  const logoGateways = activeGateways.filter((g) => GATEWAY_LOGOS[g.code]);
-  // Show a picker only when there are 2+ gateways configured
-  const selectedMethod = paymentMethods.find(
-    (method) => method.code === selectedPaymentMethod,
-  );
-  const availableLogoGateways = logoGateways.filter((gateway) =>
-    selectedMethod?.gatewayCodes?.includes(gateway.code),
-  );
-  const showGatewayPicker = availableLogoGateways.length > 1;
+  const handleGatewaySelect = (gatewayCode: string) => {
+    setSelectedGatewayCode(gatewayCode);
+    if (!selectedMethod) {
+      return;
+    }
 
-  const selectedCardMethod = paymentMethods.find(
-    (m) => m.type === "CARD" && m.code === selectedPaymentMethod,
-  );
+    onPaymentMethodChange(
+      selectedMethod.code,
+      selectedMethod.paymentFee || 0,
+      selectedMethod.paymentFeeLabel || "",
+      gatewayCode,
+    );
+  };
 
   return (
     <section className="mb-10">
@@ -182,16 +192,19 @@ export default function PaymentMethods({
               className="w-full"
               onChange={(e) => {
                 const method = paymentMethods.find(
-                  (m: any) => m.code === e.target.value,
+                  (paymentMethod: any) => paymentMethod.code === e.target.value,
                 );
-                if (method) handleSelect(method);
+                if (method) {
+                  handleSelect(method);
+                }
               }}
               value={selectedPaymentMethod}
             >
               <div className="flex flex-col gap-3">
-                {paymentMethods.map((method: any) => {
+                {sortedPaymentMethods.map((method: any) => {
                   const isSelected = selectedPaymentMethod === method.code;
-                  const isCard = method.type === "CARD";
+                  const isOnline =
+                    method.code === CHECKOUT_PAYMENT_METHODS.ONLINE.code;
 
                   return (
                     <div
@@ -210,11 +223,15 @@ export default function PaymentMethods({
                               isSelected ? "bg-[#003d29]/10" : "bg-gray-100"
                             }`}
                           >
-                            {getPaymentIcon(method.type)}
+                            {isOnline ? (
+                              <CreditCard size={20} className="text-blue-500" />
+                            ) : (
+                              <Banknote size={20} className="text-green-600" />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="font-semibold text-gray-900 text-sm">
-                              {method.name}
+                              {method.name || getCheckoutPaymentMethodLabel(method.code)}
                             </span>
                             {method.paymentFee > 0 && (
                               <div className="text-xs text-amber-600 mt-0.5 flex items-center gap-1">
@@ -222,13 +239,18 @@ export default function PaymentMethods({
                                 {method.paymentFeeLabel}
                               </div>
                             )}
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              {isOnline
+                                ? "Pay securely online"
+                                : "Pay when your order arrives"}
+                            </div>
                           </div>
                           {isSelected ? (
                             <CheckCircle2
                               size={18}
                               className="text-[#003d29] shrink-0"
                             />
-                          ) : isCard ? (
+                          ) : isOnline ? (
                             <ShieldCheck
                               size={16}
                               className="text-gray-300 shrink-0"
@@ -237,70 +259,52 @@ export default function PaymentMethods({
                         </div>
                       </Radio>
 
-                      {/* Gateway section — only for CARD when selected */}
-                      {isCard && isSelected && availableLogoGateways.length > 0 && (
+                      {isOnline && isSelected && availableLogoGateways.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-[#003d29]/10 pl-2">
-                          {showGatewayPicker ? (
-                            /* ── 2+ gateways: show a picker ── */
+                          {availableLogoGateways.length > 1 ? (
                             <>
                               <p className="text-xs text-gray-500 font-medium mb-2">
-                                Choose payment provider
+                                Payment provider
                               </p>
                               <div className="flex flex-wrap gap-2">
-                                {availableLogoGateways.map((gw) => {
-                                  const isGwSelected =
-                                    selectedGatewayCode === gw.code;
+                                {availableLogoGateways.map((gateway) => {
+                                  const isGatewaySelected =
+                                    selectedGatewayCode === gateway.code;
+
                                   return (
                                     <button
-                                      key={gw.id}
+                                      key={gateway.id}
                                       type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedGatewayCode(gw.code);
-                                        // Notify parent of updated gateway selection
-                                        const currentMethod =
-                                          paymentMethods.find(
-                                            (m) =>
-                                              m.code === selectedPaymentMethod,
-                                          );
-                                        if (currentMethod) {
-                                          onPaymentMethodChange(
-                                            currentMethod.code,
-                                            currentMethod.paymentFee || 0,
-                                            currentMethod.paymentFeeLabel || "",
-                                            gw.code,
-                                          );
-                                        }
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleGatewaySelect(gateway.code);
                                       }}
-                                      className={`flex flex-col items-center gap-1.5 border rounded-xl px-4 py-2.5 cursor-pointer transition-all min-w-[80px] ${
-                                        isGwSelected
+                                      className={`flex flex-col items-center gap-1.5 border rounded-xl px-4 py-2.5 cursor-pointer transition-all min-w-[88px] ${
+                                        isGatewaySelected
                                           ? "border-[#003d29] bg-[#003d29]/5 ring-1 ring-[#003d29]/20"
                                           : "border-gray-200 bg-white hover:border-gray-300"
                                       }`}
                                     >
                                       <img
-                                        src={GATEWAY_LOGOS[gw.code]}
-                                        alt={gw.name}
+                                        src={GATEWAY_LOGOS[gateway.code]}
+                                        alt={gateway.name}
                                         className="h-5 w-auto object-contain"
                                       />
                                       <span
-                                        className={`text-[10px] font-medium leading-none ${isGwSelected ? "text-[#003d29]" : "text-gray-500"}`}
+                                        className={`text-[10px] font-medium leading-none ${
+                                          isGatewaySelected
+                                            ? "text-[#003d29]"
+                                            : "text-gray-500"
+                                        }`}
                                       >
-                                        {gw.name}
+                                        {gateway.name}
                                       </span>
-                                      {isGwSelected && (
-                                        <CheckCircle2
-                                          size={12}
-                                          className="text-[#003d29]"
-                                        />
-                                      )}
                                     </button>
                                   );
                                 })}
                               </div>
                             </>
                           ) : (
-                            /* ── Single gateway: just show a small trust strip ── */
                             <div className="flex items-center gap-3 flex-wrap">
                               <p className="text-xs text-gray-400">
                                 Processed securely via
@@ -329,26 +333,6 @@ export default function PaymentMethods({
               </div>
             </Radio.Group>
           </Form.Item>
-
-          {/* "We accept" strip — shown when a non-card method is selected or nothing yet */}
-          {logoGateways.length > 0 && !selectedCardMethod && (
-            <div className="flex items-center gap-2 flex-wrap pt-2">
-              <span className="text-xs text-gray-400">We accept:</span>
-              {logoGateways.map((gw) => (
-                <div
-                  key={gw.id}
-                  className="border border-gray-200 rounded-lg px-2 py-1 bg-white"
-                  title={gw.name}
-                >
-                  <img
-                    src={GATEWAY_LOGOS[gw.code]}
-                    alt={gw.name}
-                    className="h-4 w-auto object-contain"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
         </>
       )}
     </section>

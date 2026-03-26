@@ -176,6 +176,14 @@ export default function VariantManager({
             : 0,
         isAvailable: existing?.isAvailable ?? true,
         isPublished: existing?.isPublished ?? true,
+        minOrderQty:
+          existing?.minOrderQty !== null && existing?.minOrderQty !== undefined
+            ? Number(existing.minOrderQty)
+            : 1,
+        maxOrderQty:
+          existing?.maxOrderQty !== null && existing?.maxOrderQty !== undefined
+            ? Number(existing.maxOrderQty)
+            : null,
       };
     });
     variantForm.setFieldsValue({
@@ -187,6 +195,20 @@ export default function VariantManager({
       costPrice:
         variant.costPrice !== null && variant.costPrice !== undefined
           ? Number(variant.costPrice)
+          : null,
+      requiresShipping: variant.requiresShipping ?? true,
+      weightGrams: Number(variant.weightGrams || 0),
+      lengthCm:
+        variant.lengthCm !== null && variant.lengthCm !== undefined
+          ? Number(variant.lengthCm)
+          : null,
+      widthCm:
+        variant.widthCm !== null && variant.widthCm !== undefined
+          ? Number(variant.widthCm)
+          : null,
+      heightCm:
+        variant.heightCm !== null && variant.heightCm !== undefined
+          ? Number(variant.heightCm)
           : null,
       sku: variant.sku,
       inventory: variant.inventory?.quantity || 0,
@@ -300,6 +322,23 @@ export default function VariantManager({
           )}
         </Space>
       ),
+    },
+    {
+      title: "Shipment",
+      key: "shipment",
+      render: (_: any, record: any) =>
+        record.requiresShipping ? (
+          <Space wrap>
+            <Tag color="blue">{Number(record.weightGrams || 0)} g</Tag>
+            {(record.lengthCm || record.widthCm || record.heightCm) && (
+              <Tag>
+                {record.lengthCm || 0}x{record.widthCm || 0}x{record.heightCm || 0} cm
+              </Tag>
+            )}
+          </Space>
+        ) : (
+          <Tag>Digital / No Shipping</Tag>
+        ),
     },
     {
       title: "Inventory",
@@ -550,6 +589,32 @@ export default function VariantManager({
             </Form.Item>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Form.Item
+              name="requiresShipping"
+              label="Requires Shipping"
+              valuePropName="checked"
+            >
+              <Switch />
+            </Form.Item>
+
+            <Form.Item name="weightGrams" label="Weight (g)">
+              <InputNumber style={{ width: "100%" }} min={0} />
+            </Form.Item>
+
+            <Form.Item name="lengthCm" label="Length (cm)">
+              <InputNumber style={{ width: "100%" }} min={0} precision={2} />
+            </Form.Item>
+
+            <Form.Item name="widthCm" label="Width (cm)">
+              <InputNumber style={{ width: "100%" }} min={0} precision={2} />
+            </Form.Item>
+
+            <Form.Item name="heightCm" label="Height (cm)">
+              <InputNumber style={{ width: "100%" }} min={0} precision={2} />
+            </Form.Item>
+          </div>
+
           <div className="rounded-lg border border-gray-200 p-4">
             <div className="mb-3 flex items-end justify-between gap-4">
               <div>
@@ -565,7 +630,7 @@ export default function VariantManager({
 
             <div className="overflow-x-auto">
               <div className="min-w-[1080px]">
-                <div className="grid grid-cols-[180px_110px_110px_130px_140px_140px_140px] gap-3 px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 border-b border-gray-200">
+                <div className="grid grid-cols-[180px_100px_100px_100px_130px_140px_140px_140px_120px_120px] gap-3 px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 border-b border-gray-200">
                   <div>Market</div>
                   <div>Visible</div>
                   <div>Available</div>
@@ -573,13 +638,15 @@ export default function VariantManager({
                   <div>Sale</div>
                   <div>Compare At</div>
                   <div>Cost</div>
+                  <div>Min Qty</div>
+                  <div>Max Qty</div>
                 </div>
 
                 <div className="space-y-3 pt-3">
               {markets.map((market, index) => (
                 <div
                   key={market.id}
-                  className="grid grid-cols-[180px_110px_110px_130px_140px_140px_140px] gap-3 items-start rounded-lg border border-gray-100 p-3"
+                  className="grid grid-cols-[180px_100px_100px_100px_130px_140px_140px_140px_120px_120px] gap-3 items-start rounded-lg border border-gray-100 p-3"
                 >
                   <div>
                     <div className="font-medium">{market.name}</div>
@@ -622,7 +689,6 @@ export default function VariantManager({
                     <InputNumber
                       style={{ width: "100%" }}
                       min={0}
-                      addonAfter={market.currencyCode}
                     />
                   </Form.Item>
 
@@ -661,6 +727,20 @@ export default function VariantManager({
                       precision={2}
                       addonAfter={market.currencyCode}
                     />
+                  </Form.Item>
+
+                  <Form.Item
+                    name={["marketPrices", index, "minOrderQty"]}
+                    className="mb-0"
+                  >
+                    <InputNumber style={{ width: "100%" }} min={1} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name={["marketPrices", index, "maxOrderQty"]}
+                    className="mb-0"
+                  >
+                    <InputNumber style={{ width: "100%" }} min={1} />
                   </Form.Item>
                 </div>
               ))}

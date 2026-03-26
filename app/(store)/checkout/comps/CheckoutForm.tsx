@@ -68,6 +68,12 @@ export default function CheckoutForm({
         const methods = await getSmartShippingMethods(
           country,
           subtotal,
+          items
+            .filter((item) => item.variantId)
+            .map((item) => ({
+              quantity: item.quantity,
+              variantId: item.variantId!,
+            })),
           state,
           city,
           zipCode,
@@ -120,7 +126,7 @@ export default function CheckoutForm({
       layout="vertical"
       onFinish={onFinish}
       initialValues={{
-        paymentMethod: "credit_card",
+        paymentMethod: "",
         fullName: customer ? customer.fullname || "" : "",
         email: customer?.email || "",
         phone: customer?.phone || "",

@@ -64,8 +64,7 @@ export default function CustomerList({
 
   return (
     <div>
-      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Customers</h2>
+      <div className="p-4 border-b border-gray-100 flex items-center justify-end">
         <div className="flex gap-2">
           <Input
             prefix={<Search size={16} />}

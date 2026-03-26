@@ -48,7 +48,24 @@ export async function checkEmail(email: string) {
     return { exists: false };
   }
 
-  const customer = await CustomerDB.findByEmail(parsed.data.email);
+  const normalizedEmail = normalizeEmail(parsed.data.email);
+
+  try {
+    await consumeRateLimit({
+      action: "customer_check_email",
+      blockMs: 10 * 60 * 1000,
+      identifier: normalizedEmail,
+      limit: 10,
+      windowMs: 5 * 60 * 1000,
+    });
+  } catch (error) {
+    return {
+      error: getRateLimitMessage(error) || "Email check temporarily unavailable",
+      exists: false,
+    };
+  }
+
+  const customer = await CustomerDB.findByEmail(normalizedEmail);
   return { exists: !!(customer && customer.passwordHash) };
 }
 

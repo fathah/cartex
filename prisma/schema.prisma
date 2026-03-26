@@ -194,6 +194,8 @@ model Product {
   wishlists      Wishlist[]
   productReviews ProductReview[]
   productBrandId String?
+  shippingProfileId String?
+  shippingProfile   ShippingProfile? @relation(fields: [shippingProfileId], references: [id])
 
   @@map("products")
 }
@@ -252,6 +254,11 @@ model ProductVariant {
   // Inventory
   inventoryPolicy InventoryPolicy @default(DENY)
   inventory       Inventory?
+  requiresShipping Boolean @default(true)
+  weightGrams      Int     @default(0)
+  lengthCm         Decimal? @db.Decimal(10, 2)
+  widthCm          Decimal? @db.Decimal(10, 2)
+  heightCm         Decimal? @db.Decimal(10, 2)
 
   // Options associated with this variant
   selectedOptions OptionValue[]
@@ -518,6 +525,12 @@ model ShippingMethod {
   code        String  @unique
   description String?
   isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+  minDeliveryDays Int?
+  maxDeliveryDays Int?
+  sourceType ShippingMethodSourceType @default(MANUAL)
+  providerCode String?
+  providerServiceCode String?
 
   rates ShippingRate[]
   zones ShippingZone[] @relation("MethodZones")
@@ -532,14 +545,19 @@ model ShippingRate {
   id               String         @id @default(cuid())
   shippingMethodId String
   shippingZoneId   String?
+  shippingProfileId String?
   shippingMethod   ShippingMethod @relation(fields: [shippingMethodId], references: [id])
   shippingZone     ShippingZone?  @relation(fields: [shippingZoneId], references: [id], onDelete: Cascade)
+  shippingProfile  ShippingProfile? @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
 
   type  ShippingRateType
   price Decimal          @default(0)
+  applicationType ShippingRateApplicationType @default(BASE)
 
   minOrderAmount Decimal? // Free shipping threshold
   maxOrderAmount Decimal?
+  minWeightGrams Int?
+  maxWeightGrams Int?
 
   priority Int     @default(0)
   isActive Boolean @default(true)
@@ -547,7 +565,25 @@ model ShippingRate {
   createdAt DateTime @default(now())
 
   @@index([shippingZoneId, shippingMethodId])
+  @@index([shippingProfileId, shippingMethodId])
   @@map("shipping_rates")
+}
+
+model ShippingProfile {
+  id String @id @default(cuid())
+  name String
+  code String @unique
+  description String?
+  isDefault Boolean @default(false)
+  handlingFee Decimal @default(0) @db.Decimal(10, 2)
+
+  products Product[]
+  rates ShippingRate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shipping_profiles")
 }
 
 enum ShippingRateType {
@@ -555,6 +591,16 @@ enum ShippingRateType {
   CONDITIONAL // Free above X amount
   WEIGHT // Based on cart weight
   PRICE // Based on cart price range
+}
+
+enum ShippingRateApplicationType {
+  BASE
+  SURCHARGE
+}
+
+enum ShippingMethodSourceType {
+  MANUAL
+  CARRIER
 }
 
 model ShippingZone {

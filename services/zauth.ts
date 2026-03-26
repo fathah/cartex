@@ -1,5 +1,3 @@
-"use server";
-
 import { AppConstants } from "@/constants/constants";
 import { PUBLIC_ENV } from "@/constants/env_public";
 import { ENV } from "@/constants/envs";

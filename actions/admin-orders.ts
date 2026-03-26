@@ -1,11 +1,12 @@
 "use server";
 
 import OrderDB from "@/db/order";
-import CustomerDB from "@/db/customer";
 import prisma from "@/db/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAdminAuth } from "@/services/zauth";
 import { resolveCurrentMarket } from "@/lib/market";
+import { InventoryPolicy } from "@prisma/client";
+import { PAYMENT_STATUS } from "@/constants/commerce";
 
 export async function getAdminOrders({
   page = 1,
@@ -61,6 +62,9 @@ export async function createAdminOrder(data: {
 }) {
   await requireAdminAuth();
   const market = await resolveCurrentMarket();
+  if (!market) {
+    throw new Error("No active market configured");
+  }
 
   return await prisma.$transaction(async (tx) => {
     let customerId = data.customerId;
@@ -95,14 +99,11 @@ export async function createAdminOrder(data: {
         where: { id: item.variantId },
         include: {
           product: true,
-          ...(market?.id
-            ? {
-                variantMarkets: {
-                  where: { marketId: market.id },
-                  take: 1,
-                },
-              }
-            : {}),
+          inventory: true,
+          variantMarkets: {
+            where: { marketId: market.id },
+            take: 1,
+          },
         },
       });
 
@@ -111,15 +112,29 @@ export async function createAdminOrder(data: {
       const marketVariant = Array.isArray(variant.variantMarkets)
         ? variant.variantMarkets[0]
         : null;
-      const price = Number(marketVariant?.salePrice || variant.salePrice || 0);
-      const availableQuantity = marketVariant?.inventoryQuantity;
-      if (
-        availableQuantity !== undefined &&
-        availableQuantity !== null &&
-        availableQuantity < item.quantity
-      ) {
-        throw new Error(`Insufficient inventory for ${variant.product.name}`);
+
+      if (!marketVariant || !marketVariant.isAvailable || !marketVariant.isPublished) {
+        throw new Error(`${variant.product.name} is not available in ${market.name}`);
       }
+
+      if (item.quantity < marketVariant.minOrderQty) {
+        throw new Error(`Minimum quantity not met for ${variant.product.name}`);
+      }
+
+      if (
+        marketVariant.maxOrderQty !== null &&
+        item.quantity > marketVariant.maxOrderQty
+      ) {
+        throw new Error(`Maximum quantity exceeded for ${variant.product.name}`);
+      }
+
+      if (variant.inventoryPolicy === InventoryPolicy.DENY) {
+        if (marketVariant.inventoryQuantity < item.quantity) {
+          throw new Error(`Insufficient inventory for ${variant.product.name}`);
+        }
+      }
+
+      const price = Number(marketVariant.salePrice || variant.salePrice || 0);
       const itemTotal = price * item.quantity;
       subtotal += itemTotal;
 
@@ -133,16 +148,31 @@ export async function createAdminOrder(data: {
       });
 
       // 3. Deduct Inventory
-      if (marketVariant) {
-        await tx.variantMarket.update({
-          where: { id: marketVariant.id },
+      if (variant.inventoryPolicy === InventoryPolicy.DENY) {
+        const updatedMarketInventory = await tx.variantMarket.updateMany({
+          where: {
+            id: marketVariant.id,
+            inventoryQuantity: { gte: item.quantity },
+            isAvailable: true,
+            isPublished: true,
+          },
           data: { inventoryQuantity: { decrement: item.quantity } },
         });
-      } else {
+        if (updatedMarketInventory.count === 0) {
+          throw new Error(`Insufficient inventory for ${variant.product.name}`);
+        }
+      } else if (variant.inventory) {
         await tx.inventory.update({
           where: { variantId: variant.id },
           data: { quantity: { decrement: item.quantity } },
         });
+      } else {
+        await tx.inventory.create({
+          data: {
+            quantity: -item.quantity,
+            variantId: variant.id,
+          },
+        })
       }
     }
 
@@ -151,12 +181,15 @@ export async function createAdminOrder(data: {
       data: {
         customerId: customerId!,
         subtotal: subtotal,
-        currency: market?.currencyCode || "USD",
+        currency: market.currencyCode || "USD",
         totalPrice: subtotal, // Simplification: No tax/shipping for admin manual orders for now unless specified
         taxTotal: 0,
         shippingTotal: 0,
+        marketId: market.id,
+        marketCode: market.code,
+        marketCountryCode: market.countryCode,
         status: "ORDERED",
-        paymentStatus: "PENDING",
+        paymentStatus: PAYMENT_STATUS.PENDING,
         fulfillmentStatus: "UNFULFILLED",
         items: {
           create: orderItems,

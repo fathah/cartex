@@ -25,6 +25,10 @@ function serializeLegacyVariant(variant: any) {
     salePrice: toNumber(variant.salePrice) ?? 0,
     compareAtPrice: toNumber(variant.compareAtPrice),
     costPrice: toNumber(variant.costPrice),
+    lengthCm: toNumber(variant.lengthCm),
+    widthCm: toNumber(variant.widthCm),
+    heightCm: toNumber(variant.heightCm),
+    weightGrams: Number(variant.weightGrams || 0),
   };
 }
 
@@ -55,6 +59,24 @@ export function applyMarketPricingToVariant(variant: any) {
   const isAvailableInMarket = marketVariant
     ? marketVariant.isPublished !== false && marketVariant.isAvailable !== false
     : !hasAnyMarketPricing;
+  const effectiveMinOrderQty = Math.max(
+    1,
+    Number(marketVariant?.minOrderQty || 1),
+  );
+  const configuredMaxOrderQty =
+    marketVariant?.maxOrderQty === null || marketVariant?.maxOrderQty === undefined
+      ? null
+      : Number(marketVariant.maxOrderQty);
+  const stockLimitedMaxOrderQty =
+    normalizedVariant.inventoryPolicy === "DENY"
+      ? Math.max(0, effectiveInventoryQuantity)
+      : configuredMaxOrderQty;
+  const effectiveMaxOrderQty =
+    configuredMaxOrderQty === null
+      ? stockLimitedMaxOrderQty
+      : stockLimitedMaxOrderQty === null
+        ? configuredMaxOrderQty
+        : Math.min(configuredMaxOrderQty, stockLimitedMaxOrderQty);
 
   return {
     ...normalizedVariant,
@@ -66,6 +88,8 @@ export function applyMarketPricingToVariant(variant: any) {
     effectiveCompareAtPrice,
     effectiveCostPrice,
     effectiveInventoryQuantity,
+    effectiveMaxOrderQty,
+    effectiveMinOrderQty,
     effectiveReservedQuantity,
     isAvailableInMarket,
   };

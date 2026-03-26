@@ -118,6 +118,12 @@ export default function CheckoutPageClient({
         const methods = await getSmartShippingMethods(
           country,
           subtotal,
+          items
+            .filter((item) => item.variantId)
+            .map((item) => ({
+              quantity: item.quantity,
+              variantId: item.variantId!,
+            })),
           state,
           city,
           zipCode,
@@ -152,7 +158,7 @@ export default function CheckoutPageClient({
 
     fetchShipping();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAddressId, country, state, city, zipCode, subtotal]);
+  }, [selectedAddressId, country, state, city, zipCode, subtotal, items]);
 
   // Navigation
   const goNext = () => {
@@ -307,7 +313,7 @@ export default function CheckoutPageClient({
       form={form}
       layout="vertical"
       requiredMark={false}
-      initialValues={{ paymentMethod: "credit_card" }}
+      initialValues={{ paymentMethod: "" }}
     >
       {/* Steps Indicator */}
       <div className="mb-8">

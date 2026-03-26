@@ -76,7 +76,7 @@ export default function CartList() {
                   <button
                     onClick={() => updateQuantity(item.key, item.quantity - 1)}
                     className="px-2 hover:bg-gray-50 h-full flex items-center"
-                    disabled={item.quantity <= 1}
+                    disabled={item.quantity <= Math.max(1, item.minQuantity || 1)}
                   >
                     <Minus size={14} />
                   </button>
@@ -86,10 +86,20 @@ export default function CartList() {
                   <button
                     onClick={() => updateQuantity(item.key, item.quantity + 1)}
                     className="px-2 hover:bg-gray-50 h-full flex items-center"
+                    disabled={
+                      item.maxQuantity !== null &&
+                      item.maxQuantity !== undefined &&
+                      item.quantity >= item.maxQuantity
+                    }
                   >
                     <Plus size={14} />
                   </button>
                 </div>
+                {item.maxQuantity !== null && item.maxQuantity !== undefined && (
+                  <span className="text-xs text-gray-400">
+                    Max {item.maxQuantity}
+                  </span>
+                )}
               </div>
               <div className="font-semibold text-sm">
                 <Currency value={item.price * item.quantity} />

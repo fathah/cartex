@@ -178,8 +178,7 @@ export default function ProductListClient({
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Products</h2>
+      <div className="flex justify-end items-center mb-6">
         <div className="flex gap-2">
           <Button
             type="primary"

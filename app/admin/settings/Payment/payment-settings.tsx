@@ -8,9 +8,7 @@ export default function PaymentSettings() {
   return (
     <div className="space-y-8">
       <PaymentMethods />
-
-      {/* Payment Gateways hidden for now as per requirement */}
-      {/* <PaymentGateways /> */}
+      <PaymentGateways />
     </div>
   );
 }

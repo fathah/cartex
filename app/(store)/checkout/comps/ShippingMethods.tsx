@@ -102,8 +102,15 @@ export default function ShippingMethods({
                               {method.name}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {method.description || "3-5 Business Days"}
+                              {method.deliveryEstimateLabel ||
+                                method.description ||
+                                "Shipping estimate at checkout"}
                             </div>
+                            {method.deliveryEstimateLabel && method.description && (
+                              <div className="text-xs text-gray-400 mt-0.5">
+                                {method.description}
+                              </div>
+                            )}
                             {/* Free shipping threshold hint */}
                             {spendMore !== null && spendMore > 0 && (
                               <div className="text-xs text-emerald-600 mt-1 flex items-center gap-1">

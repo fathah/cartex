@@ -21,12 +21,61 @@ import {
   Images,
   PanelsTopLeft,
   Component,
+  Truck,
+  CreditCard,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { Menu as MenuIcon } from "lucide-react";
 import { logoutAdmin } from "@/app/auth/actions";
 
 const { Header, Content, Sider } = Layout;
+
+function titleCaseSegment(segment: string) {
+  return segment
+    .split(/[-_]/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getAdminPageTitle(pathname: string) {
+  if (pathname === "/admin") {
+    return "Dashboard";
+  }
+
+  if (pathname === "/admin/products/new") {
+    return "New Product";
+  }
+
+  if (pathname.startsWith("/admin/products/")) {
+    return "Edit Product";
+  }
+
+  if (pathname.startsWith("/admin/pages/")) {
+    return "Edit Page";
+  }
+
+  if (pathname.startsWith("/admin/settings/")) {
+    const segment = pathname.replace("/admin/settings/", "");
+    return titleCaseSegment(segment) || "Settings";
+  }
+
+  const adminSegment = pathname.replace("/admin/", "");
+  if (!adminSegment || adminSegment === pathname) {
+    return "Admin";
+  }
+
+  const firstSegment = adminSegment.split("/")[0];
+  return titleCaseSegment(firstSegment) || "Admin";
+}
+
+function getSelectedAdminNavKey(pathname: string, keys: string[]) {
+  const match = keys
+    .filter((key) => pathname === key || pathname.startsWith(`${key}/`))
+    .sort((left, right) => right.length - left.length)[0];
+
+  return match || "/admin";
+}
 
 export default function AdminLayout({
   children,
@@ -63,6 +112,8 @@ export default function AdminLayout({
       label: "Categories",
     },
     { key: "/admin/orders", icon: <ShoppingCart size={20} />, label: "Orders" },
+    { key: "/admin/shipping", icon: <Truck size={20} />, label: "Shipping" },
+    { key: "/admin/payments", icon: <CreditCard size={20} />, label: "Payments" },
     { key: "/admin/customers", icon: <Users size={20} />, label: "Customers" },
     { key: "/admin/media", icon: <Images size={20} />, label: "Media" },
     { key: "/admin/pages", icon: <PanelsTopLeft size={20} />, label: "Pages" },
@@ -70,6 +121,12 @@ export default function AdminLayout({
 
     { key: "/admin/settings", icon: <Settings size={20} />, label: "Settings" },
   ];
+
+  const pageTitle = getAdminPageTitle(pathname);
+  const selectedNavKey = getSelectedAdminNavKey(
+    pathname,
+    items.map((item) => item.key),
+  );
 
   return (
     <Layout style={{ height: "100vh", minWidth: 200, overflow: "hidden" }}>
@@ -80,6 +137,7 @@ export default function AdminLayout({
           collapsed={collapsed}
           onCollapse={(value) => setCollapsed(value)}
           className="hidden lg:block"
+          width={250}
           style={{
             height: "100vh",
             position: "sticky",
@@ -101,7 +159,7 @@ export default function AdminLayout({
             <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
               <Menu
                 theme="dark"
-                selectedKeys={[pathname]}
+                selectedKeys={[selectedNavKey]}
                 mode="inline"
                 items={items}
                 onClick={({ key }) => router.push(key)}
@@ -126,7 +184,7 @@ export default function AdminLayout({
           </div>
           <Menu
             theme="dark"
-            selectedKeys={[pathname]}
+            selectedKeys={[selectedNavKey]}
             mode="inline"
             items={items}
             onClick={({ key }) => {
@@ -163,7 +221,7 @@ export default function AdminLayout({
                 className="lg:hidden p-0"
               />
             )}
-            <h1 className="text-xl font-bold m-0">Admin Panel</h1>
+            <h1 className="text-xl font-bold m-0">{pageTitle}</h1>
           </div>
           <Dropdown
             menu={{

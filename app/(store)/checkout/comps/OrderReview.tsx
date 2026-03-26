@@ -3,6 +3,7 @@
 import { MapPin, Truck, CreditCard, Package, Edit2 } from "lucide-react";
 import Currency from "@/components/common/Currency";
 import { getMediaUrl } from "@/utils/media_url";
+import { getCheckoutPaymentMethodLabel } from "@/lib/payment-methods";
 
 interface OrderReviewProps {
   items: any[];
@@ -181,7 +182,7 @@ export default function OrderReview({
               <CreditCard size={16} className="text-gray-500" />
             </div>
             <span className="font-medium text-sm text-gray-900 capitalize">
-              {paymentMethodCode.replace(/_/g, " ")}
+              {getCheckoutPaymentMethodLabel(paymentMethodCode)}
             </span>
             {paymentFee > 0 && (
               <span className="text-xs text-amber-600 ml-auto">

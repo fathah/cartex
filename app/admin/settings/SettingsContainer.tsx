@@ -5,20 +5,14 @@ import type { Settings } from "@prisma/client";
 import { Tabs } from "antd";
 import {
   Store,
-  CreditCard,
-  Truck,
   User,
-  WalletCards,
   Percent,
   FileDown,
   Globe,
   Bot,
 } from "lucide-react";
 import SiteSettings from "./SiteSettings/SiteSettings";
-import ShippingSettings from "./Shipping/ShippingSettings";
-import PaymentSettings from "./Payment/payment-settings";
 import UserAccess from "./UserAccess/UserAccess";
-import PaymentGateways from "./Payment/PaymentGateways";
 import TaxCurrencySettings from "./TaxCurrency/TaxCurrencySettings";
 import DataExport from "./DataExport/page";
 import ShopMarket from "./Market/Market";
@@ -64,36 +58,6 @@ export default function SettingsContainer({
         </span>
       ),
       children: <TaxCurrencySettings initialSettings={initialSettings} />,
-    },
-    {
-      key: "payment",
-      label: (
-        <span className="flex items-center gap-2">
-          <CreditCard size={16} />
-          Payment Methods
-        </span>
-      ),
-      children: <PaymentSettings />,
-    },
-    {
-      key: "payment-gateway",
-      label: (
-        <span className="flex items-center gap-2">
-          <WalletCards size={16} />
-          Payment Gateway
-        </span>
-      ),
-      children: <PaymentGateways />,
-    },
-    {
-      key: "shipping",
-      label: (
-        <span className="flex items-center gap-2">
-          <Truck size={16} />
-          Shipping
-        </span>
-      ),
-      children: <ShippingSettings />,
     },
     {
       key: "user-access",

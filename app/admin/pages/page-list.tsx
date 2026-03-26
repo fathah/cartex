@@ -112,8 +112,7 @@ const PageList: React.FC<PageListProps> = ({ data }) => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Pages</h1>
+      <div className="flex justify-end items-center mb-6">
         <Space>
           <Button
             icon={<Library size={16} />}
