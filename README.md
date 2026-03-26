@@ -1,9 +1,13 @@
-# Cartex Pro
 
-Cartex Pro is a `Next.js` ecommerce application using:
+<img width="100%" alt="Cartex" src="https://github.com/user-attachments/assets/8488b8d0-9fed-4f0d-a394-12aecf6793be" />
+
+<br/>
+
+## Cartex
+Full Stack E-commerce Platform
 
 - `Next.js` standalone output
-- `Prisma` for database access
+- `Postgresql` for database access
 
 This project is designed to be shipped as one Docker image and run in different environments by passing runtime environment variables. The database is external and must be provided with `DATABASE_URL`.
 
