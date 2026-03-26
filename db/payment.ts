@@ -1,5 +1,5 @@
 import prisma from "./prisma";
-import { PaymentMethodType, GatewayEnvironment, Prisma } from "@prisma/client";
+import { PaymentMethodType, GatewayEnvironment } from "@prisma/client";
 
 export class PaymentDB {
   // --- Payment Methods ---
@@ -7,7 +7,15 @@ export class PaymentDB {
   static async listMethods() {
     return await prisma.paymentMethod.findMany({
       include: {
-        gateways: true,
+        gateways: {
+          select: {
+            code: true,
+            environment: true,
+            id: true,
+            isActive: true,
+            name: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     });
@@ -17,7 +25,15 @@ export class PaymentDB {
     return await prisma.paymentMethod.findUnique({
       where: { id },
       include: {
-        gateways: true,
+        gateways: {
+          select: {
+            code: true,
+            environment: true,
+            id: true,
+            isActive: true,
+            name: true,
+          },
+        },
       },
     });
   }
@@ -94,7 +110,8 @@ export class PaymentDB {
     name: string;
     code: string;
     environment: GatewayEnvironment;
-    config: any;
+    config: Record<string, string>;
+    secretConfig?: string | null;
   }) {
     return await prisma.paymentGateway.create({
       data: {
@@ -102,6 +119,7 @@ export class PaymentDB {
         code: data.code,
         environment: data.environment,
         config: data.config,
+        secretConfig: data.secretConfig,
       },
     });
   }
@@ -111,7 +129,8 @@ export class PaymentDB {
     data: {
       name?: string;
       environment?: GatewayEnvironment;
-      config?: any;
+      config?: Record<string, string>;
+      secretConfig?: string | null;
       isActive?: boolean;
     },
   ) {
@@ -121,6 +140,7 @@ export class PaymentDB {
         name: data.name,
         environment: data.environment,
         config: data.config,
+        secretConfig: data.secretConfig,
         isActive: data.isActive,
       },
     });

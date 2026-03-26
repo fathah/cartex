@@ -1,7 +1,7 @@
 "use server";
 
 import UserDB from "@/db/user";
-import { requireAdminAuth } from "@/services/zauth";
+import { canManageAdminRole, requireAdminAuth } from "@/services/zauth";
 import { UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -15,7 +15,10 @@ export async function addAdminUser(
   role: UserRole,
   fullname?: string,
 ) {
-  await requireAdminAuth();
+  const session = await requireAdminAuth();
+  if (!canManageAdminRole(session, role)) {
+    throw new Error("Forbidden");
+  }
 
   const emailLower = email.toLowerCase();
 
@@ -46,9 +49,20 @@ export async function addAdminUser(
 }
 
 export async function removeAdminUser(userId: string) {
-  await requireAdminAuth();
-  // Prevent removing own access (optional check, but good practice)
-  // For now, just soft delete
+  const session = await requireAdminAuth();
+  const targetUser = await UserDB.findById(userId);
+  if (!targetUser || targetUser.deletedAt) {
+    throw new Error("User not found");
+  }
+
+  if (!canManageAdminRole(session, targetUser.role)) {
+    throw new Error("Forbidden");
+  }
+
+  if (session.userId === userId) {
+    throw new Error("You cannot remove your own account");
+  }
+
   await UserDB.softDelete(userId);
   revalidatePath("/admin/settings");
   return { success: true };

@@ -1,8 +1,22 @@
 "use server";
 
-import AddressDB, { CreateAddressData } from "@/db/address";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import AddressDB, { type CreateAddressData } from "@/db/address";
 import { getCurrentUser } from "./user";
+
+const addressSchema = z.object({
+  address1: z.string().trim().min(1, "Address is required"),
+  address2: z.string().trim().optional(),
+  addressType: z.string().trim().default("HOME"),
+  city: z.string().trim().min(1, "City is required"),
+  country: z.string().trim().min(1, "Country is required"),
+  fullname: z.string().trim().min(1, "Full name is required"),
+  phone: z.string().trim().min(1, "Phone is required"),
+  province: z.string().trim().optional(),
+  type: z.string().trim().default("SHIPPING"),
+  zip: z.string().trim().optional(),
+});
 
 async function getCustomerId() {
   const user = await getCurrentUser();
@@ -12,50 +26,56 @@ async function getCustomerId() {
   return user.id;
 }
 
+function parseAddressForm(formData: FormData) {
+  return addressSchema.parse({
+    address1: formData.get("address1"),
+    address2: formData.get("address2") || undefined,
+    addressType: formData.get("addressType") || "HOME",
+    city: formData.get("city"),
+    country: formData.get("country"),
+    fullname: formData.get("fullName"),
+    phone: formData.get("phone"),
+    province: formData.get("province") || undefined,
+    type: formData.get("type") || "SHIPPING",
+    zip: formData.get("zip") || undefined,
+  });
+}
+
 export async function getAddresses() {
   const customerId = await getCustomerId();
-  return await AddressDB.listByCustomer(customerId);
+  return AddressDB.listByCustomer(customerId);
 }
 
 export async function addAddress(formData: FormData) {
   const customerId = await getCustomerId();
+  const parsed = parseAddressForm(formData);
 
-  const data: CreateAddressData = {
+  await AddressDB.create({
+    ...parsed,
     customerId,
-    fullname: formData.get("fullName") as string,
-    addressType: (formData.get("addressType") as string) || "HOME",
-    city: formData.get("city") as string,
-    country: formData.get("country") as string,
-    phone: formData.get("phone") as string,
-    address1: formData.get("address1") as string,
-    address2: (formData.get("address2") as string) || undefined,
-    type: "SHIPPING", // Default
-  };
+  } satisfies CreateAddressData);
 
-  if (!data.fullname || !data.city || !data.country || !data.phone) {
-    throw new Error("Missing required fields");
-  }
-
-  await AddressDB.create(data);
   revalidatePath("/account/addresses");
 }
 
 export async function deleteAddress(id: string) {
-  await AddressDB.delete(id);
+  const customerId = await getCustomerId();
+  const result = await AddressDB.deleteByCustomer(id, customerId);
+  if (!result.count) {
+    throw new Error("Address not found");
+  }
+
   revalidatePath("/account/addresses");
 }
 
 export async function updateAddress(id: string, formData: FormData) {
-  const data: Partial<CreateAddressData> = {
-    fullname: formData.get("fullName") as string,
-    addressType: (formData.get("addressType") as string) || "HOME",
-    address1: formData.get("address1") as string,
-    city: formData.get("city") as string,
-    country: formData.get("country") as string,
-    phone: formData.get("phone") as string,
-    address2: (formData.get("address2") as string) || undefined,
-  };
+  const customerId = await getCustomerId();
+  const parsed = parseAddressForm(formData);
+  const result = await AddressDB.updateByCustomer(id, customerId, parsed);
 
-  await AddressDB.update(id, data);
+  if (!result.count) {
+    throw new Error("Address not found");
+  }
+
   revalidatePath("/account/addresses");
 }

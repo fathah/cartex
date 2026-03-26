@@ -23,9 +23,8 @@ import {
   Component,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
-import Cookies from "js-cookie";
-import { AppKeys } from "@/constants/keys";
 import { Menu as MenuIcon } from "lucide-react";
+import { logoutAdmin } from "@/app/auth/actions";
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -155,7 +154,7 @@ export default function AdminLayout({
                   key: "logout",
                   label: "Logout",
                   onClick: async () => {
-                    Cookies.remove(AppKeys.ADMIN_AUTH_TOKEN, { path: "/" });
+                    await logoutAdmin();
                     router.push("/auth");
                   },
                 },

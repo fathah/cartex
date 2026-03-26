@@ -1,19 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, Suspense } from "react";
+import { useCallback, useEffect } from "react";
 import { ZAuthClient } from "@ziqx/auth";
-import { validateAdminAuthToken } from "@/services/zauth";
 import { LoadingOutlined } from "@ant-design/icons";
-import { AppKeys } from "@/constants/keys";
-import Cookies from "js-cookie";
-import { handleAdminLogin } from "./actions";
-import { useState } from "react";
 import { Button } from "antd";
 import { AppConstants } from "@/constants/constants";
 import { PUBLIC_ENV } from "@/constants/env_public";
+import { useSearchParams } from "next/navigation";
 
-const AdminAuthClient = ({ accessToken }: { accessToken: string | null }) => {
-  const [isAuthValid, setIsAuthValid] = useState(true);
+const AdminAuthClient = () => {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
   const login = useCallback(() => {
     const auth = new ZAuthClient({
       authKey: PUBLIC_ENV.ZAUTH_KEY!,
@@ -22,31 +20,20 @@ const AdminAuthClient = ({ accessToken }: { accessToken: string | null }) => {
       codeChallenge: "cartex",
       redirectUrl:
         process.env.NODE_ENV === "development"
-          ? "http://localhost:3000/auth"
-          : `${AppConstants.PUBLIC_URL}/auth`,
+          ? "http://localhost:3000/auth/callback"
+          : `${AppConstants.PUBLIC_URL}/auth/callback`,
     });
   }, []);
 
   useEffect(() => {
-    if (accessToken) {
-      handleAdminLogin(accessToken).then((valid) => {
-        if (valid) {
-          Cookies.set(AppKeys.ADMIN_AUTH_TOKEN, accessToken);
-          setTimeout(() => {
-            window.location.href = "/admin";
-          }, 1000);
-        } else {
-          setIsAuthValid(false);
-        }
-      });
-    } else {
+    if (!error) {
       login();
     }
-  }, [accessToken, login]);
+  }, [error, login]);
 
   return (
     <div className="h-screen fullcenter gap-8">
-      {!isAuthValid ? (
+      {error ? (
         <>
           <h2 className="text-red-500">Invalid Authentication</h2>
           <Button onClick={login}>Login Again</Button>

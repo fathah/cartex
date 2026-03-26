@@ -1,76 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/db/prisma";
+import { resolveGatewayConfig } from "@/services/gateway-config";
+import { applyPaymentOutcome, hashWebhookPayload } from "@/services/payment-webhooks";
 
-/**
- * Network International (NGenius) Webhook Handler
- * NGenius sends payment notification events as JSON POST requests.
- * Authentication: API key in Authorization header.
- */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const authorization = req.headers.get("authorization") ?? "";
 
-    // Optionally verify the Authorization header
-    const authHeader = req.headers.get("authorization") ?? "";
     const gateway = await prisma.paymentGateway.findUnique({
       where: { code: "network_international" },
     });
     if (!gateway) {
-      return NextResponse.json(
-        { error: "Gateway not configured" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Gateway not configured" }, { status: 400 });
     }
 
-    const config = gateway.config as Record<string, any>;
-    // For outbound webhook verification, NGenius recommends comparing HMAC or simply
-    // looking up the order by reference. Basic verification: match API Key in header.
-    const apiKey = config.apiKey as string;
-    if (authHeader && !authHeader.includes(apiKey)) {
-      console.warn("[network-webhook] Authorization header mismatch");
+    const { mergedConfig } = await resolveGatewayConfig(gateway);
+    if (!mergedConfig.apiKey) {
+      return NextResponse.json({ error: "Gateway not configured" }, { status: 400 });
     }
 
-    // NGenius sends: { reference, state, amount, currency, ... }
-    const { reference, state } = body;
-    if (!reference) {
+    if (!authorization || !authorization.includes(mergedConfig.apiKey)) {
+      return NextResponse.json({ error: "Invalid authorization" }, { status: 401 });
+    }
+
+    const reference = body?.reference;
+    const state = body?.state;
+    if (!reference || !state) {
       return NextResponse.json({ error: "Missing reference" }, { status: 400 });
     }
 
-    // Find the PaymentIntent by gatewayRef
     const intent = await prisma.paymentIntent.findFirst({
       where: { gatewayRef: reference },
+      select: { id: true },
     });
     if (!intent) {
-      // Also try by orderId fragment
-      console.warn("[network-webhook] Intent not found for ref:", reference);
-      return NextResponse.json({ received: true }); // Acknowledge to stop retries
+      return NextResponse.json({ error: "Intent not found" }, { status: 404 });
     }
 
     if (state === "CAPTURED" || state === "PURCHASED") {
-      await prisma.paymentIntent.update({
-        where: { id: intent.id },
-        data: { status: "SUCCESS", response: body },
+      await applyPaymentOutcome({
+        eventKey: body?.eventId || `${reference}:${state}`,
+        gatewayRef: reference,
+        intentId: intent.id,
+        payload: body,
+        provider: "network_international",
+        status: "SUCCESS",
       });
-      await prisma.order.update({
-        where: { id: intent.orderId },
-        data: { paymentStatus: "PAID" },
-      });
-      console.log("[network-webhook] Order paid:", intent.orderId);
     } else if (state === "FAILED" || state === "REVERSED") {
-      await prisma.paymentIntent.update({
-        where: { id: intent.id },
-        data: { status: "FAILED", response: body },
+      await applyPaymentOutcome({
+        eventKey: body?.eventId || `${reference}:${state}:${hashWebhookPayload(body)}`,
+        gatewayRef: reference,
+        intentId: intent.id,
+        payload: body,
+        provider: "network_international",
+        status: "FAILED",
       });
-      await prisma.order.update({
-        where: { id: intent.orderId },
-        data: { paymentStatus: "FAILED" },
-      });
-      console.log("[network-webhook] Payment failed:", intent.orderId);
     }
 
     return NextResponse.json({ received: true });
-  } catch (err) {
-    console.error("[network-webhook]", err);
+  } catch (error) {
+    console.error("[network-webhook]", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

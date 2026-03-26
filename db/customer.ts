@@ -1,20 +1,31 @@
 import prisma from "./prisma";
+import { normalizeEmail } from "@/services/security";
 
 export default class CustomerDB {
   static async create(data: {
-    fullName: string;
+    fullname?: string;
     email: string;
     phone?: string;
     isGuest?: boolean;
   }) {
     return await prisma.customer.create({
-      data,
+      data: {
+        ...data,
+        email: normalizeEmail(data.email),
+        normalizedEmail: normalizeEmail(data.email),
+      },
     });
   }
 
   static async findByEmail(email: string) {
+    const normalizedEmail = normalizeEmail(email);
     return await prisma.customer.findFirst({
-      where: { email },
+      where: {
+        OR: [
+          { normalizedEmail },
+          { email: { equals: normalizedEmail, mode: "insensitive" } },
+        ],
+      },
       include: { addresses: true },
     });
   }

@@ -37,6 +37,14 @@ const STEPS = [
   { id: 4, label: "Review", icon: CheckCircle2 },
 ];
 
+function createCheckoutRequestId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `checkout-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export default function CheckoutPageClient({
   customer,
   addresses,
@@ -83,6 +91,7 @@ export default function CheckoutPageClient({
   const [paymentFee, setPaymentFee] = useState(0);
   const [paymentFeeLabel, setPaymentFeeLabel] = useState("");
   const [selectedGatewayCode, setSelectedGatewayCode] = useState("");
+  const [checkoutRequestId, setCheckoutRequestId] = useState(createCheckoutRequestId);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -166,6 +175,7 @@ export default function CheckoutPageClient({
 
       // 1. Create order (PaymentIntent is PENDING at this point)
       const result = await createOrder({
+        checkoutRequestId,
         items,
         shippingMethodCode: selectedShippingCode,
         paymentMethodCode,
@@ -181,6 +191,7 @@ export default function CheckoutPageClient({
       if (!selectedGatewayCode) {
         message.success("Order placed successfully!");
         useCartStore.getState().clearCart();
+        setCheckoutRequestId(createCheckoutRequestId());
         router.push(`/account/orders/${orderId}?success=true`);
         return;
       }
@@ -201,6 +212,7 @@ export default function CheckoutPageClient({
       if (gateway.type === "redirect") {
         // Stripe, Network International, PhonePe — redirect to hosted page
         useCartStore.getState().clearCart();
+        setCheckoutRequestId(createCheckoutRequestId());
         window.location.href = gateway.url;
         return;
       }
@@ -227,6 +239,7 @@ export default function CheckoutPageClient({
           order_id: gateway.orderId,
           handler: () => {
             useCartStore.getState().clearCart();
+            setCheckoutRequestId(createCheckoutRequestId());
             router.push(`/account/orders/${orderId}?success=true`);
           },
           modal: {
@@ -246,6 +259,7 @@ export default function CheckoutPageClient({
       // type === "none"
       message.success("Order placed successfully!");
       useCartStore.getState().clearCart();
+      setCheckoutRequestId(createCheckoutRequestId());
       router.push(`/account/orders/${orderId}?success=true`);
     } catch (error: any) {
       console.error(error);

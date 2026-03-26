@@ -1,65 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import prisma from "@/db/prisma";
+import { resolveGatewayConfig } from "@/services/gateway-config";
+import { applyPaymentOutcome } from "@/services/payment-webhooks";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
 
-  // Razorpay sends: razorpay_payment_id, razorpay_order_id, razorpay_signature
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = body;
-
-  if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  // Find the gateway config
   const gateway = await prisma.paymentGateway.findUnique({
     where: { code: "razorpay" },
   });
   if (!gateway) {
-    return NextResponse.json(
-      { error: "Gateway not configured" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Gateway not configured" }, { status: 400 });
   }
 
-  const config = gateway.config as Record<string, any>;
-  const keySecret = config.keySecret as string;
+  const { mergedConfig } = await resolveGatewayConfig(gateway);
+  if (!mergedConfig.keySecret) {
+    return NextResponse.json({ error: "Gateway not configured" }, { status: 400 });
+  }
 
-  // Verify signature: HMAC-SHA256(order_id + "|" + payment_id, keySecret)
-  const generated = crypto
-    .createHmac("sha256", keySecret)
+  const generatedSignature = crypto
+    .createHmac("sha256", mergedConfig.keySecret)
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest("hex");
 
-  if (generated !== razorpay_signature) {
-    console.error("[razorpay-webhook] Signature mismatch");
+  if (generatedSignature !== razorpay_signature) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // Find the payment intent by gatewayRef (Razorpay order id)
   const intent = await prisma.paymentIntent.findFirst({
     where: { gatewayRef: razorpay_order_id },
+    select: { id: true },
   });
   if (!intent) {
     return NextResponse.json({ error: "Intent not found" }, { status: 404 });
   }
 
-  // Mark SUCCESS
-  await prisma.paymentIntent.update({
-    where: { id: intent.id },
-    data: {
-      status: "SUCCESS",
-      gatewayRef: razorpay_payment_id,
-      response: body,
-    },
+  await applyPaymentOutcome({
+    eventKey: `${razorpay_order_id}:${razorpay_payment_id}`,
+    gatewayRef: razorpay_payment_id,
+    intentId: intent.id,
+    payload: body,
+    provider: "razorpay",
+    status: "SUCCESS",
   });
 
-  await prisma.order.update({
-    where: { id: intent.orderId },
-    data: { paymentStatus: "PAID" },
-  });
-
-  console.log("[razorpay-webhook] Order paid:", intent.orderId);
   return NextResponse.json({ received: true });
 }

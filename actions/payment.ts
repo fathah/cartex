@@ -1,30 +1,45 @@
 "use server";
 
-import { PaymentDB } from "@/db/payment";
-import { PaymentMethodType, GatewayEnvironment } from "@prisma/client";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { GatewayEnvironment, PaymentMethodType } from "@prisma/client";
+import { PaymentDB } from "@/db/payment";
+import { calculatePaymentFee } from "@/lib/pricing";
+import {
+  buildGatewayAdminDto,
+  GATEWAY_SECRET_KEYS,
+  mergeGatewayConfigForSave,
+} from "@/services/gateway-config";
 import { requireAdminAuth } from "@/services/zauth";
 
 const REVALIDATE_PATH = "/admin/settings";
-
-// --- Methods ---
-
-export async function getPaymentMethods() {
-  return await PaymentDB.listMethods();
-}
-
-// Countries where COD is allowed
-// Countries where COD is allowed
 const COD_ALLOWED_COUNTRIES = ["AE", "SA", "IN", "KW", "BH", "OM", "QA"];
-// Minimum order total for COD
 const COD_MIN_ORDER = 0;
 
-/**
- * Context-aware payment method filtering.
- * - Filters COD to domestic countries only
- * - Adds codFee for COD methods (FLAT or PERCENTAGE)
- * - Returns only active + eligible methods
- */
+const paymentMethodSchema = z.object({
+  code: z.string().trim().min(1),
+  description: z.string().trim().optional(),
+  fee: z.coerce.number().min(0).optional(),
+  feeLabel: z.string().trim().optional(),
+  feeType: z.string().trim().default("FLAT"),
+  gatewayIds: z.array(z.string()).optional(),
+  name: z.string().trim().min(1),
+  type: z.nativeEnum(PaymentMethodType),
+});
+
+const paymentGatewaySchema = z.object({
+  code: z.string().trim().min(1),
+  config: z.record(z.string(), z.string().trim()).default({}),
+  environment: z.nativeEnum(GatewayEnvironment),
+  isActive: z.boolean().default(true),
+  name: z.string().trim().min(1),
+});
+
+export async function getPaymentMethods() {
+  await requireAdminAuth();
+  return PaymentDB.listMethods();
+}
+
 export async function getPaymentMethodsForCheckout(
   country: string,
   subtotal: number,
@@ -32,41 +47,36 @@ export async function getPaymentMethodsForCheckout(
   const allMethods = await PaymentDB.listMethods();
 
   return allMethods
-    .filter((m: any) => m.isActive)
-    .map((method: any) => {
-      const isCOD = method.type === "COD";
-
-      // COD eligibility: domestic country + above minimum order
+    .filter((method) => method.isActive)
+    .map((method) => {
+      const isCOD = method.type === PaymentMethodType.COD;
       if (isCOD) {
-        const codAllowed = COD_ALLOWED_COUNTRIES.includes(
-          country.toUpperCase(),
-        );
+        const codAllowed = COD_ALLOWED_COUNTRIES.includes(country.toUpperCase());
         const meetsMinimum = subtotal >= COD_MIN_ORDER;
-
         if (!codAllowed || !meetsMinimum) {
-          return null; // Filter out
+          return null;
         }
       }
 
-      // Calculate Fee
-      let feeAmount = 0;
-      let feeLabel = method.feeLabel || null;
-
-      if (method.fee && Number(method.fee) > 0) {
-        if (method.feeType === "PERCENTAGE") {
-          feeAmount = (subtotal * Number(method.fee)) / 100;
-          if (!feeLabel) feeLabel = `${method.fee}% fee`;
-        } else {
-          // FLAT
-          feeAmount = Number(method.fee);
-          if (!feeLabel) feeLabel = `+${feeAmount} fee`;
-        }
-      }
+      const paymentFee = calculatePaymentFee(method, subtotal);
+      const paymentFeeLabel =
+        method.feeLabel ||
+        (paymentFee > 0
+          ? method.feeType === "PERCENTAGE"
+            ? `${method.fee}% fee`
+            : `+${paymentFee} fee`
+          : null);
 
       return {
-        ...method,
-        paymentFee: feeAmount,
-        paymentFeeLabel: feeLabel,
+        code: method.code,
+        gatewayCodes: method.gateways
+          .filter((gateway) => gateway.isActive)
+          .map((gateway) => gateway.code),
+        id: method.id,
+        name: method.name,
+        paymentFee,
+        paymentFeeLabel,
+        type: method.type,
       };
     })
     .filter(Boolean);
@@ -80,9 +90,16 @@ export async function createPaymentMethod(data: {
   fee?: number;
   feeLabel?: string;
   feeType?: string;
+  gatewayIds?: string[];
 }) {
   await requireAdminAuth();
-  const method = await PaymentDB.createMethod(data);
+  const parsed = paymentMethodSchema.parse(data);
+  const method = await PaymentDB.createMethod(parsed);
+  if (parsed.gatewayIds?.length) {
+    await PaymentDB.updateMethod(method.id, {
+      gatewayIds: parsed.gatewayIds,
+    });
+  }
   revalidatePath(REVALIDATE_PATH);
   return method;
 }
@@ -101,7 +118,6 @@ export async function updatePaymentMethod(
 ) {
   await requireAdminAuth();
   const method = await PaymentDB.updateMethod(id, data);
-
   revalidatePath(REVALIDATE_PATH);
   return method;
 }
@@ -112,40 +128,62 @@ export async function deletePaymentMethod(id: string) {
   revalidatePath(REVALIDATE_PATH);
 }
 
-// --- Gateways ---
-
-/**
- * Public-safe: returns only active gateways with non-sensitive fields.
- * Used in storefront checkout to display available gateway logos/options.
- */
 export async function getActiveGatewaysForCheckout(): Promise<
   { id: string; code: string; name: string; environment: string }[]
 > {
   const gateways = await PaymentDB.listGateways();
   return gateways
-    .filter((g: any) => g.isActive)
-    .map((g: any) => ({
-      id: g.id,
-      code: g.code,
-      name: g.name,
-      environment: g.environment,
+    .filter((gateway) => gateway.isActive)
+    .map((gateway) => ({
+      code: gateway.code,
+      environment: gateway.environment,
+      id: gateway.id,
+      name: gateway.name,
     }));
 }
 
 export async function getPaymentGateways() {
-  return await PaymentDB.listGateways();
+  await requireAdminAuth();
+  const gateways = await PaymentDB.listGateways();
+  return Promise.all(gateways.map((gateway) => buildGatewayAdminDto(gateway)));
 }
 
 export async function createPaymentGateway(data: {
   name: string;
   code: string;
   environment: GatewayEnvironment;
-  config: any;
+  config: Record<string, string>;
+  isActive?: boolean;
 }) {
   await requireAdminAuth();
-  const gateway = await PaymentDB.createGateway(data);
+  const parsed = paymentGatewaySchema.parse(data);
+  const secretKeys = GATEWAY_SECRET_KEYS[parsed.code] || [];
+  const missingSecret = secretKeys.find((key) => !parsed.config[key]);
+  if (missingSecret) {
+    throw new Error(`${missingSecret} is required`);
+  }
+
+  const prepared = await mergeGatewayConfigForSave({
+    code: parsed.code,
+    config: parsed.config,
+  });
+
+  const gateway = await PaymentDB.createGateway({
+    code: parsed.code,
+    config: prepared.config,
+    environment: parsed.environment,
+    name: parsed.name,
+    secretConfig: prepared.secretConfig,
+  });
+
+  if (!parsed.isActive) {
+    await PaymentDB.updateGateway(gateway.id, {
+      isActive: parsed.isActive,
+    });
+  }
+
   revalidatePath(REVALIDATE_PATH);
-  return gateway;
+  return buildGatewayAdminDto(gateway);
 }
 
 export async function updatePaymentGateway(
@@ -153,14 +191,34 @@ export async function updatePaymentGateway(
   data: {
     name?: string;
     environment?: GatewayEnvironment;
-    config?: any;
+    config?: Record<string, string>;
     isActive?: boolean;
   },
 ) {
   await requireAdminAuth();
-  const gateway = await PaymentDB.updateGateway(id, data);
+  const existing = await PaymentDB.listGateways().then((gateways) =>
+    gateways.find((gateway) => gateway.id === id),
+  );
+  if (!existing) {
+    throw new Error("Gateway not found");
+  }
+
+  const parsed = paymentGatewaySchema.partial().parse(data);
+  const prepared = await mergeGatewayConfigForSave({
+    code: existing.code,
+    config: parsed.config || {},
+    existingGateway: existing,
+  });
+
+  const gateway = await PaymentDB.updateGateway(id, {
+    config: prepared.config,
+    environment: parsed.environment,
+    isActive: parsed.isActive,
+    name: parsed.name,
+    secretConfig: prepared.secretConfig,
+  });
   revalidatePath(REVALIDATE_PATH);
-  return gateway;
+  return buildGatewayAdminDto(gateway);
 }
 
 export async function deletePaymentGateway(id: string) {

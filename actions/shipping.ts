@@ -1,16 +1,50 @@
 "use server";
 
+import { z } from "zod";
 import { ShippingDB } from "@/db/shipping";
 import { ShippingRateType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireAdminAuth } from "@/services/zauth";
+import { calculateShippingFromRates } from "@/lib/pricing";
 
 const REVALIDATE_PATH = "/admin/settings";
+const shippingZoneSchema = z.object({
+  name: z.string().trim().min(1),
+  areas: z.array(
+    z.object({
+      country: z.string().trim().min(1),
+      state: z.string().trim().min(1).default("*"),
+    }),
+  ),
+});
+
+const shippingMethodSchema = z.object({
+  code: z.string().trim().min(1),
+  description: z.string().trim().optional(),
+  name: z.string().trim().min(1),
+});
+
+const shippingRateSchema = z.object({
+  max: z.number().nonnegative().optional(),
+  min: z.number().nonnegative().optional(),
+  price: z.number().nonnegative(),
+  type: z.nativeEnum(ShippingRateType),
+  zoneId: z.string().trim().min(1),
+});
+
+const updateShippingRateSchema = z.object({
+  isActive: z.boolean().optional(),
+  max: z.number().nonnegative().nullable().optional(),
+  min: z.number().nonnegative().nullable().optional(),
+  price: z.number().nonnegative().optional(),
+  zoneId: z.string().trim().min(1).nullable().optional(),
+});
 
 // --- Zones ---
 
 export async function getShippingZones() {
-  return await ShippingDB.listZones();
+  await requireAdminAuth();
+  return ShippingDB.listZones();
 }
 
 export async function getShippingMethodsForAddress(
@@ -52,68 +86,19 @@ export async function getSmartShippingMethods(
   const enrichedMethods = zone.methods
     .filter((m: any) => m.isActive)
     .map((method: any) => {
-      const activeRates = (method.rates || [])
-        .filter((r: any) => r.isActive)
-        .sort((a: any, b: any) => a.priority - b.priority);
-
-      let calculatedPrice: number | null = null;
-      let freeAbove: number | null = null;
-
-      for (const rate of activeRates) {
-        const ratePrice = Number(rate.price);
-        const min = rate.minOrderAmount ? Number(rate.minOrderAmount) : null;
-        const max = rate.maxOrderAmount ? Number(rate.maxOrderAmount) : null;
-
-        switch (rate.type) {
-          case "FLAT":
-            // Flat rate always applies — use as base if nothing better found
-            if (calculatedPrice === null) {
-              calculatedPrice = ratePrice;
-            }
-            break;
-
-          case "CONDITIONAL":
-          case "PRICE": {
-            // If the rate is explicitly Free, track its minimum threshold for UI hints "Spend $X more"
-            if (min !== null && ratePrice === 0) {
-              if (freeAbove === null || min < freeAbove) {
-                freeAbove = min;
-              }
-            }
-
-            const inMin = min === null || subtotal >= min;
-            const inMax = max === null || subtotal <= max;
-
-            if (inMin && inMax) {
-              // We successfully fall into this bucket. If we have overlapping buckets, favor the cheaper rate.
-              if (calculatedPrice === null || ratePrice < calculatedPrice) {
-                calculatedPrice = ratePrice;
-              }
-            }
-            break;
-          }
-
-          case "WEIGHT":
-            // Weight-based — fall back to flat price for now
-            if (calculatedPrice === null) {
-              calculatedPrice = ratePrice;
-            }
-            break;
-        }
-      }
-
-      // If no rate matched, fall back to 0 (shouldn't happen with proper data)
-      if (calculatedPrice === null && activeRates.length > 0) {
-        calculatedPrice = Number(activeRates[0].price);
-      }
+      const pricing = calculateShippingFromRates(
+        method.rates || [],
+        subtotal,
+        zone.id,
+      );
 
       return {
         id: method.id,
         name: method.name,
         code: method.code,
         description: method.description,
-        calculatedPrice: calculatedPrice ?? 0,
-        freeAbove,
+        calculatedPrice: pricing.calculatedPrice,
+        freeAbove: pricing.freeAbove,
         isRecommended: false,
         rates: method.rates, // keep raw rates for reference
       };
@@ -137,7 +122,7 @@ export async function createShippingZone(
   areas: { country: string; state: string }[],
 ) {
   await requireAdminAuth();
-  const zone = await ShippingDB.createZone({ name, areas });
+  const zone = await ShippingDB.createZone(shippingZoneSchema.parse({ name, areas }));
   revalidatePath(REVALIDATE_PATH);
   return zone;
 }
@@ -147,7 +132,7 @@ export async function updateShippingZone(
   data: { name?: string; areas?: { country: string; state: string }[] },
 ) {
   await requireAdminAuth();
-  const zone = await ShippingDB.updateZone(id, data);
+  const zone = await ShippingDB.updateZone(id, shippingZoneSchema.partial().parse(data));
   revalidatePath(REVALIDATE_PATH);
   return zone;
 }
@@ -165,7 +150,10 @@ export async function createShippingMethod(
   data: { name: string; code: string; description?: string },
 ) {
   await requireAdminAuth();
-  const method = await ShippingDB.createMethod(zoneId, data);
+  const method = await ShippingDB.createMethod(
+    zoneId,
+    shippingMethodSchema.parse(data),
+  );
   revalidatePath(REVALIDATE_PATH);
   return method;
 }
@@ -185,20 +173,38 @@ export async function addShippingRate(
     price: number;
     min?: number;
     max?: number;
+    zoneId: string;
   },
 ) {
   await requireAdminAuth();
-  const rate = await ShippingDB.addRate(methodId, data);
+  const rate = await ShippingDB.addRate(
+    methodId,
+    shippingRateSchema.parse(data),
+  );
   revalidatePath(REVALIDATE_PATH);
   return rate;
 }
 
 export async function updateShippingRate(
   id: string,
-  data: { price?: number; min?: number; max?: number; isActive?: boolean },
+  data: {
+    price?: number;
+    min?: number | null;
+    max?: number | null;
+    isActive?: boolean;
+    zoneId?: string | null;
+  },
 ) {
   await requireAdminAuth();
-  const rate = await ShippingDB.updateRate(id, data);
+  const parsed = updateShippingRateSchema.parse(data);
+  const rate = await ShippingDB.updateRate(
+    id,
+    {
+      ...parsed,
+      max: parsed.max === null ? undefined : parsed.max,
+      min: parsed.min === null ? undefined : parsed.min,
+    },
+  );
   revalidatePath(REVALIDATE_PATH);
   return rate;
 }

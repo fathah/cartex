@@ -1,57 +1,54 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { InventoryPolicy, Prisma } from "@prisma/client";
 import prisma from "@/db/prisma";
 import { getCurrentUser } from "./user";
 import SettingsDB from "@/db/settings";
 import { ShippingDB } from "@/db/shipping";
-import { InventoryPolicy } from "@prisma/client";
+import { calculatePaymentFee, calculateShippingFromRates, calculateTaxBreakdown } from "@/lib/pricing";
+import { PAYMENT_STATUS } from "@/constants/commerce";
 
-function calculateShippingForMethod(method: any, subtotal: number): number {
-  const activeRates = (method.rates || [])
-    .filter((r: any) => r.isActive)
-    .sort((a: any, b: any) => a.priority - b.priority);
+const createOrderSchema = z.object({
+  checkoutRequestId: z.string().trim().min(8),
+  items: z
+    .array(
+      z.object({
+        quantity: z.number().int().positive(),
+        variantId: z.string().trim().min(1),
+      }),
+    )
+    .min(1),
+  paymentMethodCode: z.string().trim().min(1),
+  shippingAddressId: z.string().trim().min(1),
+  shippingMethodCode: z.string().trim().min(1),
+});
 
-  let calculatedPrice: number | null = null;
-
-  for (const rate of activeRates) {
-    const ratePrice = Number(rate.price);
-    const min = rate.minOrderAmount ? Number(rate.minOrderAmount) : null;
-    const max = rate.maxOrderAmount ? Number(rate.maxOrderAmount) : null;
-
-    switch (rate.type) {
-      case "FLAT":
-        if (calculatedPrice === null) {
-          calculatedPrice = ratePrice;
-        }
-        break;
-      case "CONDITIONAL":
-      case "PRICE": {
-        const inMin = min === null || subtotal >= min;
-        const inMax = max === null || subtotal <= max;
-        if (inMin && inMax) {
-          if (calculatedPrice === null || ratePrice < calculatedPrice) {
-            calculatedPrice = ratePrice;
-          }
-        }
-        break;
-      }
-      case "WEIGHT":
-        if (calculatedPrice === null) {
-          calculatedPrice = ratePrice;
-        }
-        break;
-    }
-  }
-
-  if (calculatedPrice === null && activeRates.length > 0) {
-    calculatedPrice = Number(activeRates[0].price);
-  }
-
-  return calculatedPrice ?? 0;
+function toNumber(value: Prisma.Decimal | number | string | null | undefined) {
+  return Number(value || 0);
 }
 
-export async function createOrder(data: {
+function resolveVariantUnitPrice(
+  variant: Pick<
+    Prisma.ProductVariantGetPayload<{
+      include: { product: true };
+    }>,
+    "originalPrice" | "salePrice"
+  >,
+) {
+  const salePrice = toNumber(variant.salePrice);
+  const originalPrice = toNumber(variant.originalPrice);
+
+  if (salePrice > 0 || originalPrice === 0) {
+    return salePrice;
+  }
+
+  return originalPrice;
+}
+
+export async function createOrder(input: {
+  checkoutRequestId: string;
   items: { variantId?: string; quantity: number }[];
   shippingMethodCode: string;
   paymentMethodCode: string;
@@ -62,207 +59,258 @@ export async function createOrder(data: {
     throw new Error("Authentication required");
   }
 
-  // 1. Validate inputs
-  if (!data.items || data.items.length === 0) {
-    throw new Error("Cart is empty");
-  }
+  const data = createOrderSchema.parse({
+    ...input,
+    items: input.items.map((item) => ({
+      quantity: item.quantity,
+      variantId: item.variantId,
+    })),
+  });
 
-  const variantIds = data.items
-    .map((item) => item.variantId)
-    .filter(Boolean) as string[];
-  if (variantIds.length !== data.items.length) {
-    throw new Error("Invalid cart items");
+  const existingOrder = await prisma.order.findFirst({
+    where: {
+      checkoutRequestId: data.checkoutRequestId,
+      customerId: user.id,
+    },
+    select: { id: true },
+  });
+  if (existingOrder) {
+    return { success: true, orderId: existingOrder.id };
   }
 
   const address = await prisma.address.findFirst({
     where: {
-      id: data.shippingAddressId,
       customerId: user.id,
+      id: data.shippingAddressId,
     },
   });
   if (!address) {
     throw new Error("Shipping address not found");
   }
 
-  const variants = await prisma.productVariant.findMany({
-    where: {
-      id: { in: variantIds },
-      deletedAt: null,
-      product: {
-        deletedAt: null,
-        status: "ACTIVE",
-      },
-    },
-    include: {
-      product: true,
-      inventory: true,
-      selectedOptions: {
-        include: {
-          option: true,
-        },
-      },
-    },
-  });
-
-  const variantsMap = new Map(variants.map((v) => [v.id, v]));
-  if (variantsMap.size !== variantIds.length) {
-    throw new Error("Some items are no longer available");
-  }
-
-  const lineItems = data.items.map((item) => {
-    const variant = variantsMap.get(item.variantId as string);
-    if (!variant) {
-      throw new Error("Invalid cart item");
-    }
-    if (item.quantity <= 0) {
-      throw new Error("Invalid quantity");
-    }
-    if (
-      variant.inventoryPolicy === InventoryPolicy.DENY &&
-      (!variant.inventory || variant.inventory.quantity < item.quantity)
-    ) {
-      throw new Error("Insufficient inventory");
-    }
-
-    return {
-      variant,
-      quantity: item.quantity,
-      unitPrice: Number(variant.salePrice),
-      options: (variant.selectedOptions || []).map((so: any) => ({
-        name: so.option?.name,
-        value: so.value,
-      })),
-    };
-  });
-
-  const cartSum = lineItems.reduce(
-    (acc, item) => acc + item.unitPrice * item.quantity,
-    0,
-  );
-
   const settings = await SettingsDB.get();
-  const taxRate = settings.taxRate || 0;
-  const taxMode = settings.taxMode || "EXCLUSIVE";
-
-  let taxTotal = 0;
-  let subtotal = 0; // Net tax-exclusive amount
-
-  if (taxMode === "INCLUSIVE") {
-    subtotal = cartSum / (1 + taxRate / 100);
-    taxTotal = cartSum - subtotal;
-  } else {
-    subtotal = cartSum;
-    taxTotal = (subtotal * taxRate) / 100;
-  }
-
   const zone = await ShippingDB.findZoneForAddress(
-    address.country!,
+    address.country || "",
     address.province || undefined,
     address.city || undefined,
     address.zip || undefined,
   );
   if (!zone) {
-    throw new Error("No shipping zone available for address");
+    throw new Error("No shipping zone available for this address");
   }
-  const shippingMethod = zone.methods?.find(
-    (m: any) => m.code === data.shippingMethodCode && m.isActive,
+
+  const shippingMethod = zone.methods.find(
+    (method: any) =>
+      method.code === data.shippingMethodCode &&
+      method.isActive,
   );
   if (!shippingMethod) {
     throw new Error("Invalid shipping method");
   }
-  const shippingTotal = calculateShippingForMethod(shippingMethod, subtotal);
 
-  const paymentMethod = await prisma.paymentMethod.findUnique({
-    where: { code: data.paymentMethodCode },
+  const paymentMethod = await prisma.paymentMethod.findFirst({
+    where: {
+      code: data.paymentMethodCode,
+      isActive: true,
+    },
+    include: {
+      gateways: {
+        where: { isActive: true },
+        select: { code: true, id: true },
+      },
+    },
   });
-  if (!paymentMethod || !paymentMethod.isActive) {
+  if (!paymentMethod) {
     throw new Error("Invalid payment method");
-  }
-  let paymentFee = 0;
-  if (paymentMethod.fee && Number(paymentMethod.fee) > 0) {
-    if (paymentMethod.feeType === "PERCENTAGE") {
-      paymentFee = (subtotal * Number(paymentMethod.fee)) / 100;
-    } else {
-      paymentFee = Number(paymentMethod.fee);
-    }
   }
 
   const currency = settings.currency || "USD";
+  const marketCountryCode = (address.country || "").trim().toUpperCase() || null;
 
-  const total = subtotal + taxTotal + shippingTotal + paymentFee;
-
-  // 3. Create Order in a transaction and adjust inventory
   const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.order.create({
-      data: {
+    const retryOrder = await tx.order.findFirst({
+      where: {
+        checkoutRequestId: data.checkoutRequestId,
         customerId: user.id,
-        currency,
-        subtotal,
-        shippingTotal,
-        taxTotal,
-        totalPrice: total,
-        shippingAddress: {
-          fullName: address.fullname,
-          address1: address.address1,
-          address2: address.address2,
-          city: address.city,
-          province: address.province,
-          zip: address.zip,
-          country: address.country,
-          phone: address.phone,
-        },
-        billingAddress: {
-          fullName: address.fullname,
-          address1: address.address1,
-          address2: address.address2,
-          city: address.city,
-          province: address.province,
-          zip: address.zip,
-          country: address.country,
-          phone: address.phone,
-        },
-        items: {
-          create: lineItems.map((item) => ({
-            productId: item.variant.productId,
-            variantId: item.variant.id,
-            sku: item.variant.sku || undefined,
-            title: item.variant.product.name,
-            quantity: item.quantity,
-            price: item.unitPrice,
-            options: item.options,
-          })),
+      },
+      select: { id: true },
+    });
+    if (retryOrder) {
+      return retryOrder;
+    }
+
+    const variants = await tx.productVariant.findMany({
+      where: {
+        deletedAt: null,
+        id: { in: data.items.map((item) => item.variantId) },
+        product: {
+          deletedAt: null,
+          status: "ACTIVE",
         },
       },
-      include: { items: true },
+      include: {
+        inventory: true,
+        product: true,
+        selectedOptions: {
+          include: {
+            option: true,
+          },
+        },
+      },
     });
 
-    await tx.paymentIntent.create({
-      data: {
-        orderId: created.id,
-        paymentMethodId: paymentMethod.id,
-        amount: total,
-        currency,
-        status: "PENDING",
-      },
+    const variantsById = new Map(variants.map((variant) => [variant.id, variant]));
+    if (variantsById.size !== data.items.length) {
+      throw new Error("Some items are no longer available");
+    }
+
+    const lineItems = data.items.map((item) => {
+      const variant = variantsById.get(item.variantId);
+      if (!variant) {
+        throw new Error("Invalid cart item");
+      }
+
+      const unitPrice = resolveVariantUnitPrice(variant);
+      const options = variant.selectedOptions.map((selectedOption) => ({
+        name: selectedOption.option?.name || "",
+        value: selectedOption.value,
+      }));
+
+      return {
+        options,
+        quantity: item.quantity,
+        unitPrice,
+        variant,
+      };
     });
+
+    const cartSum = lineItems.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
+    );
+    const taxBreakdown = calculateTaxBreakdown({
+      cartSum,
+      taxMode: settings.taxMode || "EXCLUSIVE",
+      taxRate: settings.taxRate || 0,
+    });
+    const shippingPricing = calculateShippingFromRates(
+      shippingMethod.rates || [],
+      taxBreakdown.subtotal,
+      zone.id,
+    );
+    const paymentFee = calculatePaymentFee(paymentMethod, taxBreakdown.subtotal);
+    const totalPrice =
+      taxBreakdown.subtotal +
+      taxBreakdown.taxTotal +
+      shippingPricing.calculatedPrice +
+      paymentFee;
 
     for (const item of lineItems) {
+      if (item.variant.inventoryPolicy !== InventoryPolicy.DENY) {
+        continue;
+      }
+
+      const updatedInventory = await tx.inventory.updateMany({
+        where: {
+          variantId: item.variant.id,
+          quantity: {
+            gte: item.quantity,
+          },
+        },
+        data: {
+          quantity: {
+            decrement: item.quantity,
+          },
+        },
+      });
+
+      if (updatedInventory.count === 0) {
+        throw new Error(`Insufficient inventory for ${item.variant.product.name}`);
+      }
+    }
+
+    for (const item of lineItems) {
+      if (item.variant.inventoryPolicy !== InventoryPolicy.CONTINUE) {
+        continue;
+      }
+
       if (item.variant.inventory) {
         await tx.inventory.update({
           where: { variantId: item.variant.id },
-          data: { quantity: { decrement: item.quantity } },
+          data: {
+            quantity: {
+              decrement: item.quantity,
+            },
+          },
         });
-      } else if (item.variant.inventoryPolicy === InventoryPolicy.CONTINUE) {
+      } else {
         await tx.inventory.create({
           data: {
-            variantId: item.variant.id,
             quantity: -item.quantity,
+            variantId: item.variant.id,
           },
         });
       }
     }
 
-    return created;
+    const createdOrder = await tx.order.create({
+      data: {
+        billingAddress: {
+          address1: address.address1,
+          address2: address.address2,
+          city: address.city,
+          country: address.country,
+          fullName: address.fullname,
+          phone: address.phone,
+          province: address.province,
+          zip: address.zip,
+        },
+        checkoutRequestId: data.checkoutRequestId,
+        currency,
+        customerId: user.id,
+        items: {
+          create: lineItems.map((item) => ({
+            options: item.options,
+            price: item.unitPrice,
+            productId: item.variant.productId,
+            quantity: item.quantity,
+            sku: item.variant.sku || undefined,
+            title: item.variant.product.name,
+            variantId: item.variant.id,
+          })),
+        },
+        marketCode: marketCountryCode,
+        marketCountryCode,
+        paymentStatus: PAYMENT_STATUS.PENDING,
+        shippingAddress: {
+          address1: address.address1,
+          address2: address.address2,
+          city: address.city,
+          country: address.country,
+          fullName: address.fullname,
+          phone: address.phone,
+          province: address.province,
+          zip: address.zip,
+        },
+        shippingTotal: shippingPricing.calculatedPrice,
+        subtotal: taxBreakdown.subtotal,
+        taxTotal: taxBreakdown.taxTotal,
+        totalPrice,
+      },
+      select: { id: true },
+    });
+
+    await tx.paymentIntent.create({
+      data: {
+        amount: totalPrice,
+        currency,
+        orderId: createdOrder.id,
+        paymentMethodId: paymentMethod.id,
+        status: "PENDING",
+      },
+    });
+
+    return createdOrder;
   });
 
   revalidatePath("/admin/orders");
@@ -277,14 +325,14 @@ export async function getOrders() {
   }
 
   const orders = await prisma.order.findMany({
-    where: { customerId: user.id },
-    orderBy: { createdAt: "desc" },
     include: { items: true },
+    orderBy: { createdAt: "desc" },
     take: 50,
+    where: { customerId: user.id },
   });
 
   const variantIds = orders
-    .flatMap((o) => o.items.map((i) => i.variantId))
+    .flatMap((order) => order.items.map((item) => item.variantId))
     .filter(Boolean) as string[];
 
   const variants = await prisma.productVariant.findMany({
@@ -294,7 +342,6 @@ export async function getOrders() {
       product: {
         include: {
           mediaProducts: {
-            take: 1,
             include: {
               media: true,
             },
@@ -303,38 +350,37 @@ export async function getOrders() {
                 createdAt: "desc",
               },
             },
+            take: 1,
           },
         },
       },
     },
   });
 
-  const variantsMap = new Map(variants.map((v) => [v.id, v]));
+  const variantsMap = new Map(variants.map((variant) => [variant.id, variant]));
 
-  // Serializing Decimal to Number/String to avoid passing complex objects to client
   return orders.map((order) => ({
     ...order,
-    totalPrice: Number(order.totalPrice),
-    subtotal: Number(order.subtotal),
-    taxTotal: Number(order.taxTotal),
-    shippingTotal: Number(order.shippingTotal),
+    shippingTotal: toNumber(order.shippingTotal),
+    subtotal: toNumber(order.subtotal),
+    taxTotal: toNumber(order.taxTotal),
+    totalPrice: toNumber(order.totalPrice),
     items: order.items.map((item) => {
       let image: string | null = null;
+
       if (item.variantId) {
         const variant = variantsMap.get(item.variantId);
-        if (variant) {
-          if (variant.image?.url) {
-            image = variant.image.url;
-          } else if (variant.product?.mediaProducts?.[0]?.media?.url) {
-            image = variant.product.mediaProducts[0].media.url;
-          }
+        if (variant?.image?.url) {
+          image = variant.image.url;
+        } else if (variant?.product?.mediaProducts?.[0]?.media?.url) {
+          image = variant.product.mediaProducts[0].media.url;
         }
       }
 
       return {
         ...item,
-        price: Number(item.price),
         image,
+        price: toNumber(item.price),
       };
     }),
   }));
@@ -347,7 +393,6 @@ export async function getOrder(orderId: string) {
   }
 
   const order = await prisma.order.findFirst({
-    where: { id: orderId, customerId: user.id },
     include: {
       items: true,
       paymentIntents: {
@@ -356,58 +401,58 @@ export async function getOrder(orderId: string) {
         },
       },
     },
+    where: { customerId: user.id, id: orderId },
   });
-  if (!order) return null;
+  if (!order) {
+    return null;
+  }
 
   const variantIds = order.items
-    .map((i) => i.variantId)
+    .map((item) => item.variantId)
     .filter(Boolean) as string[];
   const variants = await prisma.productVariant.findMany({
     where: { id: { in: variantIds } },
     include: {
-      image: true, // Only fetch direct image, keeping it fast for single order
+      image: true,
       product: {
         include: {
           mediaProducts: {
-            take: 1,
             include: { media: true },
             orderBy: { media: { createdAt: "desc" } },
+            take: 1,
           },
         },
       },
     },
   });
 
-  const variantsMap = new Map(variants.map((v) => [v.id, v]));
-
+  const variantsMap = new Map(variants.map((variant) => [variant.id, variant]));
   const { paymentIntents, ...orderData } = order;
 
   return {
     ...orderData,
-    totalPrice: Number(orderData.totalPrice),
-    subtotal: Number(orderData.subtotal),
-    taxTotal: Number(orderData.taxTotal),
-    shippingTotal: Number(orderData.shippingTotal),
+    paymentMethod: paymentIntents?.[0]?.paymentMethod?.name || "Unknown",
+    shippingTotal: toNumber(orderData.shippingTotal),
+    subtotal: toNumber(orderData.subtotal),
+    taxTotal: toNumber(orderData.taxTotal),
+    totalPrice: toNumber(orderData.totalPrice),
     items: orderData.items.map((item) => {
       let image: string | null = null;
+
       if (item.variantId) {
         const variant = variantsMap.get(item.variantId);
-        if (variant) {
-          if (variant.image?.url) {
-            image = variant.image.url;
-          } else if (variant.product?.mediaProducts?.[0]?.media?.url) {
-            image = variant.product.mediaProducts[0].media.url;
-          }
+        if (variant?.image?.url) {
+          image = variant.image.url;
+        } else if (variant?.product?.mediaProducts?.[0]?.media?.url) {
+          image = variant.product.mediaProducts[0].media.url;
         }
       }
 
       return {
         ...item,
-        price: Number(item.price),
         image,
+        price: toNumber(item.price),
       };
     }),
-    // flattened payment info if needed
-    paymentMethod: paymentIntents?.[0]?.paymentMethod?.name || "Unknown",
   };
 }

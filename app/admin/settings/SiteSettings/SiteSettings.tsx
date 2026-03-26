@@ -53,14 +53,17 @@ const ImageUploader = ({
     const { file, onSuccess, onError } = options;
     setLoading(true);
     try {
-      const signedUrl = await generateSignedUrl(file.name);
-      if (!signedUrl) throw new Error("Failed to get signed URL");
+      const signedUpload = await generateSignedUrl({
+        fileName: file.name,
+        mimeType: file.type,
+        size: file.size,
+      });
 
-      const uploadRes = await uploadFile(file, signedUrl);
+      const uploadRes = await uploadFile(file, signedUpload.signedUrl);
       if (!uploadRes.success || !uploadRes.filename)
         throw new Error("Upload failed");
 
-      const fullUrl = `${AppConstants.DRIVE_ROOT_URL}/${uploadRes.filename}`;
+      const fullUrl = `${AppConstants.DRIVE_ROOT_URL}/${signedUpload.filename}`;
       onChange?.(fullUrl);
       onSuccess("ok");
       message.success(`${label} uploaded`);

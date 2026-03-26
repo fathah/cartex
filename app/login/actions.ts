@@ -1,77 +1,167 @@
 "use server";
 
-import CustomerDB from "@/db/customer";
-import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
+import { cookies } from "next/headers";
 import prisma from "@/db/prisma";
-
+import CustomerDB from "@/db/customer";
 import { sendMail } from "@/services/mail";
-import { Prisma } from "@prisma/client";
 import CartexUserTokenService from "@/services/token_service";
-import { setAuthToken } from "@/utils/auth";
 import { AppKeys } from "@/constants/keys";
 import { otpMailTemplate } from "./email";
+import {
+  generateOtpCode,
+  hashOtp,
+  normalizeEmail,
+  verifyOtpHash,
+} from "@/services/security";
+import { consumeRateLimit, RateLimitError } from "@/services/rate-limit";
+import { setAuthToken } from "@/utils/auth";
+
+const emailSchema = z.object({
+  email: z.string().email(),
+});
+
+const loginSchema = emailSchema.extend({
+  password: z.string().min(1),
+});
+
+const otpSchema = emailSchema.extend({
+  otp: z.string().length(6),
+});
+
+const registerSchema = otpSchema.extend({
+  password: z.string().min(8),
+});
+
+function getRateLimitMessage(error: unknown) {
+  if (error instanceof RateLimitError) {
+    return `Too many attempts. Try again in ${error.retryAfterSeconds} seconds.`;
+  }
+
+  return null;
+}
 
 export async function checkEmail(email: string) {
-  const customer = await CustomerDB.findByEmail(email);
-  // Exists only if customer exists AND has a password set (verified)
-  return { exists: !!(customer && customer.passwordHash), customer };
+  const parsed = emailSchema.safeParse({ email });
+  if (!parsed.success) {
+    return { exists: false };
+  }
+
+  const customer = await CustomerDB.findByEmail(parsed.data.email);
+  return { exists: !!(customer && customer.passwordHash) };
 }
 
 export async function login(email: string, password: string) {
-  const customer = await CustomerDB.findByEmail(email);
+  const parsed = loginSchema.safeParse({ email, password });
+  if (!parsed.success) {
+    return { success: false, error: "Invalid credentials" };
+  }
 
+  const normalizedEmail = normalizeEmail(parsed.data.email);
+
+  try {
+    await consumeRateLimit({
+      action: "customer_login",
+      blockMs: 15 * 60 * 1000,
+      identifier: normalizedEmail,
+      limit: 5,
+      windowMs: 10 * 60 * 1000,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: getRateLimitMessage(error) || "Login temporarily unavailable",
+    };
+  }
+
+  const customer = await CustomerDB.findByEmail(normalizedEmail);
   if (!customer || !customer.passwordHash) {
     return { success: false, error: "Invalid credentials" };
   }
 
-  const isValid = await bcrypt.compare(password, customer.passwordHash);
-
+  const isValid = await bcrypt.compare(parsed.data.password, customer.passwordHash);
   if (!isValid) {
     return { success: false, error: "Invalid credentials" };
   }
 
-  // Set session cookie
   const token = await CartexUserTokenService.generateJWT(customer.id);
-  if (token) {
-    await setAuthToken(token);
-    return { success: true, customerId: customer.id };
-  }
+  await setAuthToken(token);
 
-  return { success: false, error: "Failed to generate token" };
+  return { success: true, customerId: customer.id };
 }
 
 export async function sendOtp(email: string) {
-  try {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  const parsed = emailSchema.safeParse({ email });
+  if (!parsed.success) {
+    return { success: false, error: "Please enter a valid email" };
+  }
 
-    // Check if customer exists
-    const existing = await CustomerDB.findByEmail(email);
+  const normalizedEmail = normalizeEmail(parsed.data.email);
+
+  try {
+    await consumeRateLimit({
+      action: "customer_send_otp",
+      blockMs: 15 * 60 * 1000,
+      identifier: normalizedEmail,
+      limit: 3,
+      windowMs: 15 * 60 * 1000,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: getRateLimitMessage(error) || "OTP temporarily unavailable",
+    };
+  }
+
+  try {
+    const existing = await CustomerDB.findByEmail(normalizedEmail);
+
+    if (existing?.passwordHash) {
+      return { success: false, error: "Account already exists" };
+    }
+
+    if (
+      existing?.otpLastSentAt &&
+      Date.now() - existing.otpLastSentAt.getTime() < 60 * 1000
+    ) {
+      return {
+        success: false,
+        error: "Please wait before requesting another code",
+      };
+    }
+
+    const otp = generateOtpCode();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     if (existing) {
-      // If already verified (has password), we shouldn't be here normally if UI checks checkEmail first.
-      // But valid use case: Forgot Password flow (not implemented yet) or just re-verifying unverified email.
       await prisma.customer.update({
         where: { id: existing.id },
-        data: { otp, otpExpiresAt },
+        data: {
+          email: normalizedEmail,
+          normalizedEmail,
+          otp: null,
+          otpExpiresAt,
+          otpHash: hashOtp(normalizedEmail, otp),
+          otpLastSentAt: new Date(),
+          otpVerifyAttempts: 0,
+        },
       });
     } else {
-      // Create new unverified customer
       await prisma.customer.create({
         data: {
-          email,
-          otp,
+          email: normalizedEmail,
+          normalizedEmail,
           otpExpiresAt,
-          // passwordHash is null, so "exists" will return false in checkEmail
+          otpHash: hashOtp(normalizedEmail, otp),
+          otpLastSentAt: new Date(),
         },
       });
     }
 
-    // Send Email
     const mailTemplate = await otpMailTemplate(otp);
     await sendMail(
-      email,
+      normalizedEmail,
       "Your Verification Code",
       `Your OTP is: ${otp}`,
       mailTemplate,
@@ -85,53 +175,104 @@ export async function sendOtp(email: string) {
 }
 
 export async function verifyOtp(email: string, otp: string) {
-  const customer = await CustomerDB.findByEmail(email);
-  if (!customer || !customer.otp || !customer.otpExpiresAt) {
+  const parsed = otpSchema.safeParse({ email, otp });
+  if (!parsed.success) {
     return { success: false, error: "Invalid OTP" };
   }
 
-  if (new Date() > customer.otpExpiresAt) {
+  const normalizedEmail = normalizeEmail(parsed.data.email);
+
+  try {
+    await consumeRateLimit({
+      action: "customer_verify_otp",
+      blockMs: 15 * 60 * 1000,
+      identifier: normalizedEmail,
+      limit: 5,
+      windowMs: 10 * 60 * 1000,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: getRateLimitMessage(error) || "OTP verification unavailable",
+    };
+  }
+
+  const customer = await CustomerDB.findByEmail(normalizedEmail);
+  if (!customer || !customer.otpHash || !customer.otpExpiresAt) {
+    return { success: false, error: "Invalid OTP" };
+  }
+
+  if (customer.otpExpiresAt.getTime() < Date.now()) {
     return { success: false, error: "OTP Expired" };
   }
 
-  if (customer.otp !== otp) {
+  if (customer.otpVerifyAttempts >= 5) {
+    return { success: false, error: "Too many invalid attempts" };
+  }
+
+  const isValid = verifyOtpHash(normalizedEmail, parsed.data.otp, customer.otpHash);
+  if (!isValid) {
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: {
+        otpVerifyAttempts: {
+          increment: 1,
+        },
+      },
+    });
     return { success: false, error: "Invalid OTP" };
   }
 
-  // Don't clear OTP yet - it will be cleared during registration
-  // Just return success to allow user to proceed to password setup
+  await prisma.customer.update({
+    where: { id: customer.id },
+    data: {
+      otpVerifyAttempts: 0,
+    },
+  });
+
   return { success: true, customerId: customer.id };
 }
 
 export async function register(email: string, password: string, otp: string) {
-  // Re-verify OTP to be secure
-  const check = await verifyOtp(email, otp);
+  const parsed = registerSchema.safeParse({ email, password, otp });
+  if (!parsed.success) {
+    return { success: false, error: "Invalid registration details" };
+  }
+
+  const normalizedEmail = normalizeEmail(parsed.data.email);
+  const check = await verifyOtp(normalizedEmail, parsed.data.otp);
   if (!check.success) {
     return check;
   }
 
-  const customer = await CustomerDB.findByEmail(email);
-  if (!customer) return { success: false, error: "Customer not found" };
+  const customer = await CustomerDB.findByEmail(normalizedEmail);
+  if (!customer) {
+    return { success: false, error: "Customer not found" };
+  }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  if (customer.passwordHash) {
+    return { success: false, error: "Account already exists" };
+  }
 
-  // Update customer: set password, clear OTP
+  const passwordHash = await bcrypt.hash(parsed.data.password, 10);
   await prisma.customer.update({
     where: { id: customer.id },
     data: {
-      passwordHash,
+      email: normalizedEmail,
+      normalizedEmail,
       otp: null,
       otpExpiresAt: null,
+      otpHash: null,
+      otpLastSentAt: null,
+      otpVerifyAttempts: 0,
+      passwordHash,
     },
   });
 
   const token = await CartexUserTokenService.generateJWT(customer.id);
-  if (token) {
-    await setAuthToken(token);
-    return { success: true, customerId: customer.id };
-  }
+  await setAuthToken(token);
 
-  return { success: false, error: "Failed to generate token" };
+  return { success: true, customerId: customer.id };
 }
 
 export async function logout() {

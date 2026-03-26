@@ -1,11 +1,15 @@
 "use server";
 
-import prisma from "@/db/prisma"; // Direct prisma usage for now as per plan, or ideally checking if db/media exists.
-// However, the plan said "Create createMedia action to save media records to Prisma."
-// I will create simple action first.
-
+import { z } from "zod";
+import prisma from "@/db/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAdminAuth } from "@/services/zauth";
+
+const createMediaSchema = z.object({
+  alt: z.string().trim().max(255).optional(),
+  type: z.enum(["IMAGE", "VIDEO"]).default("IMAGE"),
+  url: z.string().trim().url(),
+});
 
 export async function createMedia(
   url: string,
@@ -14,13 +18,11 @@ export async function createMedia(
 ) {
   try {
     await requireAdminAuth();
+    const data = createMediaSchema.parse({ alt, type, url });
     const media = await prisma.media.create({
-      data: {
-        url,
-        type,
-        alt: alt || "",
-      },
+      data,
     });
+
     revalidatePath("/admin/media");
     return { success: true, data: media };
   } catch (error) {
@@ -30,7 +32,8 @@ export async function createMedia(
 }
 
 export async function getMedia() {
-  return await prisma.media.findMany({
+  await requireAdminAuth();
+  return prisma.media.findMany({
     orderBy: { createdAt: "desc" },
   });
 }

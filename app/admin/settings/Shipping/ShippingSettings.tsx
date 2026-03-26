@@ -9,14 +9,10 @@ import {
   Form,
   Input,
   Select,
-  Table,
   message,
   Tag,
-  Space,
-  Divider,
-  Tooltip,
 } from "antd";
-import { Plus, Trash2, Edit2, Globe, Truck, DollarSign } from "lucide-react";
+import { Plus, Trash2, Edit2, Globe, Truck } from "lucide-react";
 import {
   getShippingZones,
   createShippingZone,
@@ -44,6 +40,9 @@ export default function ShippingSettings() {
   const [editingZone, setEditingZone] = useState<any>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
+  const [selectedRateZoneId, setSelectedRateZoneId] = useState<string | null>(
+    null,
+  );
 
   const { currency } = useCurrency();
 
@@ -150,21 +149,23 @@ export default function ShippingSettings() {
 
   // --- Rate Handlers ---
 
-  const handleAddRate = (methodId: string) => {
+  const handleAddRate = (methodId: string, zoneId: string) => {
     setSelectedMethodId(methodId);
+    setSelectedRateZoneId(zoneId);
     formRate.resetFields();
     formRate.setFieldValue("type", "FLAT");
     setIsRateModalOpen(true);
   };
 
   const handleRateSubmit = async (values: any) => {
-    if (!selectedMethodId) return;
+    if (!selectedMethodId || !selectedRateZoneId) return;
     try {
       await addShippingRate(selectedMethodId, {
         type: values.type,
         price: Number(values.price),
         min: values.min ? Number(values.min) : undefined,
         max: values.max ? Number(values.max) : undefined,
+        zoneId: selectedRateZoneId,
       });
       message.success("Rate added");
       setIsRateModalOpen(false);
@@ -186,13 +187,17 @@ export default function ShippingSettings() {
 
   // --- Renderers ---
 
-  const renderRates = (rates: any[]) => {
-    if (!rates || rates.length === 0)
+  const renderRates = (rates: any[], zoneId: string) => {
+    const zoneRates = (rates || []).filter(
+      (rate) => !rate.shippingZoneId || rate.shippingZoneId === zoneId,
+    );
+
+    if (zoneRates.length === 0)
       return <span className="text-gray-400 text-xs">No rates configured</span>;
 
     return (
       <div className="space-y-1">
-        {rates.map((rate) => (
+        {zoneRates.map((rate) => (
           <div
             key={rate.id}
             className="flex items-center gap-2 text-sm bg-gray-50 px-2 py-1 rounded border border-gray-100"
@@ -297,7 +302,7 @@ export default function ShippingSettings() {
                           size="small"
                           type="text"
                           icon={<Plus size={14} />}
-                          onClick={() => handleAddRate(method.id)}
+                          onClick={() => handleAddRate(method.id, zone.id)}
                         >
                           Add Rate
                         </Button>
@@ -310,7 +315,7 @@ export default function ShippingSettings() {
                         />
                       </div>
                     </div>
-                    <div className="pl-6">{renderRates(method.rates)}</div>
+                    <div className="pl-6">{renderRates(method.rates, zone.id)}</div>
                   </div>
                 ))}
 

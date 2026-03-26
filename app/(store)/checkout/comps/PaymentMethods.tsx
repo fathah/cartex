@@ -61,15 +61,21 @@ export default function PaymentMethods({
         setActiveGateways(gateways);
 
         // Auto-select silently when only 1 gateway
-        const logoGws = gateways.filter((g: any) => GATEWAY_LOGOS[g.code]);
-        if (logoGws.length === 1) setSelectedGatewayCode(logoGws[0].code);
-
         const currentCode = selectedPaymentMethod;
         const stillValid = methods.find((m: any) => m.code === currentCode);
 
         if (!stillValid && methods.length > 0) {
           const defaultMethod = methods[0];
-          const autoGw = logoGws.length === 1 ? logoGws[0].code : "";
+          if (!defaultMethod) {
+            return;
+          }
+          const allowedGateways = gateways.filter(
+            (gateway: any) =>
+              GATEWAY_LOGOS[gateway.code] &&
+              defaultMethod.gatewayCodes?.includes(gateway.code),
+          );
+          const autoGw = allowedGateways.length === 1 ? allowedGateways[0].code : "";
+          setSelectedGatewayCode(autoGw);
           form.setFieldValue("paymentMethod", defaultMethod.code);
           setSelectedPaymentMethod(defaultMethod.code);
           onPaymentMethodChange(
@@ -79,8 +85,16 @@ export default function PaymentMethods({
             autoGw,
           );
         } else if (stillValid) {
+          const allowedGateways = gateways.filter(
+            (gateway: any) =>
+              GATEWAY_LOGOS[gateway.code] &&
+              stillValid.gatewayCodes?.includes(gateway.code),
+          );
           const autoGw =
-            logoGws.length === 1 ? logoGws[0].code : selectedGatewayCode;
+            allowedGateways.length === 1 ? allowedGateways[0].code : selectedGatewayCode;
+          if (autoGw !== selectedGatewayCode) {
+            setSelectedGatewayCode(autoGw);
+          }
           onPaymentMethodChange(
             stillValid.code,
             stillValid.paymentFee || 0,
@@ -112,19 +126,37 @@ export default function PaymentMethods({
   };
 
   const handleSelect = (method: any) => {
+    const allowedGateways = activeGateways.filter(
+      (gateway) =>
+        GATEWAY_LOGOS[gateway.code] && method.gatewayCodes?.includes(gateway.code),
+    );
+    const nextGatewayCode =
+      allowedGateways.length === 1
+        ? allowedGateways[0].code
+        : allowedGateways.some((gateway) => gateway.code === selectedGatewayCode)
+          ? selectedGatewayCode
+          : "";
+
     form.setFieldValue("paymentMethod", method.code);
     setSelectedPaymentMethod(method.code);
+    setSelectedGatewayCode(nextGatewayCode);
     onPaymentMethodChange(
       method.code,
       method.paymentFee || 0,
       method.paymentFeeLabel || "",
-      selectedGatewayCode,
+      nextGatewayCode,
     );
   };
 
   const logoGateways = activeGateways.filter((g) => GATEWAY_LOGOS[g.code]);
   // Show a picker only when there are 2+ gateways configured
-  const showGatewayPicker = logoGateways.length > 1;
+  const selectedMethod = paymentMethods.find(
+    (method) => method.code === selectedPaymentMethod,
+  );
+  const availableLogoGateways = logoGateways.filter((gateway) =>
+    selectedMethod?.gatewayCodes?.includes(gateway.code),
+  );
+  const showGatewayPicker = availableLogoGateways.length > 1;
 
   const selectedCardMethod = paymentMethods.find(
     (m) => m.type === "CARD" && m.code === selectedPaymentMethod,
@@ -206,7 +238,7 @@ export default function PaymentMethods({
                       </Radio>
 
                       {/* Gateway section — only for CARD when selected */}
-                      {isCard && isSelected && logoGateways.length > 0 && (
+                      {isCard && isSelected && availableLogoGateways.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-[#003d29]/10 pl-2">
                           {showGatewayPicker ? (
                             /* ── 2+ gateways: show a picker ── */
@@ -215,7 +247,7 @@ export default function PaymentMethods({
                                 Choose payment provider
                               </p>
                               <div className="flex flex-wrap gap-2">
-                                {logoGateways.map((gw) => {
+                                {availableLogoGateways.map((gw) => {
                                   const isGwSelected =
                                     selectedGatewayCode === gw.code;
                                   return (
@@ -275,8 +307,8 @@ export default function PaymentMethods({
                               </p>
                               <div className="border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white">
                                 <img
-                                  src={GATEWAY_LOGOS[logoGateways[0].code]}
-                                  alt={logoGateways[0].name}
+                                  src={GATEWAY_LOGOS[availableLogoGateways[0].code]}
+                                  alt={availableLogoGateways[0].name}
                                   className="h-4 w-auto object-contain"
                                 />
                               </div>

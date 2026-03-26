@@ -33,9 +33,26 @@ export default class AddressDB {
     });
   }
 
+  static async deleteByCustomer(id: string, customerId: string) {
+    return await prisma.address.deleteMany({
+      where: { id, customerId },
+    });
+  }
+
   static async update(id: string, data: Partial<CreateAddressData>) {
     return await prisma.address.update({
       where: { id },
+      data,
+    });
+  }
+
+  static async updateByCustomer(
+    id: string,
+    customerId: string,
+    data: Partial<CreateAddressData>,
+  ) {
+    return await prisma.address.updateMany({
+      where: { id, customerId },
       data,
     });
   }

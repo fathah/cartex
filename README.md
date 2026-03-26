@@ -40,6 +40,7 @@ SMTP_USER=
 SMTP_PASSWORD=
 JWT_SECRET=
 ZAUTH_SECRET=
+APP_CONFIG_ENCRYPTION_KEY=
 ```
 
 ### Public Runtime Variables
@@ -81,6 +82,8 @@ DATABASE_URL=postgresql://postgres:password@db.example.com:5432/cartex
   - Public auth key needed by the frontend.
 - `JWT_SECRET`
   - Secret used for JWT-related application flows.
+- `APP_CONFIG_ENCRYPTION_KEY`
+  - Server-side key used to encrypt payment gateway secrets stored in the database.
 
 ### Mail
 
@@ -176,6 +179,7 @@ SMTP_USER=no-reply@example.com
 SMTP_PASSWORD=your_smtp_password
 JWT_SECRET=your_jwt_secret
 ZAUTH_SECRET=your_zauth_secret
+APP_CONFIG_ENCRYPTION_KEY=replace_with_a_long_random_secret
 NEXT_PUBLIC_URL=https://shop.example.com
 NEXT_PUBLIC_ZAUTH_KEY=your_public_zauth_key
 NEXT_PUBLIC_ZDRIVE_ROOT=https://drive.example.com
@@ -251,6 +255,7 @@ Recommended:
 
 - use `RUN_DATABASE_MIGRATIONS=true` only when you intentionally want that container to apply schema changes
 - for multiple app instances, prefer running migrations once before scaling out
+- apply migrations/backfills first, then roll out new app containers
 
 ### Pull the latest image
 

@@ -1,23 +1,37 @@
 "use server";
 
+import { z } from "zod";
 import { requireAdminAuth } from "@/services/zauth";
 import prisma from "@/db/prisma";
-import ProductDB from "@/db/product";
 import { revalidatePath } from "next/cache";
 
-export async function importProductBatch(rows: any[]) {
+const importRowSchema = z.object({
+  brand: z.string().trim().optional(),
+  category: z.string().trim().optional(),
+  name: z.string().trim().min(1),
+  originalPrice: z.coerce.number().min(0).default(0),
+  salePrice: z.coerce.number().min(0).default(0),
+  stock: z.coerce.number().int().default(0),
+});
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+export async function importProductBatch(rows: unknown[]) {
   await requireAdminAuth();
 
   const results = [];
 
-  // We will process sequentially within the batch to avoid race conditions
-  // on creating duplicate categories/brands if multiple rows share the same new ones.
-  for (const row of rows) {
+  for (const rawRow of rows) {
     try {
-      let categoryId = null;
-      let brandId = null;
+      const row = importRowSchema.parse(rawRow);
+      let categoryId: string | null = null;
+      let brandId: string | null = null;
 
-      // 1. Resolve Category
       if (row.category) {
         let category = await prisma.collection.findFirst({
           where: {
@@ -29,16 +43,13 @@ export async function importProductBatch(rows: any[]) {
         });
 
         if (!category) {
-          // Auto-generate a slug
-          const baseSlug = row.category
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "");
+          const baseSlug = slugify(row.category);
           let slug = baseSlug;
           let counter = 1;
+
           while (await prisma.collection.findUnique({ where: { slug } })) {
             slug = `${baseSlug}-${counter}`;
-            counter++;
+            counter += 1;
           }
 
           category = await prisma.collection.create({
@@ -48,10 +59,10 @@ export async function importProductBatch(rows: any[]) {
             },
           });
         }
+
         categoryId = category.id;
       }
 
-      // 2. Resolve Brand
       if (row.brand) {
         let brand = await prisma.productBrand.findFirst({
           where: {
@@ -64,69 +75,61 @@ export async function importProductBatch(rows: any[]) {
 
         if (!brand) {
           brand = await prisma.productBrand.create({
-            data: {
-              name: row.brand,
-            },
+            data: { name: row.brand },
           });
         }
+
         brandId = brand.id;
       }
 
-      // 3. Resolve Product Slug
-      const baseProductSlug = row.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      const baseProductSlug = slugify(row.name);
       let productSlug = baseProductSlug;
-      let pCounter = 1;
-      while (
-        await prisma.product.findUnique({ where: { slug: productSlug } })
-      ) {
-        productSlug = `${baseProductSlug}-${pCounter}`;
-        pCounter++;
+      let productCounter = 1;
+
+      while (await prisma.product.findUnique({ where: { slug: productSlug } })) {
+        productSlug = `${baseProductSlug}-${productCounter}`;
+        productCounter += 1;
       }
 
-      // 4. Create Product with default Variant
-      const status = "ACTIVE"; // Imported products default to active
-
-      const product = await prisma.$transaction(async (tx) => {
-        const p = await tx.product.create({
+      await prisma.$transaction(async (tx) => {
+        const product = await tx.product.create({
           data: {
+            collections: categoryId
+              ? {
+                  connect: { id: categoryId },
+                }
+              : undefined,
             name: row.name,
-            slug: productSlug,
-            status: status as any,
             productBrandId: brandId,
-            ...(categoryId && {
-              collections: {
-                connect: { id: categoryId },
-              },
-            }),
+            slug: productSlug,
+            status: "ACTIVE",
           },
         });
 
-        // Create default variant with stock
-        const variant = await tx.productVariant.create({
+        await tx.productVariant.create({
           data: {
-            productId: p.id,
-            title: "Default Variant",
-            originalPrice: row.originalPrice || 0,
-            salePrice: row.salePrice || 0,
-            sku: "",
             inventory: {
               create: {
-                quantity: row.stock || 0,
+                quantity: row.stock,
               },
             },
+            originalPrice: row.originalPrice,
+            productId: product.id,
+            salePrice: row.salePrice || row.originalPrice,
+            sku: "",
+            title: "Default Variant",
           },
         });
-
-        return p;
       });
 
       results.push({ success: true, name: row.name });
-    } catch (err: any) {
-      console.error(`Failed to import row ${row.name}:`, err);
-      results.push({ success: false, name: row.name, error: err.message });
+    } catch (error: any) {
+      console.error(`Failed to import row ${(rawRow as any)?.name || "unknown"}:`, error);
+      results.push({
+        error: error.message,
+        name: (rawRow as any)?.name || "unknown",
+        success: false,
+      });
     }
   }
 

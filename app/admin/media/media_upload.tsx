@@ -20,11 +20,14 @@ const MediaUpload: React.FC<MediaUploadProps> = ({ onCustomSuccess }) => {
     setUploading(true);
     try {
       // 1. Get Signed URL
-      const signedUrl = await generateSignedUrl(file.name);
-      if (!signedUrl) throw new Error("Failed to get signed URL");
+      const signedUpload = await generateSignedUrl({
+        fileName: file.name,
+        mimeType: file.type,
+        size: file.size,
+      });
 
       // 2. Upload to Object Storage
-      const uploadRes = await uploadFile(file, signedUrl);
+      const uploadRes = await uploadFile(file, signedUpload.signedUrl);
       if (!uploadRes.success || !uploadRes.filename)
         throw new Error("Upload to ZDrive failed");
 
@@ -32,7 +35,7 @@ const MediaUpload: React.FC<MediaUploadProps> = ({ onCustomSuccess }) => {
       // Determine type based on file type (basic check)
       const type = file.type.startsWith("video/") ? "VIDEO" : "IMAGE";
 
-      const res = await createMedia(uploadRes.filename, type, file.name); // Using filename as alt/name for now
+      const res = await createMedia(signedUpload.filename, type, file.name);
 
       if (res.success) {
         onSuccess("ok");

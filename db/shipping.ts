@@ -1,5 +1,5 @@
 import prisma from './prisma';
-import { ShippingRateType, Prisma } from '@prisma/client';
+import { ShippingRateType } from '@prisma/client';
 
 export class ShippingDB {
   // --- Zones ---
@@ -92,7 +92,21 @@ export class ShippingDB {
       }
     }
 
-    return best?.shippingZone || null;
+    if (!best?.shippingZone) {
+      return null;
+    }
+
+    return {
+      ...best.shippingZone,
+      methods: best.shippingZone.methods.map((method) => ({
+        ...method,
+        rates: method.rates.filter(
+          (rate) =>
+            rate.shippingZoneId === best.shippingZone.id ||
+            rate.shippingZoneId === null,
+        ),
+      })),
+    };
   }
 
   static async createZone(data: { name: string; areas: { country: string; state: string }[] }) {
@@ -229,6 +243,7 @@ export class ShippingDB {
   // --- Rates ---
 
   static async addRate(methodId: string, data: { 
+    zoneId?: string;
     type: ShippingRateType; 
     price: number; 
     min?: number; 
@@ -237,6 +252,7 @@ export class ShippingDB {
     return await prisma.shippingRate.create({
       data: {
         shippingMethodId: methodId,
+        shippingZoneId: data.zoneId,
         type: data.type,
         price: data.price,
         minOrderAmount: data.min,
@@ -245,10 +261,11 @@ export class ShippingDB {
     });
   }
 
-  static async updateRate(id: string, data: { price?: number; min?: number; max?: number, isActive?: boolean }) {
+  static async updateRate(id: string, data: { zoneId?: string | null; price?: number; min?: number; max?: number, isActive?: boolean }) {
     return await prisma.shippingRate.update({
       where: { id },
       data: {
+        shippingZoneId: data.zoneId,
         price: data.price,
         minOrderAmount: data.min,
         maxOrderAmount: data.max,

@@ -313,9 +313,13 @@ function maskSecret(val: string): string {
 function ConfigFields({
   fields,
   existingConfig,
+  maskedSecrets,
+  requireSecrets,
 }: {
   fields: GatewayField[];
   existingConfig?: Record<string, string>;
+  maskedSecrets?: Record<string, string>;
+  requireSecrets: boolean;
 }) {
   const [visible, setVisible] = useState<Record<string, boolean>>({});
 
@@ -326,7 +330,12 @@ function ConfigFields({
           key={field.key}
           name={["config", field.key]}
           label={field.label}
-          rules={[{ required: true, message: `${field.label} is required` }]}
+          rules={[
+            {
+              required: field.secret ? requireSecrets : true,
+              message: `${field.label} is required`,
+            },
+          ]}
           help={field.hint}
         >
           {field.secret ? (
@@ -334,8 +343,8 @@ function ConfigFields({
               <Input
                 type={visible[field.key] ? "text" : "password"}
                 placeholder={
-                  existingConfig?.[field.key]
-                    ? maskSecret(existingConfig[field.key])
+                  maskedSecrets?.[field.key]
+                    ? maskedSecrets[field.key]
                     : field.placeholder
                 }
                 suffix={
@@ -414,19 +423,21 @@ function GatewayCard({
 
           {/* Config preview */}
           <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-            {Object.entries(gateway.config ?? {}).map(([k, v]: any) => {
+            {Object.entries({
+              ...(gateway.config ?? {}),
+              ...(gateway.maskedSecrets ?? {}),
+            }).map(([k, v]: any) => {
               const fieldDef = [
                 ...(def?.fields.live ?? []),
                 ...(def?.fields.test ?? []),
               ].find((f) => f.key === k);
-              const isSecret = fieldDef?.secret;
               return (
                 <div key={k} className="flex items-center gap-1.5 min-w-0">
                   <span className="text-gray-400 shrink-0">
                     {fieldDef?.label ?? k}:
                   </span>
                   <span className="font-mono text-gray-600 truncate">
-                    {isSecret ? maskSecret(String(v)) : String(v)}
+                    {String(v)}
                   </span>
                 </div>
               );
@@ -718,6 +729,8 @@ export default function PaymentGateways() {
               <ConfigFields
                 fields={dynamicFields}
                 existingConfig={editingGateway?.config}
+                maskedSecrets={editingGateway?.maskedSecrets}
+                requireSecrets={!editingGateway}
               />
             </>
           )}
