@@ -51,7 +51,14 @@ export default function PaymentMethods() {
     fetchData();
   }, []);
 
-  const handleEditMethod = (method: any) => {
+  const handleEditMethod = async (method: any) => {
+    try {
+      const latestGateways = await getPaymentGateways();
+      setGateways(latestGateways.filter((gateway: any) => gateway.isActive));
+    } catch {
+      message.error("Failed to refresh gateways");
+    }
+
     setEditingMethod(method);
     formMethod.setFieldsValue({
       description: method.description,

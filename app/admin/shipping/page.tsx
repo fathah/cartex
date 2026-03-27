@@ -1,5 +1,5 @@
 import { Truck, MapPinned, PackageCheck } from "lucide-react";
-import ShippingSettings from "../settings/Shipping/ShippingSettings";
+import ShippingSettingsWrapper from "./_components/ShippingSettingsWrapper";
 
 export default function ShippingPage() {
   return (
@@ -44,7 +44,7 @@ export default function ShippingPage() {
         </div>
       </section>
 
-      <ShippingSettings />
+      <ShippingSettingsWrapper />
     </div>
   );
 }

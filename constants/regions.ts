@@ -14,4 +14,24 @@ export const COUNTRIES = {
     currency: "INR",
     code: "IN",
   },
+  OM: {
+    name: "Oman",
+    currency: "OMR",
+    code: "OM",
+  },
+  BH: {
+    name: "Bahrain",
+    currency: "BHD",
+    code: "BH",
+  },
+  KW: {
+    name: "Kuwait",
+    currency: "KWD",
+    code: "KW",
+  },
+  QA: {
+    name: "Qatar",
+    currency: "QAR",
+    code: "QA",
+  },
 };
