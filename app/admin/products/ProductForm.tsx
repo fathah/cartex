@@ -56,12 +56,14 @@ interface ProductFormProps {
   initialData?: any;
   onSuccess?: (productId: string, mode: "create" | "update") => void;
   onRefreshProduct?: (productId: string) => void | Promise<void>;
+  onCancel?: () => void;
 }
 
 export default function ProductForm({
   initialData,
   onSuccess,
   onRefreshProduct,
+  onCancel,
 }: ProductFormProps) {
   const [form] = Form.useForm();
   const currentSlug = Form.useWatch("slug", form);
@@ -657,12 +659,15 @@ export default function ProductForm({
           )}
         </div>
 
-        <div className="flex justify-end border-t pt-4 bg-white p-6 -mx-6 -mb-6 z-10 shrink-0">
+        <div className="flex justify-end gap-3 border-t-2 border-gray-200  bg-gray-50  py-4 px-6 z-10 shrink-0">
+          <Button size="middle" onClick={onCancel}>
+            Cancel
+          </Button>
           <Button
             type="primary"
             htmlType="submit"
             loading={loading}
-            size="large"
+            size="middle"
           >
             {isEdit ? "Save Changes" : "Create Product"}
           </Button>

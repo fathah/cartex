@@ -234,6 +234,7 @@ export default function ProductListClient({
         styles={{ body: { height: "82vh", overflow: "hidden" } }}
         destroyOnHidden
         centered
+        maskClosable={false}
       >
         {formLoading ? (
           <div className="flex justify-center py-16">
@@ -245,6 +246,10 @@ export default function ProductListClient({
             initialData={formMode === "edit" ? editingProduct : undefined}
             onSuccess={handleFormSuccess}
             onRefreshProduct={refreshEditingProduct}
+            onCancel={() => {
+              setIsFormOpen(false);
+              setEditingProduct(null);
+            }}
           />
         )}
       </Modal>
