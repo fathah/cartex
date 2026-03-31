@@ -137,7 +137,7 @@ export default function LoginClient({ logo }: { logo?: string }) {
         message.success("Account created successfully");
         router.push(backto || "/");
       } else {
-        message.error((res as any).error || "Signup failed");
+        message.error(res.error || "Signup failed");
       }
     } catch (error) {
       message.error("An error occurred");
