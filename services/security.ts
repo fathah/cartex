@@ -3,6 +3,7 @@ import {
   createHash,
   createHmac,
   randomBytes,
+  randomInt,
   randomUUID,
   timingSafeEqual,
 } from "crypto";
@@ -57,7 +58,7 @@ export function generateSecureToken(size = 32) {
 }
 
 export function generateOtpCode() {
-  return `${Math.floor(100000 + Math.random() * 900000)}`;
+  return `${randomInt(100000, 1000000)}`;
 }
 
 export function hashOtp(email: string, otp: string) {

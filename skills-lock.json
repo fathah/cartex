@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "security-nextjs": {
+      "source": "igorwarzocha/opencode-workflows",
+      "sourceType": "github",
+      "computedHash": "32680026ede6e112e0bf4ce92b2c0a076770daebdaef7b19c9dbcd08f1aea02d"
+    }
+  }
+}

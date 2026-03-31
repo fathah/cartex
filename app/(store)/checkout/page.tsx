@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const CheckoutPage = async () => {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login?backto=checkout");
+    redirect("/login?backto=%2Fcheckout");
   }
   const [{ customer, addresses }, settings] = await Promise.all([
     getCheckoutData(),

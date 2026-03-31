@@ -11,8 +11,12 @@ export async function checkUserAuth(){
     if(!token || !token.value){
         return false;
     }
-    const validate = await CartexUserTokenService.verifyJWT(token.value);
-    if(!validate){
+    try {
+        const validate = await CartexUserTokenService.verifyJWT(token.value);
+        if(!validate){
+            return false;
+        }
+    } catch {
         return false;
     }
     return true;

@@ -1,7 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import prisma from "@/db/prisma";
 import { resolveGatewayConfig } from "@/services/gateway-config";
 import { applyPaymentOutcome, hashWebhookPayload } from "@/services/payment-webhooks";
+
+function isAuthorizedRequest(authorization: string, apiKey: string) {
+  const token = authorization.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length).trim()
+    : authorization.trim();
+
+  if (!token) {
+    return false;
+  }
+
+  const expected = Buffer.from(apiKey);
+  const received = Buffer.from(token);
+
+  if (expected.length !== received.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expected, received);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,7 +40,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Gateway not configured" }, { status: 400 });
     }
 
-    if (!authorization || !authorization.includes(mergedConfig.apiKey)) {
+    if (!isAuthorizedRequest(authorization, mergedConfig.apiKey)) {
       return NextResponse.json({ error: "Invalid authorization" }, { status: 401 });
     }
 

@@ -40,11 +40,10 @@ export async function saveAddress(data: CreateAddressData) {
     throw new Error("Authentication required to save address");
   }
 
-  if (!data.customerId) {
-    data.customerId = user.id;
-  }
-
-  const address = await AddressDB.create(data);
+  const address = await AddressDB.create({
+    ...data,
+    customerId: user.id,
+  });
   revalidatePath("/checkout");
   return address;
 }

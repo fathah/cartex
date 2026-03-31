@@ -19,18 +19,38 @@ export class RateLimitError extends Error {
   }
 }
 
-export async function getRequestIp() {
-  const headerStore = await headers();
-  const forwardedFor = headerStore.get("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0]?.trim() || "unknown";
+function normalizeIpCandidate(value?: string | null) {
+  const candidate = value?.trim();
+  if (!candidate) {
+    return null;
   }
 
-  return (
-    headerStore.get("x-real-ip") ||
-    headerStore.get("cf-connecting-ip") ||
-    "unknown"
-  );
+  // Allow IPv4, IPv6, and IPv4-mapped IPv6 values while rejecting arbitrary text.
+  if (!/^[a-fA-F0-9:.]+$/.test(candidate)) {
+    return null;
+  }
+
+  return candidate;
+}
+
+export async function getRequestIp() {
+  const headerStore = await headers();
+  const directIp =
+    normalizeIpCandidate(headerStore.get("cf-connecting-ip")) ||
+    normalizeIpCandidate(headerStore.get("x-real-ip"));
+  if (directIp) {
+    return directIp;
+  }
+
+  const forwardedFor = headerStore.get("x-forwarded-for");
+  if (forwardedFor) {
+    const forwardedIp = normalizeIpCandidate(forwardedFor.split(",")[0]);
+    if (forwardedIp) {
+      return forwardedIp;
+    }
+  }
+
+  return "unknown";
 }
 
 export async function consumeRateLimit(input: ConsumeRateLimitInput) {

@@ -10,10 +10,11 @@ import {
   verifyOtp,
 } from "@/app/login/actions";
 import { useRouter, useSearchParams } from "next/navigation";
+import { sanitizeInternalRedirectPath } from "@/utils/navigation";
 
 export default function LoginClient({ logo }: { logo?: string }) {
   const searchParams = useSearchParams();
-  const backto = searchParams.get("backto");
+  const backto = sanitizeInternalRedirectPath(searchParams.get("backto"));
   const [step, setStep] = useState<"EMAIL" | "LOGIN" | "OTP" | "SIGNUP">(
     "EMAIL",
   );
@@ -134,7 +135,7 @@ export default function LoginClient({ logo }: { logo?: string }) {
       const res = await register(email, values.password, otp);
       if (res.success) {
         message.success("Account created successfully");
-        router.push("/");
+        router.push(backto || "/");
       } else {
         message.error((res as any).error || "Signup failed");
       }

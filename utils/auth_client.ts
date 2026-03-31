@@ -1,6 +1,4 @@
-import { AppKeys } from "@/constants/keys";
-import Cookies from "js-cookie";
-
 export async function setAuthTokenClient(token: string){
-    Cookies.set(AppKeys.USER_AUTH_TOKEN, token, { expires: 10 });
+    void token;
+    throw new Error("Client-side auth cookie writes are not allowed. Use the server action instead.");
 }
