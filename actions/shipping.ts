@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { ShippingDB } from "@/db/shipping";
 import prisma from "@/db/prisma";
+import SettingsDB from "@/db/settings";
 import { revalidatePath } from "next/cache";
 import { requireAdminAuth } from "@/services/zauth";
 import {
@@ -10,6 +11,7 @@ import {
   rankShippingQuotes,
   resolveShippingQuote,
 } from "@/lib/shipping";
+import { calculateTaxBreakdown } from "@/lib/pricing";
 import {
   SHIPPING_METHOD_SOURCE,
   SHIPPING_METHOD_SOURCE_VALUES,
@@ -297,7 +299,13 @@ export async function getSmartShippingMethods(
     zipCode,
   );
   if (!zone) return [];
-  const context = await buildCartShippingContext(items, subtotal);
+  const settings = await SettingsDB.get();
+  const taxBreakdown = calculateTaxBreakdown({
+    cartSum: subtotal,
+    taxMode: settings.taxMode || "EXCLUSIVE",
+    taxRate: settings.taxRate || 0,
+  });
+  const context = await buildCartShippingContext(items, taxBreakdown.subtotal);
 
   return rankShippingQuotes(
     zone.methods
@@ -454,12 +462,10 @@ export async function updateShippingRate(
     id,
     {
       ...parsed,
-      max: parsed.max === null ? undefined : parsed.max,
-      min: parsed.min === null ? undefined : parsed.min,
-      maxWeightGrams:
-        parsed.maxWeightGrams === null ? undefined : parsed.maxWeightGrams,
-      minWeightGrams:
-        parsed.minWeightGrams === null ? undefined : parsed.minWeightGrams,
+      max: parsed.max,
+      min: parsed.min,
+      maxWeightGrams: parsed.maxWeightGrams,
+      minWeightGrams: parsed.minWeightGrams,
     },
   );
   revalidatePath(REVALIDATE_PATH);

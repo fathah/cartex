@@ -571,8 +571,14 @@ export class ShippingDB {
   }
 
   static async deleteMethod(id: string) {
-    return prisma.shippingMethod.delete({
-      where: { id },
+    return prisma.$transaction(async (tx) => {
+      await tx.shippingRate.deleteMany({
+        where: { shippingMethodId: id },
+      });
+
+      return tx.shippingMethod.delete({
+        where: { id },
+      });
     });
   }
 
@@ -613,10 +619,10 @@ export class ShippingDB {
     data: {
       zoneId?: string | null;
       price?: number;
-      min?: number;
-      max?: number;
-      minWeightGrams?: number;
-      maxWeightGrams?: number;
+      min?: number | null;
+      max?: number | null;
+      minWeightGrams?: number | null;
+      maxWeightGrams?: number | null;
       shippingProfileId?: string | null;
       applicationType?: "BASE" | "SURCHARGE";
       priority?: number;

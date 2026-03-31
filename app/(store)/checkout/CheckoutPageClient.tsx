@@ -14,6 +14,7 @@ import { createOrder } from "@/actions/orders";
 import { initiateGatewayPayment } from "@/actions/gateway";
 import { getSmartShippingMethods } from "@/actions/shipping";
 import { useCurrency } from "@/components/providers/currency-provider";
+import { getPreferredShippingSelection } from "@/lib/shipping";
 import {
   MapPin,
   Truck,
@@ -130,24 +131,23 @@ export default function CheckoutPageClient({
         );
         setShippingMethods(methods);
 
-        const currentMethod = selectedShippingCode;
-        if (
-          methods.length > 0 &&
-          (!currentMethod ||
-            !methods.find((m: any) => m.code === currentMethod))
-        ) {
-          const first = methods[0];
-          form.setFieldValue("shippingService", first.code);
-          setSelectedShippingCode(first.code);
-          setShippingCost(first.calculatedPrice);
-          setShippingMethodName(first.name);
-        } else if (methods.length > 0 && currentMethod) {
-          const selected = methods.find((m: any) => m.code === currentMethod);
-          if (selected) {
-            setShippingCost(selected.calculatedPrice);
-            setShippingMethodName(selected.name);
-          }
+        const selection = getPreferredShippingSelection(
+          methods,
+          selectedShippingCode,
+        );
+
+        if (!selection) {
+          form.resetFields(["shippingService"]);
+          setSelectedShippingCode("");
+          setShippingCost(0);
+          setShippingMethodName("");
+          return;
         }
+
+        form.setFieldValue("shippingService", selection.code);
+        setSelectedShippingCode(selection.code);
+        setShippingCost(selection.cost);
+        setShippingMethodName(selection.name);
       } catch (err) {
         console.error(err);
         message.error("Failed to load shipping rates");

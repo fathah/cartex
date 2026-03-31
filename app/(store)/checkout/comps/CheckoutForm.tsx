@@ -5,6 +5,7 @@ import type { FormInstance } from "antd";
 import { useEffect, useState, useMemo } from "react";
 import { getSmartShippingMethods } from "@/actions/shipping";
 import { useCartStore } from "@/lib/store/cart";
+import { getPreferredShippingSelection } from "@/lib/shipping";
 
 // Components
 import DeliveryAddress from "./DeliveryAddress";
@@ -80,22 +81,19 @@ export default function CheckoutForm({
         );
         setShippingMethods(methods);
 
-        const currentMethod = form.getFieldValue("shippingService");
-        if (
-          methods.length > 0 &&
-          (!currentMethod ||
-            !methods.find((m: any) => m.code === currentMethod))
-        ) {
-          const first = methods[0];
-          form.setFieldValue("shippingService", first.code);
-          onShippingCostChange(first.calculatedPrice, first.name);
-        } else if (methods.length > 0 && currentMethod) {
-          // Update price for the currently selected method (subtotal might have changed)
-          const selected = methods.find((m: any) => m.code === currentMethod);
-          if (selected) {
-            onShippingCostChange(selected.calculatedPrice, selected.name);
-          }
+        const selection = getPreferredShippingSelection(
+          methods,
+          form.getFieldValue("shippingService"),
+        );
+
+        if (!selection) {
+          form.resetFields(["shippingService"]);
+          onShippingCostChange(0, "");
+          return;
         }
+
+        form.setFieldValue("shippingService", selection.code);
+        onShippingCostChange(selection.cost, selection.name);
       } catch (err) {
         console.error(err);
         message.error("Failed to load shipping rates");

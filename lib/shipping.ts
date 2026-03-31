@@ -17,6 +17,12 @@ export type ShippingQuoteContext = {
   totalWeightGrams: number;
 };
 
+export type ShippingSelection = {
+  code: string;
+  cost: number;
+  name: string;
+};
+
 type ShippingRateInput = {
   applicationType?: string | null;
   id?: string;
@@ -324,4 +330,28 @@ export function rankShippingQuotes<T extends ReturnType<typeof resolveShippingQu
       ...quote,
       isRecommended: quote.id === recommendedId,
     }));
+}
+
+export function getPreferredShippingSelection(
+  methods: Array<{
+    calculatedPrice: number;
+    code: string;
+    name: string;
+  }>,
+  currentCode?: string | null,
+): ShippingSelection | null {
+  if (methods.length === 0) {
+    return null;
+  }
+
+  const selected =
+    (currentCode
+      ? methods.find((method) => method.code === currentCode)
+      : null) || methods[0];
+
+  return {
+    code: selected.code,
+    cost: Number(selected.calculatedPrice || 0),
+    name: selected.name,
+  };
 }
