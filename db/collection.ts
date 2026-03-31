@@ -27,6 +27,7 @@ export default class CollectionDB {
           select: { products: true },
         },
         image: true,
+        featureImage: true,
       },
     });
   }

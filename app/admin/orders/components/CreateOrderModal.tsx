@@ -96,7 +96,7 @@ export const CreateOrderModal = ({
         ),
       );
     } else {
-          setSelectedItems([
+      setSelectedItems([
         ...selectedItems,
         {
           variantId: variant.id,
@@ -104,9 +104,7 @@ export const CreateOrderModal = ({
           title: product.name,
           variantTitle: variant.title,
           image: product.mediaProducts?.[0]?.media?.url,
-          price: Number(
-            variant.effectiveSalePrice || 0,
-          ),
+          price: Number(variant.effectiveSalePrice || 0),
           currencyCode:
             variant.marketVariant?.market?.currencyCode ||
             variant.variantMarkets?.[0]?.market?.currencyCode ||
@@ -175,6 +173,7 @@ export const CreateOrderModal = ({
       confirmLoading={loading}
       okText="Create Order"
       destroyOnHidden
+      centered
     >
       <div className="space-y-6 py-4">
         {/* Customer Section */}
@@ -253,8 +252,10 @@ export const CreateOrderModal = ({
                             0
                           }
                           currencyCode={
-                            p.defaultVariant?.marketVariant?.market?.currencyCode ||
-                            p.variants?.[0]?.marketVariant?.market?.currencyCode ||
+                            p.defaultVariant?.marketVariant?.market
+                              ?.currencyCode ||
+                            p.variants?.[0]?.marketVariant?.market
+                              ?.currencyCode ||
                             null
                           }
                           className="text-sm font-bold"

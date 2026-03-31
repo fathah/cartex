@@ -78,7 +78,7 @@ export default function AIDescriptionGenerator({
   const generateDisabled = !productName.trim() || isGenerating;
 
   return (
-    <div className="mb-4 rounded-2xl border border-sky-100 bg-[linear-gradient(135deg,_#f8fdff_0%,_#effbff_100%)] p-4">
+    <div className="mb-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
         <Sparkles size={16} className="text-sky-600" />
         Generate with AI
@@ -89,11 +89,11 @@ export default function AIDescriptionGenerator({
           value={customPrompt}
           onChange={(event) => setCustomPrompt(event.target.value)}
           placeholder="Optional: add guidance like premium tone, key benefits, or target audience"
-          size="large"
+          size="middle"
         />
         <Button
           type="primary"
-          size="large"
+          size="middle"
           icon={<WandSparkles size={16} />}
           onClick={handleGenerate}
           loading={isGenerating}
@@ -108,11 +108,11 @@ export default function AIDescriptionGenerator({
         </Button>
       </div>
 
-      <Typography.Text className="mt-2 block text-xs text-slate-500">
+      <p className="mt-2 block text-xs text-slate-500">
         {!productName.trim()
           ? "Add the product title first."
           : "AI will write directly into the description field below."}
-      </Typography.Text>
+      </p>
     </div>
   );
 }

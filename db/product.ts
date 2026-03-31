@@ -14,6 +14,8 @@ export type CreateProductData = {
   productBrandId?: string;
   isFeatured?: boolean;
   shippingProfileId?: string;
+  collections?: Prisma.CollectionCreateNestedManyWithoutProductsInput;
+  collectionIds?: string[]; // Add this to handle and then remove
 };
 
 export default class ProductDB {
@@ -58,7 +60,13 @@ export default class ProductDB {
   }
 
   static async create(data: CreateProductData) {
-    const { salePrice, compareAtPrice, costPrice, ...productData } = data;
+    const { 
+      salePrice, 
+      compareAtPrice, 
+      costPrice, 
+      collectionIds,
+      ...productData 
+    } = data;
 
     return await prisma.$transaction(async (tx) => {
       const defaultShippingProfile = productData.shippingProfileId

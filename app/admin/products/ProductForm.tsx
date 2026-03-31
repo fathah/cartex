@@ -14,7 +14,7 @@ import {
   Switch,
   Tabs,
 } from "antd";
-import { Edit } from "lucide-react";
+import { Edit, Info, AlignLeft, Image, Layers } from "lucide-react";
 import {
   createProduct,
   updateProduct,
@@ -105,7 +105,9 @@ export default function ProductForm({
         setBrands(brandData);
         setShippingProfiles(profileData);
         if (!initialData?.shippingProfileId) {
-          const defaultProfile = profileData.find((profile: any) => profile.isDefault);
+          const defaultProfile = profileData.find(
+            (profile: any) => profile.isDefault,
+          );
           if (defaultProfile) {
             form.setFieldValue("shippingProfileId", defaultProfile.id);
           }
@@ -257,24 +259,25 @@ export default function ProductForm({
       // Transform collectionIds array to proper Prisma relation format
       const productData: any = { ...values };
 
-      if (values.collectionIds && values.collectionIds.length > 0) {
-        if (isEdit) {
-          // For updates, use 'set' to replace all relations
+      if (values.collectionIds !== undefined) {
+        if (values.collectionIds.length > 0) {
+          if (isEdit) {
+            // For updates, use 'set' to replace all relations
+            productData.collections = {
+              set: values.collectionIds.map((id: string) => ({ id })),
+            };
+          } else {
+            // For creates, use 'connect' to link existing collections
+            productData.collections = {
+              connect: values.collectionIds.map((id: string) => ({ id })),
+            };
+          }
+        } else if (isEdit) {
+          // If editing and no collections selected, disconnect all
           productData.collections = {
-            set: values.collectionIds.map((id: string) => ({ id })),
-          };
-        } else {
-          // For creates, use 'connect' to link existing collections
-          productData.collections = {
-            connect: values.collectionIds.map((id: string) => ({ id })),
+            set: [],
           };
         }
-        delete productData.collectionIds;
-      } else if (isEdit && values.collectionIds?.length === 0) {
-        // If editing and no collections selected, disconnect all
-        productData.collections = {
-          set: [],
-        };
         delete productData.collectionIds;
       }
 
@@ -393,7 +396,7 @@ export default function ProductForm({
     </Card>
   );
 
-  const descriptionSection = (
+  const descriptionSection = isEdit ? (
     <Card title="Product Detailed Description" className="mb-6">
       <AIDescriptionGenerator
         form={form}
@@ -408,7 +411,7 @@ export default function ProductForm({
         <EditorWrapper />
       </Form.Item>
     </Card>
-  );
+  ) : null;
 
   const mediaSection = isEdit ? (
     <Card title="Media" className="mb-6">
@@ -532,11 +535,7 @@ export default function ProductForm({
           />
         </Form.Item>
 
-        <Form.Item
-          name="shippingProfileId"
-          label="Shipping Profile"
-          extra="Use profiles to keep shipping rules simple across GCC and India catalogs."
-        >
+        <Form.Item name="shippingProfileId" label="Shipping Profile">
           <Select
             placeholder="Select a shipping profile"
             loading={loadingShippingProfiles}
@@ -561,11 +560,13 @@ export default function ProductForm({
 
         <Form.Item
           name="isFeatured"
-          label="Mark as Featured"
           valuePropName="checked"
-          className="mb-0"
+          className="mb-0 pt-2"
         >
-          <Switch />
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-700 font-medium">Mark as Featured</span>
+            <Switch />
+          </div>
         </Form.Item>
       </Card>
     </div>
@@ -583,50 +584,89 @@ export default function ProductForm({
         descriptionLong: initialData?.descriptionLong || "",
       }}
       onFinish={onFinish}
+      className="h-full"
     >
-      {isEdit ? (
-        <Tabs
-          defaultActiveKey="basic"
-          items={[
-            {
-              key: "basic",
-              label: "Basic Info",
-              children: (
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col lg:flex-row gap-6">
-                    <div className="flex-1">{basicInfo}</div>
-                    <div className="w-full xl:w-80">{organizationSection}</div>
-                  </div>
-                  <div className="w-full">{descriptionSection}</div>
-                </div>
-              ),
-            },
-            {
-              key: "media",
-              label: "Media",
-              children: <div className="max-w-4xl">{mediaSection}</div>,
-            },
-            {
-              key: "variants",
-              label: "Variants",
-              children: <div className="max-w-5xl">{variantsSection}</div>,
-            },
-          ]}
-        />
-      ) : (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col lg:flex-row gap-6">
-            <div className="flex-1">{basicInfo}</div>
-            <div className="w-full xl:w-80">{organizationSection}</div>
-          </div>
-          <div className="w-full">{descriptionSection}</div>
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-6">
+          {isEdit ? (
+            <Tabs
+              defaultActiveKey="basic"
+              className="pb-6"
+              items={[
+                {
+                  key: "basic",
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <Info size={16} />
+                      Basic Info
+                    </span>
+                  ),
+                  children: (
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-col lg:flex-row gap-6 underline underline-offset-4 decoration-zinc-200">
+                        <div className="flex-1">{basicInfo}</div>
+                        <div className="w-full xl:w-80">
+                          {organizationSection}
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: "description",
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <AlignLeft size={16} />
+                      Description
+                    </span>
+                  ),
+                  children: (
+                    <div className="max-w-4xl">{descriptionSection}</div>
+                  ),
+                },
+                {
+                  key: "media",
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <Image size={16} />
+                      Media
+                    </span>
+                  ),
+                  children: <div className="max-w-4xl">{mediaSection}</div>,
+                },
+                {
+                  key: "variants",
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <Layers size={16} />
+                      Variants
+                    </span>
+                  ),
+                  children: <div className="max-w-5xl">{variantsSection}</div>,
+                },
+              ]}
+            />
+          ) : (
+            <div className="flex flex-col gap-6 pb-6">
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex-1">{basicInfo}</div>
+                <div className="w-full xl:w-80">{organizationSection}</div>
+              </div>
+              <div className="w-full">{descriptionSection}</div>
+            </div>
+          )}
         </div>
-      )}
 
-      <div className="flex justify-end border-t pt-4 bg-white sticky bottom-0 p-4 -mx-4 -mb-4 mt-4">
-        <Button type="primary" htmlType="submit" loading={loading}>
-          {isEdit ? "Save Changes" : "Create Product"}
-        </Button>
+        <div className="flex justify-end border-t pt-4 bg-white p-6 -mx-6 -mb-6 z-10 shrink-0">
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            size="large"
+          >
+            {isEdit ? "Save Changes" : "Create Product"}
+          </Button>
+        </div>
       </div>
     </Form>
   );

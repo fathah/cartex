@@ -20,6 +20,12 @@ CREATE TYPE "CartStatus" AS ENUM ('ACTIVE', 'CONVERTED', 'ABANDONED');
 CREATE TYPE "ShippingRateType" AS ENUM ('FLAT', 'CONDITIONAL', 'WEIGHT', 'PRICE');
 
 -- CreateEnum
+CREATE TYPE "ShippingRateApplicationType" AS ENUM ('BASE', 'SURCHARGE');
+
+-- CreateEnum
+CREATE TYPE "ShippingMethodSourceType" AS ENUM ('MANUAL', 'CARRIER');
+
+-- CreateEnum
 CREATE TYPE "PaymentMethodType" AS ENUM ('CARD', 'COD', 'WALLET', 'BNPL', 'BANK_TRANSFER');
 
 -- CreateEnum
@@ -73,6 +79,35 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
+CREATE TABLE "admin_sessions" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "revokedAt" TIMESTAMP(3),
+    "lastSeenAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "admin_sessions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "rate_limit_buckets" (
+    "id" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "identifier" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "count" INTEGER NOT NULL DEFAULT 0,
+    "windowStart" TIMESTAMP(3) NOT NULL,
+    "blockedUntil" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "rate_limit_buckets_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "markets" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -101,6 +136,7 @@ CREATE TABLE "products" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
     "productBrandId" TEXT,
+    "shippingProfileId" TEXT,
 
     CONSTRAINT "products_pkey" PRIMARY KEY ("id")
 );
@@ -146,6 +182,11 @@ CREATE TABLE "product_variants" (
     "compareAtPrice" DECIMAL(10,2),
     "costPrice" DECIMAL(10,2),
     "inventoryPolicy" "InventoryPolicy" NOT NULL DEFAULT 'DENY',
+    "requiresShipping" BOOLEAN NOT NULL DEFAULT true,
+    "weightGrams" INTEGER NOT NULL DEFAULT 0,
+    "lengthCm" DECIMAL(10,2),
+    "widthCm" DECIMAL(10,2),
+    "heightCm" DECIMAL(10,2),
     "imageId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -192,9 +233,13 @@ CREATE TABLE "collections" (
     "slug" TEXT NOT NULL,
     "description" TEXT,
     "imageId" TEXT,
+    "featureImageId" TEXT,
+    "isPublished" BOOLEAN NOT NULL DEFAULT false,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "color" TEXT,
+    "textColor" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "mediaId" TEXT,
 
     CONSTRAINT "collections_pkey" PRIMARY KEY ("id")
 );
@@ -223,11 +268,15 @@ CREATE TABLE "media_products" (
 CREATE TABLE "customers" (
     "id" TEXT NOT NULL,
     "email" TEXT,
+    "normalizedEmail" TEXT,
     "phone" TEXT,
     "fullname" TEXT,
     "passwordHash" TEXT,
     "otp" TEXT,
+    "otpHash" TEXT,
     "otpExpiresAt" TIMESTAMP(3),
+    "otpLastSentAt" TIMESTAMP(3),
+    "otpVerifyAttempts" INTEGER NOT NULL DEFAULT 0,
     "isGuest" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -278,12 +327,16 @@ CREATE TABLE "cart_items" (
 CREATE TABLE "orders" (
     "id" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
+    "checkoutRequestId" TEXT,
     "orderNumber" SERIAL NOT NULL,
     "totalPrice" DECIMAL(10,2) NOT NULL,
     "subtotal" DECIMAL(10,2) NOT NULL,
     "taxTotal" DECIMAL(10,2) NOT NULL,
     "shippingTotal" DECIMAL(10,2) NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'USD',
+    "marketId" TEXT,
+    "marketCode" TEXT,
+    "marketCountryCode" TEXT,
     "shippingAddress" JSONB NOT NULL DEFAULT '{}',
     "billingAddress" JSONB NOT NULL DEFAULT '{}',
     "status" "OrderStatus" NOT NULL DEFAULT 'ORDERED',
@@ -328,6 +381,12 @@ CREATE TABLE "shipping_methods" (
     "code" TEXT NOT NULL,
     "description" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "minDeliveryDays" INTEGER,
+    "maxDeliveryDays" INTEGER,
+    "sourceType" "ShippingMethodSourceType" NOT NULL DEFAULT 'MANUAL',
+    "providerCode" TEXT,
+    "providerServiceCode" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -338,15 +397,34 @@ CREATE TABLE "shipping_methods" (
 CREATE TABLE "shipping_rates" (
     "id" TEXT NOT NULL,
     "shippingMethodId" TEXT NOT NULL,
+    "shippingZoneId" TEXT,
+    "shippingProfileId" TEXT,
     "type" "ShippingRateType" NOT NULL,
     "price" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "applicationType" "ShippingRateApplicationType" NOT NULL DEFAULT 'BASE',
     "minOrderAmount" DECIMAL(65,30),
     "maxOrderAmount" DECIMAL(65,30),
+    "minWeightGrams" INTEGER,
+    "maxWeightGrams" INTEGER,
     "priority" INTEGER NOT NULL DEFAULT 0,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "shipping_rates_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "shipping_profiles" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "handlingFee" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "shipping_profiles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -394,6 +472,7 @@ CREATE TABLE "payment_gateways" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "environment" "GatewayEnvironment" NOT NULL,
     "config" JSONB NOT NULL,
+    "secretConfig" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "payment_gateways_pkey" PRIMARY KEY ("id")
@@ -414,6 +493,19 @@ CREATE TABLE "payment_intents" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "payment_intents_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "webhook_event_logs" (
+    "id" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "eventKey" TEXT NOT NULL,
+    "orderId" TEXT,
+    "paymentIntentId" TEXT,
+    "payload" JSONB,
+    "processedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "webhook_event_logs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -506,6 +598,18 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 CREATE UNIQUE INDEX "users_ziqxId_key" ON "users"("ziqxId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "admin_sessions_tokenHash_key" ON "admin_sessions"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "admin_sessions_userId_expiresAt_idx" ON "admin_sessions"("userId", "expiresAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "rate_limit_buckets_key_key" ON "rate_limit_buckets"("key");
+
+-- CreateIndex
+CREATE INDEX "rate_limit_buckets_action_identifier_idx" ON "rate_limit_buckets"("action", "identifier");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "markets_code_key" ON "markets"("code");
 
 -- CreateIndex
@@ -524,10 +628,40 @@ CREATE UNIQUE INDEX "inventories_variantId_key" ON "inventories"("variantId");
 CREATE UNIQUE INDEX "collections_slug_key" ON "collections"("slug");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "customers_normalizedEmail_key" ON "customers"("normalizedEmail");
+
+-- CreateIndex
+CREATE INDEX "customers_normalizedEmail_idx" ON "customers"("normalizedEmail");
+
+-- CreateIndex
+CREATE INDEX "addresses_customerId_idx" ON "addresses"("customerId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "orders_checkoutRequestId_key" ON "orders"("checkoutRequestId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "orders_orderNumber_key" ON "orders"("orderNumber");
 
 -- CreateIndex
+CREATE INDEX "orders_customerId_createdAt_idx" ON "orders"("customerId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "orders_paymentStatus_createdAt_idx" ON "orders"("paymentStatus", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "orders_status_createdAt_idx" ON "orders"("status", "createdAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "shipping_methods_code_key" ON "shipping_methods"("code");
+
+-- CreateIndex
+CREATE INDEX "shipping_rates_shippingZoneId_shippingMethodId_idx" ON "shipping_rates"("shippingZoneId", "shippingMethodId");
+
+-- CreateIndex
+CREATE INDEX "shipping_rates_shippingProfileId_shippingMethodId_idx" ON "shipping_rates"("shippingProfileId", "shippingMethodId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "shipping_profiles_code_key" ON "shipping_profiles"("code");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "payment_methods_code_key" ON "payment_methods"("code");
@@ -536,7 +670,25 @@ CREATE UNIQUE INDEX "payment_methods_code_key" ON "payment_methods"("code");
 CREATE UNIQUE INDEX "payment_gateways_code_key" ON "payment_gateways"("code");
 
 -- CreateIndex
+CREATE INDEX "payment_intents_orderId_idx" ON "payment_intents"("orderId");
+
+-- CreateIndex
+CREATE INDEX "payment_intents_gatewayRef_idx" ON "payment_intents"("gatewayRef");
+
+-- CreateIndex
+CREATE INDEX "webhook_event_logs_orderId_idx" ON "webhook_event_logs"("orderId");
+
+-- CreateIndex
+CREATE INDEX "webhook_event_logs_paymentIntentId_idx" ON "webhook_event_logs"("paymentIntentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "webhook_event_logs_provider_eventKey_key" ON "webhook_event_logs"("provider", "eventKey");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "newsletter_subscribers_email_key" ON "newsletter_subscribers"("email");
+
+-- CreateIndex
+CREATE INDEX "product_reviews_productId_customerId_idx" ON "product_reviews"("productId", "customerId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "pages_slug_key" ON "pages"("slug");
@@ -554,7 +706,13 @@ CREATE INDEX "_MethodZones_B_index" ON "_MethodZones"("B");
 CREATE INDEX "_MethodGateways_B_index" ON "_MethodGateways"("B");
 
 -- AddForeignKey
+ALTER TABLE "admin_sessions" ADD CONSTRAINT "admin_sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "products" ADD CONSTRAINT "products_productBrandId_fkey" FOREIGN KEY ("productBrandId") REFERENCES "product_brands"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "products" ADD CONSTRAINT "products_shippingProfileId_fkey" FOREIGN KEY ("shippingProfileId") REFERENCES "shipping_profiles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "options" ADD CONSTRAINT "options_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -578,7 +736,10 @@ ALTER TABLE "variant_markets" ADD CONSTRAINT "variant_markets_marketId_fkey" FOR
 ALTER TABLE "inventories" ADD CONSTRAINT "inventories_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "collections" ADD CONSTRAINT "collections_mediaId_fkey" FOREIGN KEY ("mediaId") REFERENCES "media"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "collections" ADD CONSTRAINT "collections_imageId_fkey" FOREIGN KEY ("imageId") REFERENCES "media"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "collections" ADD CONSTRAINT "collections_featureImageId_fkey" FOREIGN KEY ("featureImageId") REFERENCES "media"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "media_products" ADD CONSTRAINT "media_products_mediaId_fkey" FOREIGN KEY ("mediaId") REFERENCES "media"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -612,6 +773,12 @@ ALTER TABLE "wishlists" ADD CONSTRAINT "wishlists_productId_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "shipping_rates" ADD CONSTRAINT "shipping_rates_shippingMethodId_fkey" FOREIGN KEY ("shippingMethodId") REFERENCES "shipping_methods"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "shipping_rates" ADD CONSTRAINT "shipping_rates_shippingZoneId_fkey" FOREIGN KEY ("shippingZoneId") REFERENCES "shipping_zones"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "shipping_rates" ADD CONSTRAINT "shipping_rates_shippingProfileId_fkey" FOREIGN KEY ("shippingProfileId") REFERENCES "shipping_profiles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "shipping_zone_areas" ADD CONSTRAINT "shipping_zone_areas_shippingZoneId_fkey" FOREIGN KEY ("shippingZoneId") REFERENCES "shipping_zones"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

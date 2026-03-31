@@ -100,8 +100,8 @@ model User {
   fullname     String?
   role         UserRole @default(ADMIN)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
   deletedAt DateTime?
   sessions  AdminSession[]
 
@@ -109,14 +109,14 @@ model User {
 }
 
 model AdminSession {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique
-  expiresAt DateTime
-  revokedAt DateTime?
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
   lastSeenAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -125,15 +125,15 @@ model AdminSession {
 }
 
 model RateLimitBucket {
-  id          String   @id @default(cuid())
-  action      String
-  identifier  String
-  key         String   @unique
-  count       Int      @default(0)
-  windowStart DateTime
+  id           String    @id @default(cuid())
+  action       String
+  identifier   String
+  key          String    @unique
+  count        Int       @default(0)
+  windowStart  DateTime
   blockedUntil DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([action, identifier])
   @@map("rate_limit_buckets")
@@ -187,13 +187,13 @@ model Product {
 
   isFeatured Boolean @default(false)
 
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  deletedAt      DateTime?
-  mediaProducts  MediaProduct[]
-  wishlists      Wishlist[]
-  productReviews ProductReview[]
-  productBrandId String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
+  mediaProducts     MediaProduct[]
+  wishlists         Wishlist[]
+  productReviews    ProductReview[]
+  productBrandId    String?
   shippingProfileId String?
   shippingProfile   ShippingProfile? @relation(fields: [shippingProfileId], references: [id])
 
@@ -252,13 +252,13 @@ model ProductVariant {
   costPrice      Decimal? @db.Decimal(10, 2)
 
   // Inventory
-  inventoryPolicy InventoryPolicy @default(DENY)
-  inventory       Inventory?
-  requiresShipping Boolean @default(true)
-  weightGrams      Int     @default(0)
-  lengthCm         Decimal? @db.Decimal(10, 2)
-  widthCm          Decimal? @db.Decimal(10, 2)
-  heightCm         Decimal? @db.Decimal(10, 2)
+  inventoryPolicy  InventoryPolicy @default(DENY)
+  inventory        Inventory?
+  requiresShipping Boolean         @default(true)
+  weightGrams      Int             @default(0)
+  lengthCm         Decimal?        @db.Decimal(10, 2)
+  widthCm          Decimal?        @db.Decimal(10, 2)
+  heightCm         Decimal?        @db.Decimal(10, 2)
 
   // Options associated with this variant
   selectedOptions OptionValue[]
@@ -323,19 +323,24 @@ model Inventory {
 }
 
 model Collection {
-  id          String  @id @default(cuid())
-  name        String
-  slug        String  @unique
-  description String?
-  imageId     String?
+  id             String  @id @default(cuid())
+  name           String
+  slug           String  @unique
+  description    String?
+  imageId        String?
+  featureImageId String?
+  isPublished    Boolean @default(false)
+  order          Int     @default(0)
+  color          String?
+  textColor      String?
 
   products Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  image   Media?  @relation(fields: [mediaId], references: [id])
-  mediaId String?
+  image        Media? @relation("CollectionImage", fields: [imageId], references: [id])
+  featureImage Media? @relation("CollectionFeatureImage", fields: [featureImageId], references: [id])
 
   @@map("collections")
 }
@@ -347,10 +352,11 @@ model Media {
   alt  String?
   type String  @default("IMAGE") // IMAGE, VIDEO
 
-  createdAt       DateTime         @default(now())
-  productVariants ProductVariant[]
-  collections     Collection[]
-  mediaProducts   MediaProduct[]
+  createdAt          DateTime         @default(now())
+  productVariants    ProductVariant[]
+  collections        Collection[]     @relation("CollectionImage")
+  featureCollections Collection[]     @relation("CollectionFeatureImage")
+  mediaProducts      MediaProduct[]
 
   @@map("media")
 }
@@ -378,12 +384,12 @@ model Customer {
   phone           String?
   fullname        String?
 
-  passwordHash String?
-  otp          String?
-  otpHash      String?
-  otpExpiresAt DateTime?
-  otpLastSentAt DateTime?
-  otpVerifyAttempts Int @default(0)
+  passwordHash      String?
+  otp               String?
+  otpHash           String?
+  otpExpiresAt      DateTime?
+  otpLastSentAt     DateTime?
+  otpVerifyAttempts Int       @default(0)
 
   isGuest Boolean @default(false)
 
@@ -451,19 +457,19 @@ model CartItem {
 }
 
 model Order {
-  id         String @id @default(cuid())
-  customerId String
+  id                String  @id @default(cuid())
+  customerId        String
   checkoutRequestId String? @unique
 
   orderNumber Int @unique @default(autoincrement()) // Simple auto-increment for single tenant
 
-  totalPrice    Decimal @db.Decimal(10, 2)
-  subtotal      Decimal @db.Decimal(10, 2)
-  taxTotal      Decimal @db.Decimal(10, 2)
-  shippingTotal Decimal @db.Decimal(10, 2)
-  currency      String  @default("USD")
-  marketId      String?
-  marketCode    String?
+  totalPrice        Decimal @db.Decimal(10, 2)
+  subtotal          Decimal @db.Decimal(10, 2)
+  taxTotal          Decimal @db.Decimal(10, 2)
+  shippingTotal     Decimal @db.Decimal(10, 2)
+  currency          String  @default("USD")
+  marketId          String?
+  marketCode        String?
   marketCountryCode String?
 
   shippingAddress Json @default("{}")
@@ -520,16 +526,16 @@ model Wishlist {
 }
 
 model ShippingMethod {
-  id          String  @id @default(cuid())
-  name        String // "Standard Delivery", "Express", "Free Shipping"
-  code        String  @unique
-  description String?
-  isActive    Boolean @default(true)
-  sortOrder   Int     @default(0)
-  minDeliveryDays Int?
-  maxDeliveryDays Int?
-  sourceType ShippingMethodSourceType @default(MANUAL)
-  providerCode String?
+  id                  String                   @id @default(cuid())
+  name                String // "Standard Delivery", "Express", "Free Shipping"
+  code                String                   @unique
+  description         String?
+  isActive            Boolean                  @default(true)
+  sortOrder           Int                      @default(0)
+  minDeliveryDays     Int?
+  maxDeliveryDays     Int?
+  sourceType          ShippingMethodSourceType @default(MANUAL)
+  providerCode        String?
   providerServiceCode String?
 
   rates ShippingRate[]
@@ -542,16 +548,16 @@ model ShippingMethod {
 }
 
 model ShippingRate {
-  id               String         @id @default(cuid())
-  shippingMethodId String
-  shippingZoneId   String?
+  id                String           @id @default(cuid())
+  shippingMethodId  String
+  shippingZoneId    String?
   shippingProfileId String?
-  shippingMethod   ShippingMethod @relation(fields: [shippingMethodId], references: [id])
-  shippingZone     ShippingZone?  @relation(fields: [shippingZoneId], references: [id], onDelete: Cascade)
-  shippingProfile  ShippingProfile? @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
+  shippingMethod    ShippingMethod   @relation(fields: [shippingMethodId], references: [id])
+  shippingZone      ShippingZone?    @relation(fields: [shippingZoneId], references: [id], onDelete: Cascade)
+  shippingProfile   ShippingProfile? @relation(fields: [shippingProfileId], references: [id], onDelete: SetNull)
 
-  type  ShippingRateType
-  price Decimal          @default(0)
+  type            ShippingRateType
+  price           Decimal                     @default(0)
   applicationType ShippingRateApplicationType @default(BASE)
 
   minOrderAmount Decimal? // Free shipping threshold
@@ -570,15 +576,15 @@ model ShippingRate {
 }
 
 model ShippingProfile {
-  id String @id @default(cuid())
-  name String
-  code String @unique
+  id          String  @id @default(cuid())
+  name        String
+  code        String  @unique
   description String?
-  isDefault Boolean @default(false)
+  isDefault   Boolean @default(false)
   handlingFee Decimal @default(0) @db.Decimal(10, 2)
 
   products Product[]
-  rates ShippingRate[]
+  rates    ShippingRate[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -666,7 +672,7 @@ model PaymentGateway {
   isActive    Boolean            @default(true)
   environment GatewayEnvironment
 
-  config       Json   // public/non-secret configuration only
+  config       Json // public/non-secret configuration only
   secretConfig String? // encrypted secrets
 
   methods PaymentMethod[] @relation("MethodGateways")
@@ -711,13 +717,13 @@ model PaymentIntent {
 }
 
 model WebhookEventLog {
-  id            String   @id @default(cuid())
-  provider      String
-  eventKey      String
-  orderId       String?
+  id              String   @id @default(cuid())
+  provider        String
+  eventKey        String
+  orderId         String?
   paymentIntentId String?
-  payload       Json?
-  processedAt   DateTime @default(now())
+  payload         Json?
+  processedAt     DateTime @default(now())
 
   @@unique([provider, eventKey])
   @@index([orderId])

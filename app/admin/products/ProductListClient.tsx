@@ -231,7 +231,9 @@ export default function ProductListClient({
         }}
         footer={null}
         width={1100}
-        destroyOnClose
+        styles={{ body: { height: "82vh", overflow: "hidden" } }}
+        destroyOnHidden
+        centered
       >
         {formLoading ? (
           <div className="flex justify-center py-16">

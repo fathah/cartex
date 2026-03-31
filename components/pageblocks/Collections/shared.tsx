@@ -13,9 +13,15 @@ export interface CollectionRecord {
   name: string;
   slug: string;
   description?: string | null;
+  color?: string | null;
+  textColor?: string | null;
   imageId?: string | null;
   mediaId?: string | null;
+  featureImageId?: string | null;
   image?: {
+    url?: string | null;
+  } | null;
+  featureImage?: {
     url?: string | null;
   } | null;
   _count?: {
@@ -52,6 +58,12 @@ const contentAlignmentClasses = {
 export const resolveCollectionImage = (collection: CollectionRecord) => {
   const imageRef =
     collection.image?.url || collection.mediaId || collection.imageId;
+
+  return imageRef ? getMediaUrl(imageRef) : null;
+};
+
+export const resolveCollectionFeatureImage = (collection: CollectionRecord) => {
+  const imageRef = collection.featureImage?.url || collection.featureImageId;
 
   return imageRef ? getMediaUrl(imageRef) : null;
 };
@@ -123,13 +135,13 @@ export const CollectionSectionHeader = ({
   return (
     <div className={`mb-10 ${alignmentClasses[alignment]}`}>
       {title && (
-        <h2 className="text-[clamp(2rem,4vw,3.5rem)] font-semibold tracking-[-0.04em] text-slate-900">
+        <h2 className="text-[clamp(2.2rem,4vw,4rem)] font-semibold tracking-[-0.05em] text-slate-800">
           {title}
         </h2>
       )}
       {subtitle && (
         <p
-          className={`mt-3 max-w-2xl text-[15px] leading-7 text-slate-600 ${contentAlignmentClasses[alignment]}`}
+          className={`mt-3 max-w-2xl text-[15px] leading-7 text-slate-500 ${contentAlignmentClasses[alignment]}`}
         >
           {subtitle}
         </p>

@@ -7,10 +7,42 @@ import {
   CollectionCount,
   CollectionEmptyState,
   CollectionImage,
-  CollectionLink,
   CollectionSectionHeader,
   useCollectionSource,
 } from "../Collections/shared";
+
+const tilePalettes = [
+  {
+    background: "#d5f1e8",
+    ring: "#8bd5bf",
+    text: "#17352d",
+  },
+  {
+    background: "#dbe2ff",
+    ring: "#a8b7ef",
+    text: "#1f2952",
+  },
+  {
+    background: "#ffd9d4",
+    ring: "#f6b2ab",
+    text: "#5d2823",
+  },
+  {
+    background: "#f1e8a7",
+    ring: "#d9cd6f",
+    text: "#49401e",
+  },
+  {
+    background: "#efc8dd",
+    ring: "#d594b9",
+    text: "#532842",
+  },
+  {
+    background: "#d6f1d8",
+    ring: "#9ed4a3",
+    text: "#214327",
+  },
+] as const;
 
 const CollectionsGrid = ({
   title,
@@ -34,7 +66,7 @@ const CollectionsGrid = ({
   return (
     <section
       className="py-16 md:py-24"
-      style={{ backgroundColor: backgroundColor || "#f8fafc" }}
+      style={{ backgroundColor: backgroundColor || "#fdfdf9" }}
     >
       <div className="mx-auto max-w-7xl px-6">
         <CollectionSectionHeader
@@ -44,17 +76,16 @@ const CollectionsGrid = ({
         />
 
         {loading ? (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {Array.from({ length: Math.min(limit, 6) || 3 }).map((_, index) => (
               <div
                 key={index}
-                className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.45)]"
+                className="overflow-hidden rounded-[2rem] bg-slate-200/65"
               >
-                <div className="aspect-[4/5] animate-pulse bg-slate-200/70" />
-                <div className="space-y-3 p-6">
-                  <div className="h-4 w-24 animate-pulse rounded-full bg-slate-200/70" />
-                  <div className="h-8 w-2/3 animate-pulse rounded-full bg-slate-200/70" />
-                  <div className="h-4 w-full animate-pulse rounded-full bg-slate-200/60" />
+                <div className="aspect-square animate-pulse bg-slate-200/70" />
+                <div className="space-y-3 px-5 pb-5">
+                  <div className="mx-auto mt-4 h-5 w-2/3 animate-pulse rounded-full bg-slate-200/70" />
+                  <div className="mx-auto h-4 w-1/2 animate-pulse rounded-full bg-slate-200/60" />
                 </div>
               </div>
             ))}
@@ -62,52 +93,67 @@ const CollectionsGrid = ({
         ) : collections.length === 0 ? (
           <CollectionEmptyState />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {collections.map((collection) => (
-              <article
-                key={collection.id}
-                className="group overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.45)] transition duration-500 hover:-translate-y-1.5 hover:border-slate-300 hover:shadow-[0_30px_80px_-40px_rgba(15,23,42,0.4)]"
-              >
-                <Link
-                  href={`/categories/${collection.slug}`}
-                  className="block"
-                >
-                  <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
-                    <CollectionImage
-                      collection={collection}
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-slate-950/70 via-slate-950/15 to-transparent" />
-                    {showProductCount && (
-                      <div className="absolute left-5 top-5">
-                        <CollectionCount
-                          value={collection._count?.products}
-                          accentColor={accentColor}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </Link>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {collections.map((collection, index) => {
+              const palette = tilePalettes[index % tilePalettes.length];
 
-                <div className="space-y-4 p-6">
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-semibold tracking-[-0.03em] text-slate-900">
-                      {collection.name}
-                    </h3>
-                    {showDescription && collection.description && (
-                      <p className="line-clamp-3 text-sm leading-6 text-slate-600">
-                        {collection.description}
-                      </p>
-                    )}
-                  </div>
-                  <CollectionLink
-                    slug={collection.slug}
-                    label={ctaLabel}
-                    accentColor={accentColor}
-                  />
-                </div>
-              </article>
-            ))}
+              return (
+                <Link
+                  key={collection.id}
+                  href={`/categories/${collection.slug}`}
+                  className="group block"
+                >
+                  <article
+                    className="relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-[2rem] p-4 shadow-[0_20px_50px_-38px_rgba(15,23,42,0.34)] transition duration-500 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_-38px_rgba(15,23,42,0.4)]"
+                    style={{ backgroundColor: palette.background, color: palette.text }}
+                  >
+                    <div
+                      className="absolute inset-x-5 top-4 h-px opacity-60"
+                      style={{ backgroundColor: palette.ring }}
+                    />
+                    <div className="relative aspect-square overflow-hidden rounded-[1.5rem]">
+                      <div
+                        className="absolute inset-0 rounded-[1.5rem] opacity-55"
+                        style={{
+                          background:
+                            "radial-gradient(circle at top, rgba(255,255,255,0.58), transparent 56%)",
+                        }}
+                      />
+                      <div
+                        className="absolute inset-[10%] rounded-full blur-2xl"
+                        style={{ backgroundColor: `${palette.ring}80` }}
+                      />
+                      <CollectionImage
+                        collection={collection}
+                        className="relative h-full w-full object-contain p-4 transition duration-500 group-hover:scale-105"
+                      />
+                    </div>
+
+                    <div className="relative mt-4 flex flex-1 flex-col items-center text-center">
+                      <h3 className="text-lg font-semibold tracking-[-0.03em]">
+                        {collection.name}
+                      </h3>
+                      {showDescription && collection.description ? (
+                        <p className="mt-2 line-clamp-2 text-sm leading-5 opacity-80">
+                          {collection.description}
+                        </p>
+                      ) : null}
+                      {showProductCount ? (
+                        <div className="mt-3">
+                          <CollectionCount
+                            value={collection._count?.products}
+                            accentColor={accentColor || palette.text}
+                          />
+                        </div>
+                      ) : null}
+                      <span className="mt-4 text-xs font-semibold uppercase tracking-[0.22em] opacity-0 transition duration-300 group-hover:opacity-100">
+                        {ctaLabel}
+                      </span>
+                    </div>
+                  </article>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
